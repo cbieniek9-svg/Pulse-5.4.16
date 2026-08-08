@@ -1,18 +1,5 @@
 import { test, expect } from '@playwright/test';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { csDeviceToken, loginManagerMobile } from './helpers/playwright-auth.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-function managerCredentials() {
-    const cache = JSON.parse(fs.readFileSync(path.join(__dirname, '.playwright-staff-cache.json'), 'utf8'));
-    if (!cache?.managerA?.name || !cache?.managerA?.pin) {
-        throw new Error('Playwright manager credentials are unavailable.');
-    }
-    return cache.managerA;
-}
+import { csDeviceToken, loginManagerMobile, managerCredentials } from './helpers/playwright-auth.js';
 
 async function loginCsPortal(page, manager = managerCredentials()) {
     await expect(page.getByText('CS UPLINK')).toBeVisible({ timeout: 15000 });

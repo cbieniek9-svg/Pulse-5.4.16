@@ -86,16 +86,25 @@ function withTestDb(fn) {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'log-547-'));
     const prev = process.env.TGP_DATA_DIR;
     process.env.TGP_DATA_DIR = tmp;
+    const cleanup = () => {
+        process.env.TGP_DATA_DIR = prev;
+        try { fs.rmSync(tmp, { recursive: true, force: true }); } catch (_) {}
+    };
     try {
         delete require.cache[require.resolve('../src/db.cjs')];
         const { db, initializeSettings, initializeDailyRhythm } = require('../src/db.cjs');
         initializeSettings();
         initializeDailyRhythm();
         runMigrations(db);
-        return fn(db, tmp);
-    } finally {
-        process.env.TGP_DATA_DIR = prev;
-        try { fs.rmSync(tmp, { recursive: true, force: true }); } catch (_) {}
+        const result = fn(db, tmp);
+        if (result && typeof result.then === 'function') {
+            return Promise.resolve(result).finally(cleanup);
+        }
+        cleanup();
+        return result;
+    } catch (err) {
+        cleanup();
+        throw err;
     }
 }
 

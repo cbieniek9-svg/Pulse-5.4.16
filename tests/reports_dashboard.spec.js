@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readPlaywrightStaffCache } from './helpers/playwright-auth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -33,26 +34,15 @@ function loadLocalEnvFile() {
   }
 }
 
-function readStaffCache() {
-  const cachePath = path.join(__dirname, '.playwright-staff-cache.json');
-  try {
-    const j = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
-    if (j?.managerA?.name && j?.managerA?.pin) {
-      return { name: j.managerA.name, pin: j.managerA.pin, managerA: j.managerA };
-    }
-    if (j?.name && j?.pin) return { name: j.name, pin: j.pin };
-  } catch (_) { /* missing or invalid */ }
-  return null;
-}
-
 loadLocalEnvFile();
 
 async function tryStaffToken(request) {
   let name = process.env.PLAYWRIGHT_STAFF_NAME;
   let pin = process.env.PLAYWRIGHT_STAFF_PIN;
   let usedCache = false;
+  // Env overrides win; cache is fallback only.
   if (!name || !pin) {
-    const cached = readStaffCache();
+    const cached = readPlaywrightStaffCache({ optional: true });
     if (cached?.managerA?.name && cached?.managerA?.pin) {
       name = cached.managerA.name;
       pin = cached.managerA.pin;

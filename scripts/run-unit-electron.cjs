@@ -38,10 +38,19 @@ function discoverTestFiles() {
 }
 
 function resolveRuntime() {
+    const bundled = path.join(appDir, 'node_modules', 'electron', 'dist', 'electron.exe');
+    if (process.platform === 'win32' && fs.existsSync(bundled)) {
+        return { exe: bundled, label: 'Electron' };
+    }
     try {
         const electron = require(path.join(appDir, 'node_modules', 'electron'));
         if (electron && fs.existsSync(electron)) return { exe: electron, label: 'Electron' };
-    } catch (_) { /* fall through to plain node */ }
+    } catch (_) { /* fall through */ }
+    const mac = path.join(appDir, 'node_modules', 'electron', 'dist', 'Electron.app', 'Contents', 'MacOS', 'Electron');
+    const linux = path.join(appDir, 'node_modules', 'electron', 'dist', 'electron');
+    for (const candidate of [mac, linux]) {
+        if (fs.existsSync(candidate)) return { exe: candidate, label: 'Electron' };
+    }
     console.warn('! Electron not found — falling back to node; SQLite-backed tests will skip.\n');
     return { exe: process.execPath, label: 'node' };
 }
@@ -113,4 +122,4 @@ function main() {
     process.exit(failed.length || timedOut.length ? 1 : 0);
 }
 
-main();
+if (require.main === module) main();

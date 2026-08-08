@@ -161,13 +161,23 @@ async function phaseSettingsMaint(ctx) {
         return String(r.status);
     });
 
-    // Soft setting write that should be reversible
+    // Soft setting write that must restore prior value for later phases
     await report.check(phase, 'settings-write-training-flag', async () => {
-        await action({
-            table: 'settings', action: 'update',
-            id_col: 'setting_name', id_val: 'Training_Mode_Enabled',
-            data: { setting_value: '1' },
-        });
+        const prev = String(ctx.settings?.Training_Mode_Enabled ?? '0');
+        try {
+            await action({
+                table: 'settings', action: 'update',
+                id_col: 'setting_name', id_val: 'Training_Mode_Enabled',
+                data: { setting_value: '1' },
+            });
+        } finally {
+            await action({
+                table: 'settings', action: 'update',
+                id_col: 'setting_name', id_val: 'Training_Mode_Enabled',
+                data: { setting_value: prev },
+            });
+            ctx.settings = { ...ctx.settings, Training_Mode_Enabled: prev };
+        }
     });
 }
 
