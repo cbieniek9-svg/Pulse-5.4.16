@@ -388,15 +388,20 @@ function listMissingRhythmDetails(db, deps = {}) {
     let skipFifo = false;
     let expandRhythmTaskForBoard = null;
     let buildRhythmAssignContext = null;
+    let fifoExpandReady = false;
     try {
         const sched = require('./rhythm-schedule-assign.cjs');
         skipFifo = !!sched.shouldSkipFifoRhythm(db, stamp);
         expandRhythmTaskForBoard = sched.expandRhythmTaskForBoard;
         buildRhythmAssignContext = sched.buildRhythmAssignContext;
-    } catch (_) { /* ignore */ }
+        fifoExpandReady = typeof expandRhythmTaskForBoard === 'function'
+            && typeof buildRhythmAssignContext === 'function';
+    } catch (_) {
+        fifoExpandReady = false;
+    }
 
     let assignCtx = null;
-    if (typeof buildRhythmAssignContext === 'function') {
+    if (fifoExpandReady) {
         try { assignCtx = buildRhythmAssignContext(db, stamp); } catch (_) { assignCtx = null; }
     }
 
@@ -410,18 +415,27 @@ function listMissingRhythmDetails(db, deps = {}) {
         if (skipFifo && /^FIFO Audit$/i.test(detail)) return;
 
         // FIFO expands into per-aisle rows — one boarded aisle must not mark the template done.
-        if (/^FIFO Audit$/i.test(detail) && typeof expandRhythmTaskForBoard === 'function' && assignCtx) {
+        // Module/context/expand failures are treated as incomplete (fail closed), not covered.
+        if (/^FIFO Audit$/i.test(detail)) {
+            if (!fifoExpandReady || !assignCtx) {
+                missing.push(detail);
+                return;
+            }
             try {
                 const expected = expandRhythmTaskForBoard(db, t, assignCtx) || [];
                 const expectedDetails = expected
                     .map((bt) => String(bt.task_detail || '').trim())
                     .filter(Boolean);
-                if (expectedDetails.length) {
-                    const allPresent = expectedDetails.every((d) => boardedDetails.has(d));
-                    if (!allPresent) missing.push(detail);
+                if (!expectedDetails.length) {
+                    missing.push(detail);
                     return;
                 }
-            } catch (_) { /* fall through to prefix coverage */ }
+                const allPresent = expectedDetails.every((d) => boardedDetails.has(d));
+                if (!allPresent) missing.push(detail);
+            } catch (_) {
+                missing.push(detail);
+            }
+            return;
         }
 
         if (!openDetailCoversTemplate(detail, boardedDetails)) missing.push(detail);

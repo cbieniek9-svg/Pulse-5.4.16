@@ -360,6 +360,68 @@ test('openDetailCoversTemplate matches exact and em-dash expands', () => {
     assert.equal(openDetailCoversTemplate('Pull expired', open), false);
 });
 
+test('listMissingRhythmDetails marks FIFO incomplete when only some aisles boarded', () => {
+    const { listMissingRhythmDetails } = require('../src/lib/daily-rhythm.cjs');
+    const sched = require('../src/lib/rhythm-schedule-assign.cjs');
+    const orig = {
+        expand: sched.expandRhythmTaskForBoard,
+        build: sched.buildRhythmAssignContext,
+        skip: sched.shouldSkipFifoRhythm,
+    };
+    sched.shouldSkipFifoRhythm = () => false;
+    sched.buildRhythmAssignContext = () => ({ hasSchedule: true, storeDate: '2026-05-31' });
+    sched.expandRhythmTaskForBoard = () => ([
+        { task_detail: 'FIFO Audit — A1' },
+        { task_detail: 'FIFO Audit — A2' },
+    ]);
+    try {
+        const db = mockDb({
+            tasks: [
+                { status: 'Open', task_detail: 'FIFO Audit — A1', time_submitted: '2026-05-31T14:00:00.000Z' },
+            ],
+            rhythm_tasks: [
+                { id: 2, detail: 'FIFO Audit', day: 'Everyday', priority: 'Routine', zone: 'General', est_mins: 15 },
+            ],
+        });
+        const report = listMissingRhythmDetails(db, deps);
+        assert.deepEqual(report.missing, ['FIFO Audit']);
+        assert.equal(report.deferralLookupFailed, false);
+    } finally {
+        sched.expandRhythmTaskForBoard = orig.expand;
+        sched.buildRhythmAssignContext = orig.build;
+        sched.shouldSkipFifoRhythm = orig.skip;
+    }
+});
+
+test('listMissingRhythmDetails fail-closes FIFO when expand throws', () => {
+    const { listMissingRhythmDetails } = require('../src/lib/daily-rhythm.cjs');
+    const sched = require('../src/lib/rhythm-schedule-assign.cjs');
+    const orig = {
+        expand: sched.expandRhythmTaskForBoard,
+        build: sched.buildRhythmAssignContext,
+        skip: sched.shouldSkipFifoRhythm,
+    };
+    sched.shouldSkipFifoRhythm = () => false;
+    sched.buildRhythmAssignContext = () => ({ hasSchedule: true });
+    sched.expandRhythmTaskForBoard = () => { throw new Error('expand boom'); };
+    try {
+        const db = mockDb({
+            tasks: [
+                { status: 'Open', task_detail: 'FIFO Audit — A1', time_submitted: '2026-05-31T14:00:00.000Z' },
+            ],
+            rhythm_tasks: [
+                { id: 2, detail: 'FIFO Audit', day: 'Everyday', priority: 'Routine', zone: 'General', est_mins: 15 },
+            ],
+        });
+        const report = listMissingRhythmDetails(db, deps);
+        assert.deepEqual(report.missing, ['FIFO Audit']);
+    } finally {
+        sched.expandRhythmTaskForBoard = orig.expand;
+        sched.buildRhythmAssignContext = orig.build;
+        sched.shouldSkipFifoRhythm = orig.skip;
+    }
+});
+
 test('rhythm inserts land on store calendar day (store-local ISO)', () => {
     const db = mockDb();
     const { rhythmSubmittedAtIso } = require('../src/lib/store-time.cjs');

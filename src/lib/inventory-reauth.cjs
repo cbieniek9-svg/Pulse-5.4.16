@@ -27,7 +27,13 @@ async function assertInventoryControlReauth({
     data = {},
     action = 'reopen inventory session',
 } = {}) {
-    const reason = String(data.reason || '').trim();
+    if (typeof data.reason !== 'string') {
+        const error = new Error(`A reason (at least 3 characters) is required to ${action}.`);
+        error.status = 400;
+        error.code = 'DESTRUCTIVE_REASON_REQUIRED';
+        throw error;
+    }
+    const reason = data.reason.trim();
     if (reason.length < 3) {
         const error = new Error(`A reason (at least 3 characters) is required to ${action}.`);
         error.status = 400;
