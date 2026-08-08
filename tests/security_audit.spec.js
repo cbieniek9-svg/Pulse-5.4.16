@@ -1,14 +1,5 @@
 import { test, expect } from '@playwright/test';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-function managerCredentials() {
-  const cache = JSON.parse(fs.readFileSync(path.join(__dirname, '.playwright-staff-cache.json'), 'utf8'));
-  return cache.managerA;
-}
+import { managerCredentials, readPlaywrightStaffCache } from './helpers/playwright-auth.js';
 
 async function managerToken(request) {
   const manager = managerCredentials();
@@ -87,7 +78,7 @@ test.describe('Security Audit', () => {
   });
 
   test('P1: Public sync is a non-privileged bootstrap shell', async ({ request }) => {
-    const credentials = JSON.parse(fs.readFileSync(path.join(__dirname, '.playwright-staff-cache.json'), 'utf8'));
+    const credentials = readPlaywrightStaffCache({ requireManagers: true });
     const res = await request.get('/api/sync');
     expect(res.ok()).toBeTruthy();
     const data = await res.json();
@@ -124,7 +115,7 @@ test.describe('Security Audit', () => {
 
   test('P1b: Manager authenticates through explicit name entry', async ({ page }) => {
     const manager = managerCredentials();
-    const credentials = JSON.parse(fs.readFileSync(path.join(__dirname, '.playwright-staff-cache.json'), 'utf8'));
+    const credentials = readPlaywrightStaffCache({ requireManagers: true });
     await page.goto('/');
     await expect(page.locator('#auth-screen')).toBeVisible();
 

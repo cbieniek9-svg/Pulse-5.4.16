@@ -424,7 +424,7 @@ export default function StoreTvTab() {
                             value={form.sectionLabels[id]?.sublabel || ''}
                             onChange={(e) => setForm({
                                 ...form,
-                                sectionLabels: { ...form.sectionLabels, [id]: { ...form.sectionLabels, sublabel: e.target.value } },
+                                sectionLabels: { ...form.sectionLabels, [id]: { ...form.sectionLabels[id], sublabel: e.target.value } },
                             })}
                         />
                         <select
