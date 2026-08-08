@@ -1,0 +1,309 @@
+{
+  "source": "Store_Command_Center_v2.xlsm → Task_Library + Time_Budget",
+  "extracted_at": "2026-06-29",
+  "baselines": [
+    {
+      "detail": "Shovel snow / exterior tidy",
+      "department": "Grocery",
+      "frequency": "Daily (seasonal)",
+      "day_of_week": "All",
+      "est_mins": 30
+    },
+    {
+      "detail": "Straighten displays & signs (AM sweep)",
+      "department": "Grocery",
+      "frequency": "Daily",
+      "day_of_week": "All",
+      "est_mins": 15
+    },
+    {
+      "detail": "Store walk / Image checklist",
+      "department": "Grocery",
+      "frequency": "Daily",
+      "day_of_week": "All",
+      "est_mins": 30
+    },
+    {
+      "detail": "Orders (centre store)",
+      "department": "Grocery",
+      "frequency": "Daily",
+      "day_of_week": "All",
+      "est_mins": 60
+    },
+    {
+      "detail": "Back stock (pull/condense)",
+      "department": "Grocery",
+      "frequency": "Daily",
+      "day_of_week": "All",
+      "est_mins": 120
+    },
+    {
+      "detail": "Fill through day",
+      "department": "Grocery",
+      "frequency": "Daily",
+      "day_of_week": "All",
+      "est_mins": 240
+    },
+    {
+      "detail": "Facing / Check dates",
+      "department": "Grocery",
+      "frequency": "Daily",
+      "day_of_week": "All",
+      "est_mins": 180
+    },
+    {
+      "detail": "Rework shrink",
+      "department": "Grocery",
+      "frequency": "Daily",
+      "day_of_week": "All",
+      "est_mins": 15
+    },
+    {
+      "detail": "Build / refresh displays",
+      "department": "Grocery",
+      "frequency": "Adhoc",
+      "day_of_week": "All",
+      "est_mins": 60
+    },
+    {
+      "detail": "File maintenance (centre store)",
+      "department": "Grocery",
+      "frequency": "Weekly",
+      "day_of_week": "Thursday",
+      "est_mins": 30
+    },
+    {
+      "detail": "Relines (centre store)",
+      "department": "Grocery",
+      "frequency": "Adhoc",
+      "day_of_week": "All",
+      "est_mins": 60
+    },
+    {
+      "detail": "TGP invoices (review/claims)",
+      "department": "Grocery",
+      "frequency": "Daily",
+      "day_of_week": "All",
+      "est_mins": 60
+    },
+    {
+      "detail": "Shipping/Receiving (centre store)",
+      "department": "Grocery",
+      "frequency": "Daily",
+      "day_of_week": "All",
+      "est_mins": 120
+    },
+    {
+      "detail": "Plan merchandising (next flyer)",
+      "department": "Grocery",
+      "frequency": "Weekly",
+      "day_of_week": "All",
+      "est_mins": 60
+    },
+    {
+      "detail": "Stock shelves (core)",
+      "department": "Grocery",
+      "frequency": "Daily",
+      "day_of_week": "All",
+      "est_mins": 360
+    }
+  ],
+  "time_budget": [
+    {
+      "task": "Shovel snow / exterior tidy",
+      "category": "Ops",
+      "daily_equiv_hours": 0.5
+    },
+    {
+      "task": "Straighten displays & signs (AM)",
+      "category": "Merch",
+      "daily_equiv_hours": 0.5
+    },
+    {
+      "task": "Store walk / Image checklist",
+      "category": "QA",
+      "daily_equiv_hours": 0.5
+    },
+    {
+      "task": "Orders (centre store)",
+      "category": "Ordering",
+      "daily_equiv_hours": 1
+    },
+    {
+      "task": "Back stock (pull/condense)",
+      "category": "Backroom",
+      "daily_equiv_hours": 2
+    },
+    {
+      "task": "Fill through day",
+      "category": "Floor",
+      "daily_equiv_hours": 4
+    },
+    {
+      "task": "Facing / Check dates",
+      "category": "QA",
+      "daily_equiv_hours": 3
+    },
+    {
+      "task": "Rework shrink",
+      "category": "Shrink",
+      "daily_equiv_hours": 0.25
+    },
+    {
+      "task": "Build / refresh displays",
+      "category": "Merch",
+      "daily_equiv_hours": 0.42857142857142855
+    },
+    {
+      "task": "File maintenance (centre store)",
+      "category": "Scans",
+      "daily_equiv_hours": 0.07142857142857142
+    },
+    {
+      "task": "Relines (centre store)",
+      "category": "Planogram",
+      "daily_equiv_hours": 0.2857142857142857
+    },
+    {
+      "task": "TGP invoices (review/claims)",
+      "category": "Admin",
+      "daily_equiv_hours": 1
+    },
+    {
+      "task": "Shipping/Receiving (centre store)",
+      "category": "Receiving",
+      "daily_equiv_hours": 0.8571428571428571
+    },
+    {
+      "task": "Plan merchandising (next flyer)",
+      "category": "Merch",
+      "daily_equiv_hours": 0.14285714285714285
+    },
+    {
+      "task": "Stock shelves (core)",
+      "category": "Floor",
+      "daily_equiv_hours": 6
+    },
+    {
+      "task": "TOTAL",
+      "category": "",
+      "daily_equiv_hours": 20.535714285714285
+    }
+  ],
+  "rhythm_est_mins": {
+    "Level off displays": 15,
+    "Store walk": 30,
+    "TGP Order": 60,
+    "Back stock": 120
+  },
+  "quick_miss_checks": [
+    {
+      "check": "Overstock dated",
+      "est_mins": 5
+    },
+    {
+      "check": "FIFO rotation",
+      "est_mins": 10
+    },
+    {
+      "check": "Digital signs assigned",
+      "est_mins": 5
+    },
+    {
+      "check": "Promo price/scan mismatch",
+      "est_mins": 10
+    },
+    {
+      "check": "Pallet/block squared",
+      "est_mins": 5
+    },
+    {
+      "check": "Display height/sight lines",
+      "est_mins": 5
+    },
+    {
+      "check": "4ft traffic clearance",
+      "est_mins": 5
+    },
+    {
+      "check": "Unauthorized vendor fixtures",
+      "est_mins": 5
+    },
+    {
+      "check": "Empty sign zones (ends/features)",
+      "est_mins": 5
+    },
+    {
+      "check": "Backroom location accuracy",
+      "est_mins": 10
+    },
+    {
+      "check": "Claims follow-up",
+      "est_mins": 15
+    },
+    {
+      "check": "Housekeeping schedule",
+      "est_mins": 10
+    },
+    {
+      "check": "Safety (power equipment) compliance",
+      "est_mins": 5
+    },
+    {
+      "check": "10-min numbers scan (Open)",
+      "est_mins": 10
+    },
+    {
+      "check": "10-min floor + backroom walk (Open)",
+      "est_mins": 10
+    },
+    {
+      "check": "15-min team huddle (Open)",
+      "est_mins": 15
+    },
+    {
+      "check": "Coverage check (Open)",
+      "est_mins": 10
+    },
+    {
+      "check": "Delivery coordination (Midshift)",
+      "est_mins": 15
+    },
+    {
+      "check": "Availability pass (Midshift)",
+      "est_mins": 45
+    },
+    {
+      "check": "Rotation & dating pass (Midshift)",
+      "est_mins": 45
+    },
+    {
+      "check": "Display & feature touch (Midshift)",
+      "est_mins": 20
+    },
+    {
+      "check": "Digital sign / scan spot check (Midshift)",
+      "est_mins": 15
+    },
+    {
+      "check": "Housekeeping sweep (Midshift)",
+      "est_mins": 15
+    },
+    {
+      "check": "Backroom set (Close)",
+      "est_mins": 12
+    },
+    {
+      "check": "Promo integrity sweep (Close)",
+      "est_mins": 10
+    },
+    {
+      "check": "Exception log update (Close)",
+      "est_mins": 8
+    },
+    {
+      "check": "Tomorrow's Top 3 (Close)",
+      "est_mins": 5
+    }
+  ]
+}

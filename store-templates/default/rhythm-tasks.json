@@ -1,0 +1,20 @@
+{
+  "everyday": [
+    { "detail": "FIFO Audit", "priority": "Routine", "zone": "General", "est_mins": 15 },
+    { "detail": "Level off displays", "priority": "Routine", "zone": "General", "est_mins": 15 },
+    { "detail": "Check freezer for fallen items", "priority": "Routine", "zone": "General", "est_mins": 15 },
+    { "detail": "Store walk", "priority": "Routine", "zone": "General", "est_mins": 30 },
+    { "detail": "Mid-day zone walk (Core 4)", "priority": "Routine", "zone": "General", "est_mins": 15 },
+    { "detail": "Pre-close zone walk (Core 4)", "priority": "Routine", "zone": "General", "est_mins": 15 },
+    { "detail": "Daily direction huddle", "priority": "Routine", "zone": "General", "est_mins": 15 }
+  ],
+  "tgp_order_days": ["Sunday", "Tuesday", "Thursday"],
+  "non_tgp_days": ["Monday", "Wednesday", "Friday", "Saturday"],
+  "non_tgp_tasks": [
+    { "detail": "Work dead displays to home", "priority": "Routine", "zone": "General", "est_mins": 15 },
+    { "detail": "Back stock", "priority": "Routine", "zone": "General", "est_mins": 120 },
+    { "detail": "Clean Shelves", "priority": "Routine", "zone": "General", "est_mins": 15 },
+    { "detail": "Update DOTS", "priority": "Routine", "zone": "General", "est_mins": 15 }
+  ],
+  "tgp_order_task": { "detail": "TGP Order", "priority": "Urgent", "zone": "Receiving", "est_mins": 60 }
+}

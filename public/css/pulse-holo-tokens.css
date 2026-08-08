@@ -1,0 +1,100 @@
+@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&display=optional");
+
+:root,
+body.pulse-holo {
+    --pulse-void: #03060f;
+    --pulse-void-2: #0a1228;
+    --pulse-cyan: #00e5ff;
+    --pulse-amber: #ffb000;
+    --pulse-magenta: #ff2bd6;
+    --pulse-indigo: #26315f;
+    --pulse-glass: rgba(5, 17, 38, 0.72);
+    --pulse-border: rgba(0, 229, 255, 0.32);
+    --pulse-text: #e6fbff;
+    --pulse-muted: #86a7c4;
+    --pulse-u-soft: #ffe566;
+    --pulse-u-warn: #ffb000;
+    --pulse-u-critical: #ff6a00;
+    --pulse-u-overdue: #ff2b4a;
+    --pulse-display-font: "Orbitron", "Segoe UI", sans-serif;
+    --pulse-body-font: "Segoe UI", system-ui, sans-serif;
+    --pulse-radius: 14px;
+    --pulse-shadow-cyan: 0 0 22px rgba(0, 229, 255, 0.28);
+    --pulse-shadow-amber: 0 0 22px rgba(255, 176, 0, 0.26);
+    --pulse-shadow-magenta: 0 0 22px rgba(255, 43, 214, 0.24);
+    --pulse-grid: rgba(0, 229, 255, 0.055);
+    --pulse-bloom-cyan: rgba(0, 229, 255, 0.22);
+    --pulse-bloom-magenta: rgba(255, 43, 214, 0.16);
+    --pulse-glass-strong: rgba(5, 17, 38, 0.86);
+    /* React floor surfaces. These bridge the Prism modes into the refactored UI. */
+    --prism-shell: rgba(3, 6, 15, 0.9);
+    --prism-sidebar: rgba(8, 17, 31, 0.94);
+    --prism-surface: rgba(11, 26, 46, 0.72);
+    --prism-surface-strong: rgba(5, 17, 38, 0.96);
+    --prism-input: #020711;
+    --prism-text: #e6fbff;
+    --prism-muted: #9abbd4;
+    --prism-border: rgba(0, 229, 255, 0.38);
+    --prism-accent: #00e5ff;
+    --prism-accent-ink: #001217;
+    --prism-card-edge: #e8f2ff;
+    --prism-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+}
+
+body.pulse-intensity-highcontrast {
+    --pulse-void: #00030a;
+    --pulse-void-2: #061226;
+    --pulse-glass: rgba(0, 10, 22, 0.88);
+    --pulse-border: rgba(0, 229, 255, 0.58);
+    --pulse-text: #ffffff;
+    --pulse-muted: #b8d9ee;
+    --pulse-grid: rgba(0, 229, 255, 0.09);
+    --prism-shell: #000000;
+    --prism-sidebar: #02070c;
+    --prism-surface: #07111d;
+    --prism-surface-strong: #000000;
+    --prism-input: #000000;
+    --prism-text: #ffffff;
+    --prism-muted: #d7edff;
+    --prism-border: #6eefff;
+    --prism-accent: #00e5ff;
+    --prism-accent-ink: #000000;
+    --prism-card-edge: #ffffff;
+    --prism-shadow: none;
+}
+
+body.pulse-intensity-dockglare {
+    /* Bright, low-reflection palette for receiving-dock daylight. */
+    --pulse-void: #edf2ed;
+    --pulse-void-2: #d7e1dc;
+    --pulse-glass: rgba(255, 255, 247, 0.96);
+    --pulse-glass-strong: rgba(255, 255, 250, 0.99);
+    --pulse-border: rgba(111, 70, 0, 0.72);
+    --pulse-text: #111b24;
+    --pulse-muted: #334a5b;
+    --pulse-grid: rgba(79, 64, 27, 0.08);
+    --pulse-cyan: #00657a;
+    --pulse-amber: #7a4b00;
+    --pulse-shadow-cyan: 0 3px 12px rgba(21, 44, 51, 0.16);
+    --pulse-shadow-amber: 0 3px 14px rgba(111, 70, 0, 0.2);
+    --prism-shell: rgba(237, 242, 237, 0.96);
+    --prism-sidebar: rgba(215, 225, 220, 0.98);
+    --prism-surface: rgba(255, 255, 247, 0.98);
+    --prism-surface-strong: #fffefa;
+    --prism-input: #ffffff;
+    --prism-text: #111b24;
+    --prism-muted: #334a5b;
+    --prism-border: rgba(111, 70, 0, 0.72);
+    --prism-accent: #7a4b00;
+    --prism-accent-ink: #ffffff;
+    --prism-card-edge: #3b5263;
+    --prism-shadow: 0 4px 14px rgba(21, 36, 45, 0.16);
+}
+
+html[data-text-scale="large"] {
+    font-size: 112%;
+}
+
+html[data-text-scale="xl"] {
+    font-size: 128%;
+}
