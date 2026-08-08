@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="TGP Center Store TV dashboard — live tasks, labor, FIFO map, and store communications." />
+    <meta name="theme-color" content="#0a1525" />
+    <title>TGP Center Store — TV</title>
+    <link rel="icon" href="/public/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/assets/index-Dh6YdFtn.css" />
+    <link rel="stylesheet" href="/public/tv/tv-overrides.css" />
+    <link rel="stylesheet" href="/public/tv/tv-dashboard.css" />
+    <link rel="stylesheet" href="/public/css/pulse-holo-tokens.css" />
+    <link rel="stylesheet" href="/public/css/pulse-holo.css" />
+    <link rel="stylesheet" href="/public/css/pulse-bridge.css" />
+    <link rel="stylesheet" href="/public/css/prism-ui.css" />
+    <style id="tv-overrides"></style>
+    <script src="/public/js/tgp-stream.js" defer></script>
+    <script src="/public/js/shift-pph-client.js" defer></script>
+    <script src="/public/js/zone-map-colors.js" defer></script>
+    <script src="/public/js/zone-owners.js" defer></script>
+</head>
+<body data-pulse-surface="tv" class="pulse-bridge">
+    <div class="dashboard pulse-bridge-shell" id="tgp-tv-root" data-pulse-bridge-shell>
+        <header class="header">
+            <h1 class="header-title" id="tv-store-title">TGP CENTER STORE</h1>
+            <div class="header-kpis" id="tv-kpis"></div>
+            <div class="header-info">
+                <span>—</span><span>—</span><span>—</span>
+            </div>
+        </header>
+        <div id="tv-comms-pinned" class="tv-comms-pinned-wrap" style="display:none;"></div>
+        <main class="main-content" id="main">
+            <div class="col col-left">
+                <div class="task-map-container centric">
+                    <div id="tv-fifo-aisle-assignments" class="tv-fifo-assignments"></div>
+                    <svg viewBox="0 -10 1200 780" class="tactical-svg large" id="tv-map-svg"></svg>
+                    <div id="map-legend" class="map-legend"></div>
+                </div>
+            </div>
+            <div class="col col-center condensed" id="tv-col-center"></div>
+            <div class="col col-right">
+                <div id="tv-col-right-secondary"></div>
+            </div>
+        </main>
+        <div class="ticker-wrap" id="tv-ticker-wrap" style="display:none;">
+            <div class="ticker" id="tv-ticker"></div>
+        </div>
+    </div>
+    <script src="/public/js/comms-center-client.js" defer></script>
+    <script src="/public/tv/tv-dashboard.js" defer></script>
+    <script src="/public/tv/tv-overrides.js" defer></script>
+    <script src="/public/js/pulse-boot.js" defer></script>
+    <script src="/public/js/pulse-motion.js" defer></script>
+    <script src="/public/js/pulse-urgency.js" defer></script>
+</body>
+</html>

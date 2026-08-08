@@ -1,0 +1,35 @@
+{
+  "zone_mapping": {
+    "Zone 1": ["map-a1", "map-a2", "map-a6"],
+    "Zone 2": ["map-a3", "map-a4", "map-a5", "map-rfz"],
+    "Zone 3": ["map-a7", "map-a8", "map-fsfrz"],
+    "Zone 4": ["map-cmd"]
+  },
+  "zone_names": {
+    "Zone 1": "ZONE 1",
+    "Zone 2": "ZONE 2",
+    "Zone 3": "ZONE 3",
+    "Zone 4": "ZONE 4"
+  },
+  "zone_section_labels": {
+    "map-a1": { "label": "A1", "sublabel": "POP" },
+    "map-a2": { "label": "A2", "sublabel": "SNACK" },
+    "map-a3": { "label": "A3", "sublabel": "HBA" },
+    "map-a4": { "label": "A4", "sublabel": "BAKE" },
+    "map-a5": {
+      "label": "A5",
+      "sublabel": "COFFEE",
+      "sections": [
+        { "label": "Coffee", "owner": "Ashley" },
+        { "label": "Monin/Torani", "owner": "Luke" },
+        { "label": "Wraps", "owner": "Chandler" }
+      ]
+    },
+    "map-a6": { "label": "A6", "sublabel": "ETH/PET" },
+    "map-a7": { "label": "A7", "sublabel": "FS PAPER" },
+    "map-a8": { "label": "A8", "sublabel": "PKGS" },
+    "map-rfz": { "label": "RFZ", "sublabel": "RETAIL FRZ" },
+    "map-fsfrz": { "label": "FS FRZ", "sublabel": "MEAT" }
+  },
+  "fifo_aisle_assignments": []
+}

@@ -1,0 +1,48 @@
+/* Critical reports shell — loaded from index.html so first paint matches hydrated UI (CLS). */
+.reports-portal {
+    background: #000;
+    color: #8cf;
+    font-family: 'Arial Narrow', 'Arial', sans-serif;
+    text-transform: uppercase;
+    min-height: 100vh;
+    padding: 0 0 60px;
+    width: 100%;
+    box-sizing: border-box;
+}
+.reports-portal > .hdr {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    border-bottom: 2px solid #ffc44d;
+    background: rgba(0, 0, 0, 0.8);
+    /* Reserve two-line toolbar height so button wrap does not push main (CLS). */
+    min-height: 120px;
+    height: auto;
+    gap: 12px;
+    flex-wrap: wrap;
+    box-sizing: border-box;
+    width: 100%;
+}
+.reports-portal > .hdr .hdr-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: #eef5ff;
+}
+.reports-portal > .hdr .hdr-sub {
+    font-size: 0.75rem;
+    color: #8cf;
+    letter-spacing: 1px;
+    margin-top: 2px;
+    min-height: 1.1em;
+}
+.reports-portal > main.page,
+.reports-portal > .page {
+    width: 100%;
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 20px;
+    box-sizing: border-box;
+    min-height: 2800px;
+}

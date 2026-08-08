@@ -1,0 +1,9 @@
+{
+  "Monday": ["Old Dutch", "Coke", "Pepsi", "Frito Lay (Retail)", "Frito Lay (Vending)", "Italian Bakery", "Canada Bread"],
+  "Tuesday": ["TGP", "Old Dutch", "Kenelli", "Frito Lay (Retail)"],
+  "Wednesday": ["Old Dutch", "Frito Lay (Retail)"],
+  "Thursday": ["TGP", "Old Dutch", "Pepsi", "Frito Lay (Vending)", "Italian Bakery", "Canada Bread"],
+  "Friday": ["Old Dutch", "Coke", "Frito Lay (Retail)"],
+  "Saturday": ["Italian Bakery"],
+  "Sunday": ["TGP"]
+}
