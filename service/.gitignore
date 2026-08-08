@@ -1,0 +1,6 @@
+runtime/
+service/logs/
+service/TGP-CommandCenter.exe
+service/*.err.log
+service/*.out.log
+service/*.wrapper.log
