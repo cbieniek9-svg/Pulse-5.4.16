@@ -13,6 +13,11 @@ test('package exposes release verification scripts', () => {
     assert.match(pkg.scripts['verify:release'], /verify-release\.cjs/);
     assert.match(pkg.scripts['verify:fresh-install'], /fresh-install-smoke\.cjs/);
     assert.match(pkg.scripts['verify:upgrade'], /upgrade-smoke\.cjs/);
+    assert.equal(
+        pkg.scripts['rebuild:electron'],
+        'electron-rebuild -f -w better-sqlite3',
+        'native rebuild must use the installed Electron version instead of a stale hard-coded version',
+    );
 });
 
 test('verify-release step plan includes smoke checks and supports quick mode', () => {
@@ -26,4 +31,10 @@ test('verify-release step plan includes smoke checks and supports quick mode', (
 
     assert.equal(parseArgs(['--quick', '--skip-backup']).quick, true);
     assert.equal(parseArgs(['--quick', '--skip-backup']).skipBackup, true);
+});
+
+test('store deploy preflight checks runtime artifacts, not editor-only files', () => {
+    const source = fs.readFileSync(path.join(appRoot, 'scripts', 'verify-store-deploy.cjs'), 'utf8');
+    assert.doesNotMatch(source, /\.cursor\/rules/);
+    assert.match(source, /Install-TGP-Service\.ps1 must regenerate it on the store PC/);
 });
