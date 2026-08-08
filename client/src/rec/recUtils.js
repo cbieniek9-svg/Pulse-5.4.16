@@ -1,10 +1,8 @@
 export function fmtTime(iso) {
     if (!iso) return '—';
-    try {
-        return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch (_) {
-        return '—';
-    }
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return '—';
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 /** Calendar day arithmetic on YYYY-MM-DD stamps (noon local avoids DST edge cases). */

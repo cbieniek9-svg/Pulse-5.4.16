@@ -6,7 +6,7 @@
   "main": "main.cjs",
   "scripts": {
     "postinstall": "npm run rebuild:electron",
-    "rebuild:electron": "electron-rebuild -f -w better-sqlite3 -v 41.3.0",
+    "rebuild:electron": "electron-rebuild -f -w better-sqlite3",
     "rebuild:node": "npm rebuild better-sqlite3",
     "test": "playwright test",
     "test:smoke": "playwright test tests/sales_floor.spec.js tests/security_audit.spec.js tests/reports_dashboard.spec.js",
