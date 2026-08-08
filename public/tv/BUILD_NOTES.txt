@@ -1,0 +1,39 @@
+TV dashboard — two shells (pick one via Manager → TV settings → TV display shell):
+
+NATIVE (default: TV_Native_Shell = 1) — supported path
+
+  public/tv/tv-dashboard.html   — maintainable HTML shell
+  public/tv/tv-dashboard.js     — renders map/tasks/KPIs from /api/sync + SSE push
+  public/tv/map-sections.json   — floor plan geometry (editable)
+  + public/tv/tv-overrides.css/js (expiry panels, FIFO assignments, Message Center feed/ticker, LIVE badge)
+
+Live sync (4.2.1+, presence strip 4.5.0 when Presence_Enabled=1):
+
+  Native shell connects to /api/stream (trusted TV IP) — ~250ms refresh on floor changes.
+  Header badge: LIVE (SSE ok) | SYNC (poll fallback) | RECONNECTING.
+  Message Center: pinned banner, floor comms feed column, zone chips on posts.
+
+5.3.2 shell polish (does not change board layout logic):
+
+  Meta description + favicon; content wrapped in <main id="main">.
+  Dashboard scripts use defer (parse HTML first, then run — normal/faster first paint).
+  Preflight still: npm run check:tv
+
+LEGACY (deprecated: TV_Native_Shell = 0)
+
+  dist/index.html — React bundle from Vite (no source in repo)
+  + same tv-overrides.css/js
+
+After replacing dist/index.html from Vite, re-add override links:
+
+  <link rel="stylesheet" href="/public/tv/tv-overrides.css">
+  <script src="/public/js/tgp-stream.js"></script>
+  <script src="/public/js/shift-pph-client.js"></script>
+  <script src="/public/js/zone-map-colors.js"></script>
+  <script src="/public/tv/tv-overrides.js" defer></script>
+
+Preflight: npm run check:tv
+
+Store / product docs: ../../docs/INDEX.md · ../../docs/AI_HANDOFF_TGP_V5.md
+Release notes: ../../CHANGELOG.md · ../../PATCH_NOTES.txt
+Testing (chaos / lighthouse): ../../docs/TESTING.md

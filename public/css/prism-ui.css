@@ -1,0 +1,294 @@
+/* Prism UI extras — display-mode controls (no Pulse backend) */
+.pulse-opt-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 6px 0 10px;
+}
+
+.pulse-opt-btn.pulse-opt-active {
+    border-color: #00e5ff !important;
+    color: #00e5ff !important;
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.28);
+}
+
+.prism-display-hint {
+    font-size: 0.72em;
+    color: var(--prism-muted);
+    text-transform: none;
+    margin: 0 0 8px;
+    line-height: 1.35;
+}
+
+/*
+ * Routine / basic tasks used the default cyan rail (#00e5ff) — same as Prism bloom.
+ * Give them a bright ice/silver edge + denser card so they still pop on the board.
+ * Urgent (red) and High (amber) stay as-is.
+ */
+body.pulse-holo .data-card:not(.data-urgent):not(.data-high) {
+    border-left-color: #e8f2ff;
+    background: rgba(4, 10, 22, 0.82);
+    color: #f5f9ff;
+    box-shadow:
+        inset 0 0 0 1px rgba(232, 242, 255, 0.12),
+        0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
+body.pulse-holo .data-card:not(.data-urgent):not(.data-high) .card-meta,
+body.pulse-holo .data-card:not(.data-urgent):not(.data-high) .card-meta strong,
+body.pulse-holo .data-card:not(.data-urgent):not(.data-high) .task-assignee-name {
+    color: #d7e6f7;
+}
+
+body.pulse-holo .data-card:not(.data-urgent):not(.data-high) .done-btn {
+    border-color: #e8f2ff;
+    color: #e8f2ff;
+}
+
+/* TV task board — Routine cards (no .urgent / .high) */
+body.pulse-holo #tv-col-center .card:not(.urgent):not(.high),
+body.pulse-holo #tv-col-right .card:not(.urgent):not(.high),
+body.pulse-holo #tv-col-right-secondary .card:not(.urgent):not(.high) {
+    border-left-color: #e8f2ff !important;
+    background: rgba(4, 10, 22, 0.78) !important;
+    color: #f5f9ff;
+    box-shadow: inset 0 0 0 1px rgba(232, 242, 255, 0.1);
+}
+
+body.pulse-holo #tv-col-center .card:not(.urgent):not(.high) .card-zone,
+body.pulse-holo #tv-col-right .card:not(.urgent):not(.high) .card-zone,
+body.pulse-holo #tv-col-right-secondary .card:not(.urgent):not(.high) .card-zone {
+    color: #e8f2ff !important;
+}
+
+/* Map "active" (= Routine work) — cooler white stroke so it isn't lost in cyan bloom */
+body.pulse-holo .zone-block.active:not(.high):not(.urgent) line,
+body.pulse-holo .zone-block.active:not(.high):not(.urgent) rect {
+    stroke: #e8f2ff !important;
+}
+
+/*
+ * React floor bridge
+ * ------------------
+ * The original Prism skin targeted pre-refactor pulse-* panels. The live React floor still uses
+ * Streamlit-era class names from mobile.css, so its opaque hardcoded surfaces hid every intensity
+ * token. Map those live classes to mode-aware tokens here, after mobile.css and the base Prism
+ * skin. Urgent/high semantic red and amber states intentionally keep their own colors.
+ */
+body.pulse-holo #app-screen {
+    color: var(--prism-text);
+    background: transparent;
+}
+
+body.pulse-holo #auth-screen {
+    background: var(--pulse-bloom);
+    color: var(--prism-text);
+}
+
+body.pulse-holo #auth-screen .auth-box {
+    background: var(--prism-surface-strong);
+    border-color: var(--prism-border);
+    color: var(--prism-text);
+    box-shadow: var(--prism-shadow);
+}
+
+body.pulse-holo #auth-screen .auth-header {
+    border-color: var(--prism-accent);
+}
+
+body.pulse-holo #auth-screen .auth-title {
+    color: var(--prism-text);
+}
+
+body.pulse-holo #auth-screen .auth-version {
+    color: var(--prism-accent);
+}
+
+body.pulse-holo .st-sidebar {
+    background: var(--prism-sidebar);
+    border-color: var(--prism-border);
+    color: var(--prism-text);
+}
+
+body.pulse-holo .st-main {
+    background: var(--prism-shell);
+    color: var(--prism-text);
+}
+
+body.pulse-holo .floor-sidebar-header,
+body.pulse-holo details.st-expander,
+body.pulse-holo details[open] summary.st-expander-header,
+body.pulse-holo .sect-header {
+    border-color: var(--prism-border);
+}
+
+body.pulse-holo summary.st-expander-header,
+body.pulse-holo .st-expander-content {
+    background: var(--prism-surface);
+    color: var(--prism-text);
+}
+
+body.pulse-holo summary.st-expander-header::after,
+body.pulse-holo .floor-user-name,
+body.pulse-holo .conn-status-text {
+    color: var(--prism-accent);
+}
+
+body.pulse-holo .sect-header::before,
+body.pulse-holo .stat-bar-fill {
+    background-color: var(--prism-accent);
+}
+
+body.pulse-holo .floor-user-line,
+body.pulse-holo .section-label,
+body.pulse-holo .header-title,
+body.pulse-holo .sect-header,
+body.pulse-holo .kpi-value,
+body.pulse-holo .notice-title,
+body.pulse-holo .confirm-header {
+    color: var(--prism-text);
+}
+
+body.pulse-holo .header-time,
+body.pulse-holo .kpi-label,
+body.pulse-holo .card-meta,
+body.pulse-holo .comms-feed-meta,
+body.pulse-holo .notice-message,
+body.pulse-holo .confirm-body,
+body.pulse-holo .recent-activity-header {
+    color: var(--prism-muted) !important;
+}
+
+body.pulse-holo .kpi-box,
+body.pulse-holo .comms-feed-item:not(.comms-pri-urgent),
+body.pulse-holo .daily-direction-floor-card,
+body.pulse-holo .notice-card,
+body.pulse-holo .confirm-panel,
+body.pulse-holo .auth-box {
+    background: var(--prism-surface);
+    border-color: var(--prism-border);
+    color: var(--prism-text);
+    box-shadow: var(--prism-shadow);
+}
+
+body.pulse-holo .data-card:not(.data-urgent):not(.data-high) {
+    background: var(--prism-surface);
+    border-left-color: var(--prism-card-edge);
+    color: var(--prism-text);
+    box-shadow: var(--prism-shadow);
+}
+
+body.pulse-holo .data-card:not(.data-urgent):not(.data-high) .card-meta,
+body.pulse-holo .data-card:not(.data-urgent):not(.data-high) .card-meta strong,
+body.pulse-holo .data-card:not(.data-urgent):not(.data-high) .task-assignee-name,
+body.pulse-holo .daily-direction-floor-body,
+body.pulse-holo .daily-direction-floor-wins,
+body.pulse-holo .comms-feed-body {
+    color: var(--prism-text);
+}
+
+body.pulse-holo .st-input {
+    background: var(--prism-input);
+    border-color: var(--prism-border);
+    color: var(--prism-text);
+}
+
+body.pulse-holo #auth-screen .st-input,
+body.pulse-holo #auth-screen select.st-input,
+body.pulse-holo #auth-screen input.st-input {
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+body.pulse-holo .st-input option {
+    background: var(--prism-input);
+    color: var(--prism-text);
+}
+
+body.pulse-holo .st-btn,
+body.pulse-holo .done-btn,
+body.pulse-holo .data-card:not(.data-urgent):not(.data-high) .done-btn {
+    border-color: var(--prism-accent);
+    color: var(--prism-accent);
+    box-shadow: none;
+}
+
+body.pulse-holo .st-btn:hover,
+body.pulse-holo .done-btn:hover {
+    background: var(--prism-accent);
+    color: var(--prism-accent-ink);
+    box-shadow: var(--prism-shadow);
+}
+
+body.pulse-holo .st-btn.subtle {
+    background: var(--prism-surface);
+    border-color: var(--prism-border);
+    color: var(--prism-text);
+}
+
+body.pulse-holo .pulse-opt-btn.pulse-opt-active {
+    border-color: var(--prism-accent) !important;
+    color: var(--prism-accent) !important;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--prism-accent) 32%, transparent);
+}
+
+body.pulse-holo .stat-bar-container {
+    background: var(--prism-input);
+    border-color: var(--prism-border);
+}
+
+/* High contrast removes decorative bloom/motion and strengthens component outlines. */
+body.pulse-holo.pulse-intensity-highcontrast .st-sidebar,
+body.pulse-holo.pulse-intensity-highcontrast .st-main,
+body.pulse-holo.pulse-intensity-highcontrast .data-card,
+body.pulse-holo.pulse-intensity-highcontrast .kpi-box,
+body.pulse-holo.pulse-intensity-highcontrast .st-input,
+body.pulse-holo.pulse-intensity-highcontrast .st-btn,
+body.pulse-holo.pulse-intensity-highcontrast .done-btn {
+    border-width: 2px;
+}
+
+body.pulse-holo.pulse-intensity-highcontrast h1,
+body.pulse-holo.pulse-intensity-highcontrast h2,
+body.pulse-holo.pulse-intensity-highcontrast h3,
+body.pulse-holo.pulse-intensity-highcontrast .header-title {
+    text-shadow: none;
+}
+
+/* Dock glare is deliberately light and low-reflection for daylight on a receiving Chromebook. */
+body.pulse-holo.pulse-intensity-dockglare {
+    --pulse-bloom:
+        linear-gradient(150deg, rgba(255, 255, 250, 0.96), rgba(215, 225, 220, 0.98));
+}
+
+body.pulse-holo.pulse-intensity-dockglare::before {
+    opacity: 0.18;
+    mix-blend-mode: multiply;
+}
+
+body.pulse-holo.pulse-intensity-dockglare .data-urgent {
+    background: #ffe7e7;
+    color: #711111;
+}
+
+body.pulse-holo.pulse-intensity-dockglare .data-high {
+    background: #fff0cc;
+    color: #5f3b00;
+}
+
+body.pulse-holo.pulse-intensity-dockglare .comms-pinned-warn {
+    background: #fff0cc;
+    color: #5f3b00;
+}
+
+body.pulse-holo.pulse-intensity-dockglare .comms-pinned-urgent,
+body.pulse-holo.pulse-intensity-dockglare .comms-feed-item.comms-pri-urgent {
+    background: #ffe7e7;
+    color: #711111;
+}
+
+@media (max-width: 1024px) {
+    body.pulse-holo .st-sidebar {
+        border-bottom-color: var(--prism-border);
+    }
+}

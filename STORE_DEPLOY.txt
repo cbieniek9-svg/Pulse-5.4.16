@@ -1,0 +1,132 @@
+Patch 16 note: /rec now includes a File Maintenance Log section with selectable date, print, and CSV export for receiving/file-maintenance users.
+
+## Patch 14 — Persistent Daily Safety Blurbs
+
+- Added `safety_blurbs` and `daily_safety_focus` tables with migration 020.
+- Seeded 20 grocery-safe daily blurbs, including safe cutting, spills, exits, ladders, chemicals, lifting, broken glass, and receiving safety.
+- Added a Manager Settings tab to import/edit/disable blurbs and post or rotate today's safety focus.
+- TV Safety Watch now shows Today's Safety Focus persistently for the store date.
+- Reports now show the saved Daily Safety Focus for live and historical dates.
+- Full History ZIP export now includes safety blurb and daily focus tables.
+
+## 4.7.0 PoC Daily Direction TGP-day fix
+
+- Daily Direction now treats a date as a TGP Order Day when the briefing is blank but store activity shows a TGP expected order, TGP work task, active order clock, archived order history, or TGP vendor schedule.
+- The default floor message and Daily Direction day context no longer fall back to Non-TGP Day for real TGP days.
+- Added regression tests for expected TGP orders with a blank order-day briefing.
+
+## Patch 10 — Receiving Vendor Work Task Fix
+
+- Time-in now stores the “Create receiving work task” checkbox choice on the vendor row.
+- Time-out now closes the temporary receiving task and creates the follow-up “Work <vendor> order” task when that checkbox was selected.
+- TGP order behavior is preserved: timing out a TGP vendor still starts the order clock and creates/keeps the TGP work task.
+- Added migration 019 and regression tests for vendor receiving task creation.
+
+## Patch 9 — Long-Term History, Trends & Rule-Based Insights
+
+- Added configurable `Operational_Retention_Days` defaulting to 365 days.
+- Added daily report snapshots so trends survive raw-row cleanup.
+- Added Reports → Learn trend cards, explainable insights, Trend CSV export, and Full History ZIP export.
+- Reports label the old `shrink_log` data as Outdated Items.
+
+TGP Store Deploy Package
+Version: 5.4.16
+Built: 2026-08-06 (Period department freight allocation)
+
+--- Recent highlights (see PATCH_NOTES.txt) ---
+N3 × dept allocation % authoritative | Produce Shrink included | Migration 064 | Confirm allocation profile before close | period_rate superseded | 5.4.15 audit tables preserved
+
+Patch notes: PATCH_NOTES.txt | CHANGELOG.md
+
+--- Tonight / before copy (home PC) ---
+1. Close TGP Command Center if running (unlocks better_sqlite3.node for rebuild)
+2. cd resources\app
+3. npm run rebuild:electron
+4. node scripts\verify-store-deploy.cjs   (must print VERIFY OK — Electron ABI 145)
+5. Copy entire resources\app folder to USB (include node_modules + electron)
+   Always ABI 145. Do NOT run rebuild:node for store copies.
+
+--- Tomorrow on store PC ---
+1. Stop TGP Command Center .exe and TGP-CommandCenter service if updating
+2. Backup tgp_ops.db and backups\ (optional safety copy)
+3. Replace resources\app\ with copied folder — DO NOT overwrite tgp_ops.db or backups\
+4. Install or reinstall Windows service (required): resources\app\service\INSTALL.cmd
+5. Confirm http://127.0.0.1:3001/api/ready — Mobile login must show VERSION 5.4.16
+   Docs: docs\INDEX.md · docs\TESTING.md
+6. Optional: open .exe for UI-only (service already owns the API)
+7. Hard-refresh mobile, /settings, /reports, TV, /rec, /financial, /safe, /count (Ctrl+F5)
+8. Manager smoke test:
+   - Hub: expand TODAY'S BRIEFING
+   - Open /settings (rhythms, staff — grant inventory intentionally, Devices, Maintenance backup health)
+   - Purpose-pair every TV / CS / receiving / markdown device (one-time HTTPS pairing URL)
+   - LAN phones and TVs must open https://<store-pc-ip>:3443 (accept self-signed cert once)
+   - Loopback management stays on http://127.0.0.1:3001
+   - Confirm submitted investigations stay locked until manager reopen; reopen a committed count only when memory clear + re-commit is intended
+   - Run EOD once and confirm verified pre/post backup packages appear under backups\
+9. See scripts\PHASE0_DEPLOY_CHECKLIST.txt for full post-deploy steps
+   Full service steps: STORE_SERVICE_DEPLOY.txt
+
+--- Windows service (headless API — required) ---
+The store PC must run the TGP Command Center Windows service so the API is alive before anyone
+signs into Windows. Without it, Chromebook /rec bookmarks and phone/TV portals die after reboot.
+
+What it does:
+  • WinSW service "TGP Command Center" (id TGP-CommandCenter) runs server.cjs at boot
+  • Listens on port 3001 — serves /, /rec, /financial, /reports, /settings, TV sync, mobile uplink
+  • Survives reboot: phones and /rec work at the Windows lock screen (no .exe login required)
+  • Desktop .exe is optional UI-only when the service already owns :3001
+
+Install (once per PC, or after a broken service):
+  1. Close the desktop .exe (frees port 3001)
+  2. Double-click resources\app\service\INSTALL.cmd → Yes on UAC
+  3. Wait for === SERVICE OK ===
+  4. Confirm: services.msc → "TGP Command Center" = Running
+  5. Confirm: http://127.0.0.1:3001/api/ready → "ok": true
+  6. Reboot test: leave PC at lock screen; phone opens http://<store-pc-ip>:3001/ — login loads
+
+More detail: service\README.txt | STORE_SERVICE_DEPLOY.txt | service\REBOOT_SMOKE.txt
+Do NOT run npm run rebuild:node on store PCs — service and .exe both require Electron ABI 145.
+PoC recoverability check:
+  From resources/app, run `npm run verify:backup` on the store PC to verify the latest generated backup can be opened, integrity-checked, migrated on a copy, and inspected for required tables.
+
+
+Patch 6 — Release confidence
+- Run `npm run verify:release` before copying to a store PC.
+- Run `npm run verify:fresh-install` to prove a blank data folder boots.
+- Run `npm run verify:upgrade` with `TGP_UPGRADE_SOURCE_DB` to test an existing store DB copy.
+- Numbered migrations now create a pre-migration snapshot in backups when pending migrations exist.
+- Manager Maintenance shows the release manifest and migration status.
+
+
+Patch 7 — Work/store no-token compatibility (retired by 5.4.11)
+- Historical PoC allowed tokenless TV on the trusted LAN. 5.4.11 denies tokenless / IP-only access.
+- Every display and station must be purpose-paired; LAN browsers must use HTTPS.
+
+
+Patch 8 — Daily Direction report history
+- Historical /reports dates now show posted Daily Direction and Shift Updates.
+- EOD keeps Daily Direction records; reports read the saved posted snapshot instead of regenerating a draft.
+
+PATCH 13 — RECEIVING PRINT + TV SAFETY WATCH
+- Fixed Receiving Log, Expiry Pull, Weekly Trends, and HomeBase Audit exports after query-string session tokens were removed.
+- Added a main TV Safety Watch panel that highlights open task-board safety hazards and optional TV_Safety_Message/Safety_Message text.
+
+Receiving/File Maintenance:
+  Receiver times vendors in/out during the day. At time-out, Invoice / Ref # is optional.
+  Shannon can print the next-day Receiving / File Maintenance Log from Reports -> Delivery Receipts.
+
+## Patch 17 — Receiving Vendor Cleanup
+- Added canonical receiving vendor aliases to reduce duplicates like `coke`/`Coke`, `pepsi`/`pesis`, `Canada bread`/`Canada Bread`, and `complete`/`Complete`.
+- Added a vendor picker/autocomplete to `/rec` for unscheduled vendor arrivals.
+- Added migration 022 to normalize obvious existing receiving/vendor schedule rows while avoiding unsafe guesses for unknown junk values.
+- Added regression tests for vendor alias normalization.
+Patch 18 — Staff schedule alias cleanup
+- Isabella→Izzy, Abigail→Abby, Jessica→Jess, Lenora→Nora.
+- Jennifer O is not mapped to Jenn.
+- Shanelle is treated as inactive/gone.
+- Shannon is treated as File Maintenance; Connor and Dawn are known/pending staff names.
+- Schedule health should stop warning on these known names while rhythm tasks only assign to real app staff.
+
+
+
+Patch 20 note: TV Display Toggles are available in Settings Editor → TV Display. Defaults keep the existing TV layout.

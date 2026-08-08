@@ -1,0 +1,811 @@
+{
+  "source": "Store_Command_Center_v2.xlsm",
+  "extracted_at": "2026-06-29",
+  "store_walk": {
+    "kind": "store_walk",
+    "sheet": "Store_Walk",
+    "sections": [
+      {
+        "section": "EXTERIOR & ENTRANCE",
+        "items": [
+          {
+            "id": 1,
+            "check": "Parking lot clean & clear",
+            "standard": "No debris, carts returned, snow cleared"
+          },
+          {
+            "id": 2,
+            "check": "Entrance mats clean",
+            "standard": "No excess dirt/water; mats flat"
+          },
+          {
+            "id": 3,
+            "check": "Shopping carts available & clean",
+            "standard": "Min 20 carts in corral; wiped"
+          },
+          {
+            "id": 4,
+            "check": "Store signage lit & visible",
+            "standard": "All bulbs working; no damaged signs"
+          },
+          {
+            "id": 5,
+            "check": "Entrance displays fresh",
+            "standard": "Seasonal/promo displays current & full"
+          },
+          {
+            "id": 6,
+            "check": "Flyer/promo boards current",
+            "standard": "This week's flyer posted; old removed"
+          },
+          {
+            "id": 7,
+            "check": "Door area sweep / mop",
+            "standard": "No slip hazards; clean glass"
+          }
+        ]
+      },
+      {
+        "section": "AISLES & SHELVES — Centre Store",
+        "items": [
+          {
+            "id": 8,
+            "check": "Shelves fully faced",
+            "standard": "No holes visible from main aisle view"
+          },
+          {
+            "id": 9,
+            "check": "Price tags present & correct",
+            "standard": "Every facing has a tag; no mismatch"
+          },
+          {
+            "id": 10,
+            "check": "End caps full & signed",
+            "standard": "Promo price visible; stock 100%"
+          },
+          {
+            "id": 11,
+            "check": "Drop zones clear",
+            "standard": "No pallets/carts blocking aisles"
+          },
+          {
+            "id": 12,
+            "check": "OOS holes logged",
+            "standard": "Count & note empty facings by aisle"
+          },
+          {
+            "id": 14,
+            "check": "Shelf cleanliness",
+            "standard": "No spills, dust, or label residue"
+          },
+          {
+            "id": 16,
+            "check": "Clip strips & cross-merch",
+            "standard": "Stocked, not blocking labels"
+          },
+          {
+            "id": 17,
+            "check": "Floor clean (aisles)",
+            "standard": "No spills, debris, or trip hazards"
+          },
+          {
+            "id": 18,
+            "check": "Overstock managed",
+            "standard": "Top stock neat; nothing overhanging"
+          },
+          {
+            "id": 19,
+            "check": "Items on display on promo or in-store",
+            "standard": "Promo/in-store items displayed, signed & priced correctly"
+          },
+          {
+            "id": 21,
+            "check": "Frozen items on floor",
+            "standard": "No frozen product left on floor; returned to freezer promptly"
+          },
+          {
+            "id": 23,
+            "check": "Pallet alignment",
+            "standard": "All pallets aligned properly; uniform presentation"
+          },
+          {
+            "id": 24,
+            "check": "1/2 pallet overflow displays",
+            "standard": "Check if 1/2 pallet overflow displays need removal"
+          },
+          {
+            "id": 25,
+            "check": "Shelf gaps noted",
+            "standard": "Record shelf gaps/holes for filling; communicate to team"
+          },
+          {
+            "id": 26,
+            "check": "Dead displays removed",
+            "standard": "Assign removal of expired/dead displays"
+          }
+        ]
+      },
+      {
+        "section": "BACKROOM & RECEIVING",
+        "items": [
+          {
+            "id": 27,
+            "check": "Backroom organized",
+            "standard": "FIFO pallets; clear pathways; labels"
+          },
+          {
+            "id": 28,
+            "check": "Receiving area clear",
+            "standard": "No unprocessed deliveries >24h old"
+          },
+          {
+            "id": 29,
+            "check": "Invoices matched & filed",
+            "standard": "All today's deliveries checked in"
+          },
+          {
+            "id": 30,
+            "check": "Damages/returns staged",
+            "standard": "Claims area sorted; vendor credits noted"
+          },
+          {
+            "id": 31,
+            "check": "Cooler/freezer temps logged",
+            "standard": "Within range; log signed"
+          },
+          {
+            "id": 32,
+            "check": "Compactor / baler not blocked",
+            "standard": "Clear access; not overflowing; operational"
+          },
+          {
+            "id": 33,
+            "check": "Safety equipment visible",
+            "standard": "Fire extinguishers, first aid accessible"
+          },
+          {
+            "id": 34,
+            "check": "No trip/slip hazards",
+            "standard": "Backroom & receiving floor clear of pallets, wrap, spills; no blocked exits"
+          },
+          {
+            "id": 35,
+            "check": "Work area clear & organized",
+            "standard": "Price gun station, reline staging, label area tidy & functional"
+          },
+          {
+            "id": 36,
+            "check": "Routines being followed",
+            "standard": "Daily checklists, receiving log, temp log completed on time"
+          }
+        ]
+      },
+      {
+        "section": "CUSTOMER SERVICE & FRONT END",
+        "items": [
+          {
+            "id": 37,
+            "check": "Checkout lanes clean & stocked",
+            "standard": "Bags, dividers, impulse merch full"
+          },
+          {
+            "id": 38,
+            "check": "CS desk organized",
+            "standard": "Forms accessible; returns processed"
+          },
+          {
+            "id": 39,
+            "check": "Tobacco secured",
+            "standard": "Displays locked; counts current"
+          },
+          {
+            "id": 40,
+            "check": "Money services area tidy",
+            "standard": "Signage correct; forms available"
+          },
+          {
+            "id": 41,
+            "check": "Queue management",
+            "standard": "Lanes opened appropriately if >3 in line"
+          },
+          {
+            "id": 42,
+            "check": "Break room clean",
+            "standard": "Fridge, microwave, table wiped"
+          },
+          {
+            "id": 43,
+            "check": "Staff available & responsive",
+            "standard": "Floor staff visible and approachable; assisting customers promptly"
+          },
+          {
+            "id": 44,
+            "check": "Staff appearance & dress code",
+            "standard": "Uniforms clean; name tags visible; professional presentation"
+          },
+          {
+            "id": 45,
+            "check": "Scanning accuracy",
+            "standard": "Spot-check 5 items; shelf price matches POS scan; report mismatches"
+          },
+          {
+            "id": 46,
+            "check": "Pop coolers full",
+            "standard": "Front end pop coolers fully stocked; no empty slots"
+          },
+          {
+            "id": 47,
+            "check": "Washer fluid full",
+            "standard": "Washer fluid display fully stocked"
+          },
+          {
+            "id": 48,
+            "check": "Displays around till cleaned/dusted",
+            "standard": "Till area displays clean, dusted, and presentable"
+          },
+          {
+            "id": 49,
+            "check": "Empty displays removed",
+            "standard": "No empty or outdated displays at front end"
+          },
+          {
+            "id": 50,
+            "check": "Click and collect area cleaned",
+            "standard": "Click and collect staging area clean and organized"
+          }
+        ]
+      },
+      {
+        "section": "Exterior & Entrance",
+        "items": []
+      },
+      {
+        "section": "Aisles & Shelves",
+        "items": []
+      },
+      {
+        "section": "Backroom & Receiving",
+        "items": []
+      },
+      {
+        "section": "CS & Front End",
+        "items": []
+      },
+      {
+        "section": "Log any fails or follow-ups in the Worklog sheet → ⚠️ Issues / Missed Spots section.  Perishables are tracked on the Perishables_Walk sheet.",
+        "items": []
+      },
+      {
+        "section": "DAILY WALK LOG HELPER",
+        "items": []
+      },
+      {
+        "section": "Copy today's ❌ fails to Walk_History sheet to track recurring issues.",
+        "items": []
+      },
+      {
+        "section": "Quick Reference - Which column is today?",
+        "items": []
+      },
+      {
+        "section": "Sunday=D, Monday=E, Tuesday=F, Wednesday=G, Thursday=H, Friday=I, Saturday=J",
+        "items": []
+      },
+      {
+        "section": "Use when short on time: walk floor + backroom and hit these 'commonly missed' items.",
+        "items": [
+          {
+            "id": 1,
+            "check": "Overstock dated",
+            "standard": "All backstock has clear date/received marker"
+          },
+          {
+            "id": 2,
+            "check": "FIFO rotation",
+            "standard": "Oldest product sells first; no 'fresh in front'"
+          },
+          {
+            "id": 3,
+            "check": "Digital signs assigned",
+            "standard": "Every display/end has correct digital sign active"
+          },
+          {
+            "id": 4,
+            "check": "Promo price/scan mismatch",
+            "standard": "Flyer items scan = shelf/digital price"
+          },
+          {
+            "id": 5,
+            "check": "Pallet/block squared",
+            "standard": "Uniform blocks, straight lines, wrapped base"
+          },
+          {
+            "id": 6,
+            "check": "Display height/sight lines",
+            "standard": "Max 54\" and clear sight lines"
+          },
+          {
+            "id": 7,
+            "check": "4ft traffic clearance",
+            "standard": "Traffic flows; no pinch points"
+          },
+          {
+            "id": 8,
+            "check": "Unauthorized vendor fixtures",
+            "standard": "Only approved displays/signage"
+          },
+          {
+            "id": 9,
+            "check": "Empty sign zones (ends/features)",
+            "standard": "No missing promo communication"
+          },
+          {
+            "id": 10,
+            "check": "Backroom location accuracy",
+            "standard": "Like with like; aisle-coded; fast to find"
+          },
+          {
+            "id": 11,
+            "check": "Claims follow-up",
+            "standard": "Claim submitted + credit tracked"
+          },
+          {
+            "id": 12,
+            "check": "Housekeeping schedule",
+            "standard": "Cardboard cleared; shelves/endcaps clean; dock safe"
+          },
+          {
+            "id": 13,
+            "check": "Safety (power equipment) compliance",
+            "standard": "Only certified operators use equipment; hazards logged"
+          }
+        ]
+      }
+    ]
+  },
+  "perishables_walk": {
+    "kind": "perishables_walk",
+    "sheet": "Perishables_Walk",
+    "sections": [
+      {
+        "section": "A. FRESHNESS & QUALITY  (Rate 1–5: 1=Poor, 5=Excellent)",
+        "items": [
+          {
+            "id": 1,
+            "check": "First impressions (WOW display)",
+            "standard": "Immediate visual impact; inviting, colourful, abundant"
+          },
+          {
+            "id": 2,
+            "check": "All displays 100% saleable",
+            "standard": "No damaged, wilted, or unsaleable product visible"
+          },
+          {
+            "id": 3,
+            "check": "Cull standards consistently applied",
+            "standard": "Regular cull rotation; standards posted & followed"
+          },
+          {
+            "id": 4,
+            "check": "No close-dated product on display",
+            "standard": "All product within acceptable date window"
+          }
+        ]
+      },
+      {
+        "section": "B. MERCHANDISING & PRESENTATION",
+        "items": [
+          {
+            "id": 5,
+            "check": "Displays full, abundant, and clean",
+            "standard": "No gaps; tables/cases wiped; overflowing feel"
+          },
+          {
+            "id": 6,
+            "check": "Merchandising plan being followed",
+            "standard": "Current flyer/seasonal plan executed as directed"
+          },
+          {
+            "id": 7,
+            "check": "Correct family groupings",
+            "standard": "Like items together; logical adjacencies"
+          },
+          {
+            "id": 8,
+            "check": "Good colour contrast",
+            "standard": "Alternating colours for visual pop"
+          },
+          {
+            "id": 9,
+            "check": "Prepared for current season or events",
+            "standard": "Seasonal themes, holiday tie-ins visible"
+          },
+          {
+            "id": 10,
+            "check": "No hills and valleys",
+            "standard": "Even product height across displays"
+          },
+          {
+            "id": 11,
+            "check": "Signs accurate and present",
+            "standard": "Price, origin, variety signs on every display"
+          },
+          {
+            "id": 12,
+            "check": "T-stands in place",
+            "standard": "All designated T-stand positions filled & current"
+          },
+          {
+            "id": 13,
+            "check": "Road sign utilized, Facebook post",
+            "standard": "External marketing assets deployed"
+          },
+          {
+            "id": 14,
+            "check": "Utilize opportunity buys",
+            "standard": "Opportunity buy product prominently displayed"
+          },
+          {
+            "id": 15,
+            "check": "First to market opportunities",
+            "standard": "New/seasonal items out ahead of competitors"
+          },
+          {
+            "id": 16,
+            "check": "Bags and twist ties in place",
+            "standard": "Customer packaging supplies fully stocked"
+          },
+          {
+            "id": 17,
+            "check": "Blankets are folded neatly",
+            "standard": "Display blankets clean, folded, presentable"
+          },
+          {
+            "id": 18,
+            "check": "Scale is clean and available",
+            "standard": "Functional, clean, visible to customers"
+          },
+          {
+            "id": 19,
+            "check": "Lighting is adequate",
+            "standard": "All bulbs working; product well-lit"
+          }
+        ]
+      },
+      {
+        "section": "C. VALUE ADDED",
+        "items": [
+          {
+            "id": 20,
+            "check": "Selection full, abundant, and clean",
+            "standard": "Prepared foods case fully stocked & fresh"
+          },
+          {
+            "id": 21,
+            "check": "Variety as per program",
+            "standard": "All required SKUs/varieties represented"
+          },
+          {
+            "id": 22,
+            "check": "All packages labelled properly",
+            "standard": "Ingredients, weight, price, best-before correct"
+          },
+          {
+            "id": 23,
+            "check": "Product available ahead of time",
+            "standard": "Ready before peak selling periods"
+          },
+          {
+            "id": 24,
+            "check": "Demos planned and executed",
+            "standard": "Sampling schedule followed; product available"
+          }
+        ]
+      },
+      {
+        "section": "D. DAIRY & MILK",
+        "items": [
+          {
+            "id": 25,
+            "check": "Milk properly rotated",
+            "standard": "FIFO applied; newest to back"
+          },
+          {
+            "id": 26,
+            "check": "No expired or near-expiry product",
+            "standard": "Pull expired; markdown near-expiry per policy"
+          },
+          {
+            "id": 27,
+            "check": "Correct pricing strategy applied",
+            "standard": "Competitive pricing; promo tags current"
+          },
+          {
+            "id": 28,
+            "check": "Is Landmark milk available",
+            "standard": "Landmark brand stocked and visible"
+          },
+          {
+            "id": 29,
+            "check": "Is hole count being conducted",
+            "standard": "Daily hole count completed and logged"
+          },
+          {
+            "id": 30,
+            "check": "No product on the floor",
+            "standard": "Cooler floor clear; no fallen/leaking items"
+          },
+          {
+            "id": 31,
+            "check": "Shelves clean, back cooler swept",
+            "standard": "No spills, dust, or debris"
+          },
+          {
+            "id": 32,
+            "check": "Windows are clean",
+            "standard": "Cooler glass/doors clean and streak-free"
+          },
+          {
+            "id": 33,
+            "check": "Signage in place",
+            "standard": "Category signs, promo tags, price labels present"
+          },
+          {
+            "id": 34,
+            "check": "Orders placed on time",
+            "standard": "All vendor orders submitted by cutoff"
+          },
+          {
+            "id": 35,
+            "check": "Is weather forecast available",
+            "standard": "Weather posted for demand planning"
+          },
+          {
+            "id": 36,
+            "check": "Order guide current; advertised items highlighted",
+            "standard": "Guide updated; flyer items flagged"
+          },
+          {
+            "id": 37,
+            "check": "Routines are being followed",
+            "standard": "Opening/closing/mid-day checklists complete"
+          },
+          {
+            "id": 38,
+            "check": "Prompt receiving",
+            "standard": "Deliveries checked in within 30 min of arrival"
+          },
+          {
+            "id": 39,
+            "check": "Trimming and crisping",
+            "standard": "Produce trimmed/crisped per standards"
+          },
+          {
+            "id": 40,
+            "check": "FIFO followed",
+            "standard": "All areas rotated first-in, first-out"
+          },
+          {
+            "id": 41,
+            "check": "Following price strategy",
+            "standard": "Pricing matches current strategy/flyer"
+          },
+          {
+            "id": 42,
+            "check": "Work area clear and organized",
+            "standard": "Prep area clean; tools stored properly"
+          },
+          {
+            "id": 43,
+            "check": "Training records in place",
+            "standard": "Staff training docs current and accessible"
+          },
+          {
+            "id": 44,
+            "check": "Sell off handled as per procedures",
+            "standard": "Markdown/sell-off follows approved process"
+          }
+        ]
+      },
+      {
+        "section": "F. HEALTH & SAFETY",
+        "items": [
+          {
+            "id": 45,
+            "check": "Temps within range",
+            "standard": "All coolers/freezers in spec; log signed"
+          },
+          {
+            "id": 46,
+            "check": "No trip/slip hazards",
+            "standard": "Floors dry; no obstacles in pathways"
+          },
+          {
+            "id": 47,
+            "check": "Are sweep logs maintained",
+            "standard": "Hourly sweep log posted and current"
+          },
+          {
+            "id": 48,
+            "check": "Are wet floor cones available",
+            "standard": "Cones accessible and deployed when needed"
+          },
+          {
+            "id": 49,
+            "check": "No abandoned carts",
+            "standard": "All carts returned; no blocking aisles"
+          },
+          {
+            "id": 50,
+            "check": "Are MSDS sheets available",
+            "standard": "Safety Data Sheets posted & accessible"
+          },
+          {
+            "id": 51,
+            "check": "Are PH Strips available",
+            "standard": "Sanitizer test strips stocked"
+          },
+          {
+            "id": 52,
+            "check": "Are emergency call out numbers posted",
+            "standard": "Emergency contacts visible in work area"
+          },
+          {
+            "id": 53,
+            "check": "Sanitation standards met",
+            "standard": "Surfaces sanitized; schedule followed"
+          },
+          {
+            "id": 54,
+            "check": "Soap and towels available",
+            "standard": "Handwash stations fully stocked"
+          },
+          {
+            "id": 55,
+            "check": "No chemical on the floor",
+            "standard": "All chemicals stored properly; no spills"
+          },
+          {
+            "id": 56,
+            "check": "Knives are sharp and stored properly",
+            "standard": "Knife safety standards met; rack in use"
+          },
+          {
+            "id": 57,
+            "check": "Supplies stocked and area neat and tidy",
+            "standard": "Packaging, labels, bags all stocked"
+          },
+          {
+            "id": 58,
+            "check": "Equipment is working properly",
+            "standard": "Slicers, scales, wrapping machines operational"
+          },
+          {
+            "id": 59,
+            "check": "Tables and windows clean and dusted",
+            "standard": "All prep surfaces and glass clean"
+          },
+          {
+            "id": 60,
+            "check": "Ledges cleaned, floor is swept",
+            "standard": "No dust on ledges; floor debris-free"
+          }
+        ]
+      },
+      {
+        "section": "G. CUSTOMER EXPERIENCE",
+        "items": [
+          {
+            "id": 61,
+            "check": "Department easy to shop",
+            "standard": "Clear sightlines; logical layout; not cluttered"
+          },
+          {
+            "id": 62,
+            "check": "Staff available and responsive",
+            "standard": "Someone visible; greeting customers"
+          },
+          {
+            "id": 63,
+            "check": "Staff knowledgeable",
+            "standard": "Can answer product questions; suggest items"
+          },
+          {
+            "id": 64,
+            "check": "Staff appearance neat, tidy, dress code",
+            "standard": "Uniform, name tag, clean appearance"
+          },
+          {
+            "id": 65,
+            "check": "Special orders executed correctly",
+            "standard": "Custom orders fulfilled accurately & on time"
+          },
+          {
+            "id": 66,
+            "check": "Scanning accuracy",
+            "standard": "Prices scan correctly at register"
+          }
+        ]
+      },
+      {
+        "section": "H. DOCUMENTATION",
+        "items": [
+          {
+            "id": 67,
+            "check": "Shrink recorded accurately",
+            "standard": "All shrink logged in system same day"
+          },
+          {
+            "id": 68,
+            "check": "Claims are up to date",
+            "standard": "Vendor claims filed within window"
+          },
+          {
+            "id": 69,
+            "check": "Bookings filed and up to date",
+            "standard": "Deal bookings documented and accessible"
+          },
+          {
+            "id": 70,
+            "check": "SMS cost audit",
+            "standard": "SMS cost audit completed for period"
+          },
+          {
+            "id": 71,
+            "check": "SMS price audit",
+            "standard": "SMS price audit completed for period"
+          },
+          {
+            "id": 72,
+            "check": "Price checks up to date",
+            "standard": "Price verification schedule followed"
+          },
+          {
+            "id": 73,
+            "check": "Emails responded to and current",
+            "standard": "Inbox triaged; no items >24h old"
+          },
+          {
+            "id": 74,
+            "check": "Is schedule posted",
+            "standard": "Staff schedule posted per policy"
+          },
+          {
+            "id": 75,
+            "check": "Marketing bulletin available",
+            "standard": "Current marketing bulletin posted"
+          },
+          {
+            "id": 76,
+            "check": "Inflation reports available",
+            "standard": "Latest inflation/cost reports accessible"
+          },
+          {
+            "id": 77,
+            "check": "Most recent financials available",
+            "standard": "Period financials posted for team review"
+          },
+          {
+            "id": 78,
+            "check": "Backup documentation for inventory counts",
+            "standard": "Count sheets filed and reconciled"
+          },
+          {
+            "id": 79,
+            "check": "Performance reviews up to date",
+            "standard": "Staff reviews completed per schedule"
+          },
+          {
+            "id": 80,
+            "check": "Toolbox meeting agendas available",
+            "standard": "Meeting agendas posted/distributed"
+          }
+        ]
+      },
+      {
+        "section": "Log any fails or follow-ups in the Worklog sheet → ⚠️ Issues / Missed Spots section.",
+        "items": []
+      }
+    ]
+  }
+}
