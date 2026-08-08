@@ -30,13 +30,16 @@ test('verify-release step plan includes smoke checks and supports quick mode', (
     assert.ok(names.includes('upgrade-smoke-copy'));
     assert.ok(!names.includes('store-deploy-preflight'));
 
+    // Both steps must use the production SQLite runtime. Keep this as one
+    // assertion loop so future changes cannot resolve a merge conflict by
+    // accidentally retaining the check for only one of the two steps.
     const sqliteRuntime = resolveSqliteRuntime();
-    const runtimeProbe = steps.find((step) => step.name === 'production-runtime-probe');
-    const core = steps.find((step) => step.name === 'core-unit-tests');
-    assert.equal(runtimeProbe.command, sqliteRuntime.exe);
-    assert.deepEqual(runtimeProbe.env, sqliteRuntime.env);
-    assert.equal(core.command, sqliteRuntime.exe);
-    assert.deepEqual(core.env, sqliteRuntime.env);
+    for (const stepName of ['production-runtime-probe', 'core-unit-tests']) {
+        const step = steps.find((candidate) => candidate.name === stepName);
+        assert.ok(step, `${stepName} step is present`);
+        assert.equal(step.command, sqliteRuntime.exe, `${stepName} uses the SQLite runtime`);
+        assert.deepEqual(step.env, sqliteRuntime.env, `${stepName} uses the SQLite runtime environment`);
+    }
 
     assert.equal(parseArgs(['--quick', '--skip-backup']).quick, true);
     assert.equal(parseArgs(['--quick', '--skip-backup']).skipBackup, true);
