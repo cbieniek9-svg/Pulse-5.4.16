@@ -26,6 +26,23 @@ test('process lock acquires and releases under TGP_DATA_DIR', () => {
     assert.equal(readLock(), null);
 });
 
+test('process lock reclaims a stale PID but fails closed on a new malformed lock', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tgp-lock-stale-'));
+    process.env.TGP_DATA_DIR = dir;
+    const { acquireProcessLock, releaseProcessLock, getLockPath, readLock } = require('../src/lib/process-lock.cjs');
+
+    fs.writeFileSync(getLockPath(), JSON.stringify({ pid: 2147483647 }), 'utf8');
+    assert.equal(acquireProcessLock().ok, true);
+    assert.equal(readLock()?.pid, process.pid);
+    releaseProcessLock();
+
+    fs.writeFileSync(getLockPath(), '', 'utf8');
+    const blocked = acquireProcessLock();
+    assert.equal(blocked.ok, false);
+    assert.match(blocked.reason, /acquiring the process lock/);
+    fs.rmSync(dir, { recursive: true, force: true });
+});
+
 test('probeLocalApiReady returns false when nothing listens', async () => {
     const { probeLocalApiReady } = require('../src/lib/app-boot.cjs');
     const probe = await probeLocalApiReady(59999, '127.0.0.1', 300);

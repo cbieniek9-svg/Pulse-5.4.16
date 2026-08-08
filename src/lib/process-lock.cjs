@@ -36,18 +36,51 @@ function pidAlive(pid) {
  * @returns {{ ok: true } | { ok: false, reason: string, pid?: number }}
  */
 function acquireProcessLock() {
-    const existing = readLock();
-    if (existing && pidAlive(existing.pid) && existing.pid !== process.pid) {
-        return { ok: false, reason: `Another TGP server is running (pid ${existing.pid}).`, pid: existing.pid };
-    }
+    const lockPath = getLockPath();
     const payload = JSON.stringify({ pid: process.pid, started_at: new Date().toISOString() }, null, 0);
     try {
         fs.mkdirSync(getDataRoot(), { recursive: true });
-        fs.writeFileSync(getLockPath(), payload, 'utf8');
-        return { ok: true };
     } catch (e) {
         return { ok: false, reason: e.message || String(e) };
     }
+
+    // `wx` is essential here. A read-then-write lock lets two service starts both
+    // observe "unlocked" and open the same SQLite database concurrently.
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+            fs.writeFileSync(lockPath, payload, { encoding: 'utf8', flag: 'wx' });
+            return { ok: true };
+        } catch (e) {
+            if (e?.code !== 'EEXIST') return { ok: false, reason: e.message || String(e) };
+
+            const existing = readLock();
+            if (existing?.pid === process.pid) return { ok: true };
+            if (existing && pidAlive(existing.pid)) {
+                return { ok: false, reason: `Another TGP server is running (pid ${existing.pid}).`, pid: existing.pid };
+            }
+
+            if (!existing) {
+                // Another process may be between exclusive creation and writing its
+                // payload. Only clear an unreadable lock after it is demonstrably old.
+                try {
+                    const ageMs = Date.now() - fs.statSync(lockPath).mtimeMs;
+                    if (ageMs < 30000) {
+                        return { ok: false, reason: 'Another TGP server is acquiring the process lock.' };
+                    }
+                } catch (statError) {
+                    if (statError?.code === 'ENOENT') continue;
+                    return { ok: false, reason: statError.message || String(statError) };
+                }
+            }
+
+            try { fs.unlinkSync(lockPath); } catch (unlinkError) {
+                if (unlinkError?.code !== 'ENOENT') {
+                    return { ok: false, reason: unlinkError.message || String(unlinkError) };
+                }
+            }
+        }
+    }
+    return { ok: false, reason: 'Another TGP server acquired the process lock.' };
 }
 
 function releaseProcessLock() {

@@ -75,8 +75,8 @@ test('sessions are location-scoped and scans attach to session', (t) => {
     resetDb();
     const a3 = createSession({ location: 'A3', created_by: 'Chris' });
     const frz = createSession({ location: 'Freezer', created_by: 'Chris' });
-    insertScan({ session_id: a3.id, upc: '111', quantity: 2 });
-    insertScan({ session_id: frz.id, upc: '222', quantity: 1 });
+    insertScan({ session_id: a3.id, upc: '111', quantity: 2, uom: 'unit' });
+    insertScan({ session_id: frz.id, upc: '222', quantity: 1, uom: 'case' });
 
     const a3Lines = listActiveScans({ session_id: a3.id });
     assert.equal(a3Lines.length, 1);
@@ -91,8 +91,8 @@ test('insertScan rejects empty upc and defaults quantity to 1', (t) => {
     if (!sqliteReady(t)) return;
     resetDb();
     const s = createSession({ location: 'Bay 1' });
-    assert.throws(() => insertScan({ session_id: s.id, upc: '  ' }), /upc is required/);
-    const row = insertScan({ session_id: s.id, upc: '333' });
+    assert.throws(() => insertScan({ session_id: s.id, upc: '  ', uom: 'unit' }), /upc is required/);
+    const row = insertScan({ session_id: s.id, upc: '333', uom: 'unit' });
     assert.equal(row.quantity, 1);
 });
 
@@ -100,13 +100,13 @@ test('export keeps history but lines are locked until reopen', (t) => {
     if (!sqliteReady(t)) return;
     resetDb();
     const s = createSession({ location: 'A1' });
-    insertScan({ session_id: s.id, upc: '999', quantity: 3 });
+    insertScan({ session_id: s.id, upc: '999', quantity: 3, uom: 'unit' });
 
     const { csv, count, session } = exportSession(s.id);
     assert.equal(count, 1);
     assert.equal(session.status, 'exported');
-    assert.match(csv, /^UPC,QTY,LOCATION,SESSION_TYPE,SESSION_ID\n/);
-    assert.match(csv, /999,3,A1,location,/);
+    assert.match(csv, /^UPC,QTY,UOM,ITEM,UNIT_COST,UNIT_RETAIL,DEPARTMENT,LOCATION,SESSION_TYPE,SESSION_ID\n/);
+    assert.match(csv, /999,3,unit,,,,,A1,location,/);
 
     const detail = getSessionDetail(s.id);
     assert.equal(detail.lines.length, 1);
@@ -116,7 +116,7 @@ test('export keeps history but lines are locked until reopen', (t) => {
         (err) => err.code === 'INVENTORY_SESSION_LOCKED' && err.status === 409,
     );
     assert.throws(
-        () => insertScan({ session_id: s.id, upc: '888', quantity: 1 }),
+        () => insertScan({ session_id: s.id, upc: '888', quantity: 1, uom: 'unit' }),
         (err) => err.code === 'INVENTORY_SESSION_LOCKED' && err.status === 409,
     );
     assert.equal(getSessionDetail(s.id).lines[0].quantity, 3);
@@ -125,7 +125,7 @@ test('export keeps history but lines are locked until reopen', (t) => {
     assert.equal(reopened.status, 'open');
     const updated = updateLine(detail.lines[0].id, { quantity: 5 });
     assert.equal(updated.quantity, 5);
-    insertScan({ session_id: s.id, upc: '888', quantity: 1 });
+    insertScan({ session_id: s.id, upc: '888', quantity: 1, uom: 'unit' });
     assert.equal(listActiveScans({ session_id: s.id }).length, 2);
 });
 
@@ -133,7 +133,7 @@ test('deleteLine removes a scan row', (t) => {
     if (!sqliteReady(t)) return;
     resetDb();
     const s = createSession({ location: 'Backstock' });
-    const row = insertScan({ session_id: s.id, upc: '555', quantity: 2 });
+    const row = insertScan({ session_id: s.id, upc: '555', quantity: 2, uom: 'case' });
     deleteLine(row.id);
     assert.equal(getSessionDetail(s.id).lines.length, 0);
 });
@@ -161,7 +161,7 @@ test('backstock sessions are typed and can run concurrent with location counts',
 
     insertScan({ session_id: cooler.id, upc: '111', quantity: 2 });
     insertScan({ session_id: dry.id, upc: '111', quantity: 3 });
-    insertScan({ session_id: aisle.id, upc: '111', quantity: 9 }); // must not enter backstock sum
+    insertScan({ session_id: aisle.id, upc: '111', quantity: 9, uom: 'case' }); // must not enter backstock sum
 
     const openBs = listSessions({ status: 'open', session_type: 'backstock' });
     assert.equal(openBs.length, 2);
