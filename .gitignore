@@ -1,0 +1,29 @@
+# Test / QA artifacts (regenerated locally)
+test-results/
+playwright-report/
+blob-report/
+tests/.playwright-staff-cache.json
+tests/.e2e-data/
+
+# Local logs & scratch
+tgp_error.log
+chaos_report.txt
+*.log
+
+# Runtime data (never commit from a store PC copy)
+tgp_ops.db
+tgp_ops.db-*
+data/pulse_inventory.db
+data/pulse_inventory.db-*
+backups/
+
+# Headless service runtime (fetched by scripts/fetch-service-runtime.*)
+runtime/
+service/TGP-CommandCenter.exe
+service/logs/
+
+# Dependencies, build output, editor, local DBs
+node_modules/
+dist/
+.cursor/
+*.db
