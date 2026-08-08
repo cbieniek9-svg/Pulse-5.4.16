@@ -210,11 +210,17 @@ const auth = (db) => {
             const { resolvePcAdminPin } = require('./lib/pc-admin-pin.cjs');
             const resolved = resolvePcAdminPin({ db });
             const adminPin = resolved.pin || '';
-            const inputPin = Buffer.from(userContext.pin), targetPin = Buffer.from(adminPin);
-            let match = false; if (inputPin.length === targetPin.length) match = crypto.timingSafeEqual(inputPin, targetPin);
-            const success = !resolved.disabled && !resolved.insecureDefault && match;
-            recordLoginAttempt(userContext.name, success);
-            return success;
+            // Empty/unavailable PIN must never reach timingSafeEqual ('' matches '').
+            if (!adminPin || resolved.disabled || resolved.insecureDefault) {
+                recordLoginAttempt(userContext.name, false);
+                return false;
+            }
+            const inputPin = Buffer.from(userContext.pin);
+            const targetPin = Buffer.from(adminPin);
+            let match = false;
+            if (inputPin.length === targetPin.length) match = crypto.timingSafeEqual(inputPin, targetPin);
+            recordLoginAttempt(userContext.name, match);
+            return match;
         }
 
         const access = getCredentialAccessStatus(userContext.name);
