@@ -1,0 +1,74 @@
+.rec-portal {
+    background: #000;
+    color: #8cf;
+    font-family: 'Arial Narrow', sans-serif;
+    margin: 0;
+    text-transform: uppercase;
+    padding-bottom: 24px;
+    min-height: 100vh;
+}
+
+.rec-portal .container { padding: 20px; max-width: 620px; margin: 0 auto; }
+.rec-portal .header { border-bottom: 2px solid #f90; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.rec-portal .title { font-size: 1.5em; color: #fff; letter-spacing: 2px; }
+.rec-portal .section-label { font-size: 0.75em; color: #f90; letter-spacing: 2px; margin: 18px 0 10px; }
+.rec-portal .card { background: rgba(31, 59, 92, 0.3); border-left: 5px solid #f90; padding: 15px; margin-bottom: 10px; border-radius: 0 10px 10px 0; }
+.rec-portal .card.on-dock { border-left-color: #0f8; }
+.rec-portal .card-meta { font-size: 0.78em; color: #aaa; margin-top: 6px; text-transform: none; }
+.rec-portal .card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; align-items: center; }
+.rec-portal .btn { background: transparent; border: 2px solid #0f8; color: #0f8; padding: 10px 16px; border-radius: 20px; font-weight: bold; cursor: pointer; font-family: inherit; font-size: 0.85em; }
+.rec-portal .btn:hover { background: #0f8; color: #000; }
+.rec-portal .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.rec-portal .btn-warn { border-color: #f90; color: #f90; }
+.rec-portal .btn-warn:hover { background: #f90; color: #000; }
+.rec-portal .btn-remove { border-color: #f33; color: #f33; }
+.rec-portal .btn-remove:hover { background: #f33; color: #000; }
+.rec-portal .btn-out { border-color: #8cf; color: #8cf; }
+.rec-portal .btn-out:hover { background: #8cf; color: #000; }
+.rec-portal .btn-secondary { border-color: #8cf; color: #8cf; }
+.rec-portal .chk { display: flex; align-items: center; gap: 8px; font-size: 0.72em; color: #ccc; text-transform: none; margin-top: 8px; }
+.rec-portal .add-box { background: rgba(40, 25, 0, 0.35); border: 1px solid rgba(255,153,0,0.35); border-radius: 10px; padding: 14px; margin-top: 20px; }
+.rec-portal .file-maint-box { border-left-color: #8cf; }
+.rec-portal .input { width: 100%; padding: 12px; margin-bottom: 10px; background: #000; border: 1px solid #f90; color: #fff; box-sizing: border-box; border-radius: 8px; font-family: inherit; }
+.rec-portal .hint { font-size: 0.72em; color: #aaa; text-transform: none; margin: 6px 0 0; line-height: 1.35; }
+.rec-portal .rec-tabs { display: flex; gap: 8px; margin: 0 0 16px; flex-wrap: wrap; }
+.rec-portal .rec-tab { background: transparent; border: 2px solid #555; color: #888; padding: 10px 14px; border-radius: 20px; font-weight: bold; cursor: pointer; font-family: inherit; font-size: 0.78em; }
+.rec-portal .rec-tab.active { border-color: #f90; color: #f90; }
+.rec-portal .file-help { font-size: 0.78em; color: #aaa; text-transform: none; margin: 0 0 10px; line-height: 1.35; }
+.rec-portal .date-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.rec-portal .date-row label { color: #f90; font-size: 0.8em; letter-spacing: 1px; }
+.rec-portal .pallet-box { margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.35); border: 1px solid rgba(140,207,255,0.25); border-radius: 8px; }
+.rec-portal .pallet-row { display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 8px; font-size: 0.78em; text-transform: none; }
+.rec-portal .pallet-list { margin-top: 8px; }
+.rec-portal .pallet-item { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; padding: 8px; margin-bottom: 6px; background: rgba(0,0,0,0.25); border-left: 3px solid #0f8; text-transform: none; font-size: 0.75em; }
+.rec-portal .pallet-item.bad { border-left-color: #f44; }
+.rec-portal .pallet-item small { color: #aaa; display: block; margin-top: 2px; }
+.rec-portal .btn-small { padding: 6px 10px; font-size: 0.72em; }
+.rec-portal .time-edit { margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.35); border: 1px solid rgba(140,207,255,0.22); border-radius: 8px; }
+.rec-portal .time-edit-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.rec-portal .time-edit label { display: block; font-size: 0.68em; color: #8cf; letter-spacing: 1px; margin-bottom: 4px; }
+.rec-portal .time-edit .input { margin-bottom: 0; }
+/* Time out is confirmed in-page: window.prompt is unavailable in Electron and
+   Chrome can mute confirm(), which used to make the TIME OUT button a no-op. */
+.rec-portal .time-out-confirm { margin-top: 12px; padding: 12px; background: rgba(140,207,255,0.06); border: 1px solid rgba(140,207,255,0.4); border-radius: 8px; }
+.rec-portal .time-out-confirm label { display: block; font-size: 0.68em; color: #8cf; letter-spacing: 1px; margin-bottom: 4px; }
+.rec-portal .time-out-confirm .input { margin-bottom: 0; border-color: #8cf; }
+.rec-portal .time-out-confirm .chk { font-size: 0.75em; color: #cfe6ff; }
+.rec-portal .rec-action-error { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 10px 12px; background: rgba(255,51,51,0.1); border: 1px solid #f33; border-radius: 8px; color: #ff9c9c; font-size: 0.8em; text-transform: none; }
+.rec-portal .confirm-actions .btn { min-width: 120px; }
+
+.rec-portal .xfer-box { border-left-color: #0cf; }
+.rec-portal .xfer-result { margin-top: 10px; }
+.rec-portal .xfer-item { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; padding: 10px; margin-bottom: 8px; background: rgba(0,0,0,0.3); border-left: 3px solid #0cf; text-transform: none; font-size: 0.78em; }
+.rec-portal .xfer-item strong { color: #fff; }
+.rec-portal .xfer-item small { color: #aaa; display: block; margin-top: 3px; }
+.rec-portal .xfer-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.rec-portal .xfer-lines { margin: 10px 0; }
+.rec-portal .xfer-line { display: grid; grid-template-columns: 1fr; gap: 8px; padding: 10px; margin-bottom: 8px; background: rgba(0,0,0,0.3); border-left: 3px solid #0cf; text-transform: none; }
+.rec-portal .xfer-line .input { margin-bottom: 0; }
+.rec-portal .xfer-line-head { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; }
+.rec-portal .xfer-ext { font-size: 0.75em; color: #8cf; }
+@media (min-width: 640px) {
+    .rec-portal .xfer-line { grid-template-columns: 1.4fr 0.7fr 0.7fr 0.7fr auto; align-items: end; }
+    .rec-portal .xfer-line-head { display: none; }
+}

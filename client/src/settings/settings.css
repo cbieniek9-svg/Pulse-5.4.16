@@ -1,0 +1,170 @@
+/* Native React settings shell — mgr-settings.css loaded from index.html */
+
+/* Fixed viewport chrome: content can only scroll inside main, never push it. */
+.mgr-settings-app {
+    --mgr-back-h: 45px;
+    --mgr-hdr-h: 56px;
+    --mgr-tabs-h: 44px;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    max-height: 100vh;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+.mgr-settings-app > .portal-back-bar {
+    flex: 0 0 var(--mgr-back-h);
+    height: var(--mgr-back-h);
+    min-height: var(--mgr-back-h);
+    box-sizing: border-box;
+    position: relative;
+    top: auto;
+}
+
+.mgr-settings-app > .mgr-hdr {
+    flex: 0 0 auto;
+    min-height: var(--mgr-hdr-h);
+    padding-top: 8px;
+    padding-bottom: 8px;
+    position: relative;
+    top: auto;
+}
+
+.mgr-settings-app > .mgr-tabs {
+    flex: 0 0 var(--mgr-tabs-h);
+    height: var(--mgr-tabs-h);
+    min-height: var(--mgr-tabs-h);
+    max-height: var(--mgr-tabs-h);
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    position: relative;
+    top: auto;
+    align-items: center;
+    gap: 4px;
+    padding: 0 8px;
+    scrollbar-width: thin;
+}
+
+.mgr-settings-app > .mgr-tabs .mgr-tab {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+}
+
+.mgr-settings-app .mgr-settings-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+    width: 100%;
+    max-width: none;
+    align-self: stretch;
+    overflow-x: hidden;
+    overflow-y: auto;
+    box-sizing: border-box;
+    scroll-behavior: smooth;
+}
+
+.mgr-settings-app .mgr-panel {
+    min-height: 100%;
+}
+
+.mgr-settings-app .mgr-table-wrap {
+    height: auto;
+    min-height: 0;
+    max-height: min(560px, calc(100vh - var(--mgr-back-h) - var(--mgr-hdr-h) - var(--mgr-tabs-h) - 140px));
+    overflow: auto;
+}
+
+.mgr-settings-app .mgr-hdr-actions {
+    min-width: 0;
+    justify-content: flex-end;
+    min-height: 32px;
+}
+
+.mgr-settings-app .mgr-section-title[id] {
+    scroll-margin-top: 12px;
+}
+
+.mgr-jump-nav {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    padding: 8px 0 10px;
+    margin-bottom: 8px;
+    background: linear-gradient(#0a1525 70%, rgba(10, 21, 37, 0));
+}
+
+.mgr-jump-nav-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    color: #8cf;
+    margin-right: 4px;
+}
+
+.mgr-jump-chip {
+    background: transparent;
+    border: 1px solid rgba(0, 229, 255, 0.35);
+    color: #8cf;
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.mgr-jump-chip:hover {
+    background: rgba(0, 229, 255, 0.12);
+    color: #fff;
+}
+
+.mgr-settings-body {
+    background: #0a1525;
+    color: #eef5ff;
+}
+
+.mgr-notice-stack {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 100000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: min(420px, calc(100vw - 24px));
+    pointer-events: none;
+}
+
+.mgr-notice {
+    pointer-events: auto;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: rgba(11, 26, 46, 0.95);
+    border: 1px solid rgba(0, 229, 255, 0.45);
+    color: #fff;
+    font-size: 0.85rem;
+    text-transform: none;
+}
+
+.mgr-notice.success { border-color: rgba(0, 255, 136, 0.55); color: #cfc; }
+.mgr-notice.error { border-color: rgba(255, 68, 68, 0.55); color: #fcc; }
+.mgr-notice.info { border-color: rgba(136, 204, 255, 0.55); color: #cef; }
+
+.mgr-kv {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 12px;
+    font-size: 0.82rem;
+    text-transform: none;
+}
+
+.mgr-kv dt { color: #8cf; }
+.mgr-kv dd { color: #fff; margin: 0; }
