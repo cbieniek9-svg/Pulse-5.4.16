@@ -1,0 +1,355 @@
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
+const { inspectBackupDatabase } = require('./backup-health.cjs');
+
+const BACKUP_VERIFICATION_FAILED = 'BACKUP_VERIFICATION_FAILED';
+const BACKUP_PACKAGE_IO_FAILED = 'BACKUP_PACKAGE_IO_FAILED';
+
+function hashFile(filePath) {
+    const hash = crypto.createHash('sha256');
+    hash.update(fs.readFileSync(filePath));
+    return hash.digest('hex');
+}
+
+function walkFiles(rootDir) {
+    const out = [];
+    if (!fs.existsSync(rootDir)) return out;
+    const stack = [rootDir];
+    while (stack.length) {
+        const current = stack.pop();
+        const entries = fs.readdirSync(current, { withFileTypes: true });
+        for (const entry of entries) {
+            const full = path.join(current, entry.name);
+            if (entry.isDirectory()) stack.push(full);
+            else if (entry.isFile()) out.push(full);
+        }
+    }
+    return out.sort((a, b) => a.localeCompare(b));
+}
+
+function hashTree(rootDir) {
+    const hash = crypto.createHash('sha256');
+    const files = walkFiles(rootDir);
+    for (const file of files) {
+        const rel = path.relative(rootDir, file).split(path.sep).join('/');
+        hash.update(rel);
+        hash.update('\0');
+        hash.update(fs.readFileSync(file));
+        hash.update('\0');
+    }
+    return hash.digest('hex');
+}
+
+function directoryByteSize(rootDir) {
+    return walkFiles(rootDir).reduce((sum, file) => sum + fs.statSync(file).size, 0);
+}
+
+function copyDirRecursive(src, dest) {
+    fs.mkdirSync(dest, { recursive: true });
+    for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+        const from = path.join(src, entry.name);
+        const to = path.join(dest, entry.name);
+        if (entry.isDirectory()) copyDirRecursive(from, to);
+        else if (entry.isFile()) fs.copyFileSync(from, to);
+    }
+}
+
+/**
+ * Copy optional package sidecars into packageDir and return artifact descriptors.
+ * Ops DB is handled by the caller (online backup or sync VACUUM INTO path).
+ */
+function assemblePackageSidecars({ dataRoot, packageDir, copyFileSync: copyFileSyncOpt } = {}) {
+    if (!dataRoot || !packageDir) {
+        throw new Error('dataRoot and packageDir are required');
+    }
+    const copyFileSync = copyFileSyncOpt || ((src, dest) => fs.copyFileSync(src, dest));
+    const artifacts = [];
+
+    const inventorySrc = path.join(dataRoot, 'data', 'pulse_inventory.db');
+    if (fs.existsSync(inventorySrc) && fs.statSync(inventorySrc).isFile()) {
+        const invDest = path.join(packageDir, 'pulse_inventory.db');
+        copyFileSync(inventorySrc, invDest);
+        artifacts.push({
+            role: 'inventory_db',
+            path: 'pulse_inventory.db',
+            size: fs.statSync(invDest).size,
+            hash: hashFile(invDest),
+        });
+    }
+
+    const attachmentsSrc = path.join(dataRoot, 'data', 'incident_investigations');
+    if (fs.existsSync(attachmentsSrc) && fs.statSync(attachmentsSrc).isDirectory()) {
+        const attDest = path.join(packageDir, 'incident_investigations');
+        copyDirRecursive(attachmentsSrc, attDest);
+        artifacts.push({
+            role: 'incident_attachments',
+            path: 'incident_investigations',
+            size: directoryByteSize(attDest),
+            hash: hashTree(attDest),
+        });
+    }
+
+    const transfersSrc = path.join(dataRoot, 'store-transfers');
+    if (fs.existsSync(transfersSrc) && fs.statSync(transfersSrc).isDirectory()) {
+        const xferDest = path.join(packageDir, 'store-transfers');
+        copyDirRecursive(transfersSrc, xferDest);
+        artifacts.push({
+            role: 'store_transfers',
+            path: 'store-transfers',
+            size: directoryByteSize(xferDest),
+            hash: hashTree(xferDest),
+        });
+    }
+
+    return artifacts;
+}
+
+function verifyOpsDatabaseCopy(filePath, opts = {}) {
+    return inspectBackupDatabase(filePath, opts);
+}
+
+async function copyOpsDbOnline(db, destPath) {
+    if (!db || typeof db.backup !== 'function') {
+        throw new Error('database backup() is unavailable');
+    }
+    fs.mkdirSync(path.dirname(destPath), { recursive: true });
+    await db.backup(destPath);
+}
+
+function pad2(n) {
+    return String(n).padStart(2, '0');
+}
+
+function formatLabelDate(d) {
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function formatHms(d) {
+    return `${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`;
+}
+
+function dailyAliasName(stage, labelDate) {
+    if (stage === 'pre_eod') return `tgp_ops_pre_eod_${labelDate}.db`;
+    if (stage === 'post_eod' || stage === 'manual' || stage === 'weekly') {
+        return `tgp_ops_backup_${labelDate}.db`;
+    }
+    return null;
+}
+
+function cleanupPath(filePath, unlinkSync = fs.unlinkSync.bind(fs)) {
+    try {
+        if (filePath && fs.existsSync(filePath)) unlinkSync(filePath);
+    } catch (_) { /* ignore */ }
+}
+
+/**
+ * Stage a verified ops copy to a temp name, then rename into the daily alias.
+ * Never unlinks the existing alias before the staged file is ready.
+ */
+function promoteDailyAlias(backupsDir, opsDbPath, stage, labelDate, deps = {}) {
+    const name = dailyAliasName(stage, labelDate);
+    if (!name) return null;
+
+    const linkSync = deps.linkSync || ((src, dest) => fs.linkSync(src, dest));
+    const copyFileSync = deps.copyFileSync || ((src, dest) => fs.copyFileSync(src, dest));
+    const renameSync = deps.renameSync || ((src, dest) => fs.renameSync(src, dest));
+    const unlinkSync = deps.unlinkSync || ((p) => fs.unlinkSync(p));
+    const existsSync = deps.existsSync || ((p) => fs.existsSync(p));
+
+    const dest = path.join(backupsDir, name);
+    const tmp = path.join(
+        backupsDir,
+        `.${name}.${process.pid}.${Date.now()}.tmp`,
+    );
+    const bak = `${dest}.${process.pid}.bak`;
+
+    try {
+        try {
+            linkSync(opsDbPath, tmp);
+        } catch (_) {
+            copyFileSync(opsDbPath, tmp);
+        }
+
+        if (!existsSync(dest)) {
+            renameSync(tmp, dest);
+            return dest;
+        }
+
+        // Windows cannot rename over an existing file: move prior aside, then
+        // swap in the staged copy. Restore prior if the final rename fails.
+        cleanupPath(bak, unlinkSync);
+        renameSync(dest, bak);
+        try {
+            renameSync(tmp, dest);
+        } catch (err) {
+            try {
+                if (existsSync(bak) && !existsSync(dest)) renameSync(bak, dest);
+            } catch (_) { /* ignore restore errors */ }
+            throw err;
+        }
+        cleanupPath(bak, unlinkSync);
+        return dest;
+    } catch (e) {
+        cleanupPath(tmp, unlinkSync);
+        throw e;
+    }
+}
+
+function failResult({ packageId, directory, opsDbPath, labelDate, error, code = BACKUP_VERIFICATION_FAILED }) {
+    return {
+        ok: false,
+        packageId: packageId || null,
+        directory: directory || null,
+        opsDbPath: opsDbPath || null,
+        manifest: null,
+        labelDate: labelDate || null,
+        error: error || 'backup verification failed',
+        code,
+    };
+}
+
+async function createBackupPackage({
+    db,
+    dataRoot,
+    stage,
+    actor = '',
+    labelDate,
+    packageId,
+    now,
+    copyFileSync: copyFileSyncOpt,
+    promoteDailyAlias: promoteOpt,
+} = {}) {
+    if (!dataRoot) {
+        return failResult({ error: 'dataRoot is required', labelDate: labelDate || null });
+    }
+    if (!stage) {
+        return failResult({ error: 'stage is required', labelDate: labelDate || null });
+    }
+
+    const when = now instanceof Date ? now : new Date();
+    const date = labelDate || formatLabelDate(when);
+    const id = packageId || `pkg_${stage}_${date}_${formatHms(when)}`;
+    const backupsDir = path.join(dataRoot, 'backups');
+    const directory = path.join(backupsDir, id);
+    const opsDbPath = path.join(directory, 'tgp_ops.db');
+    const copyFileSync = copyFileSyncOpt || ((src, dest) => fs.copyFileSync(src, dest));
+    const promote = promoteOpt || promoteDailyAlias;
+
+    try {
+        fs.mkdirSync(directory, { recursive: true });
+    } catch (e) {
+        return failResult({
+            packageId: id,
+            directory,
+            labelDate: date,
+            error: e.message || String(e),
+            code: BACKUP_PACKAGE_IO_FAILED,
+        });
+    }
+
+    try {
+        await copyOpsDbOnline(db, opsDbPath);
+    } catch (e) {
+        return failResult({
+            packageId: id,
+            directory,
+            opsDbPath,
+            labelDate: date,
+            error: e.message || String(e),
+        });
+    }
+
+    const verification = verifyOpsDatabaseCopy(opsDbPath);
+    if (!verification.ok) {
+        return failResult({
+            packageId: id,
+            directory,
+            opsDbPath,
+            labelDate: date,
+            error: verification.error || 'ops database verification failed',
+        });
+    }
+
+    try {
+        const artifacts = [{
+            role: 'ops_db',
+            path: 'tgp_ops.db',
+            size: fs.statSync(opsDbPath).size,
+            hash: hashFile(opsDbPath),
+        }];
+        artifacts.push(...assemblePackageSidecars({
+            dataRoot,
+            packageDir: directory,
+            copyFileSync,
+        }));
+
+        const manifest = {
+            packageId: id,
+            stage,
+            actor: actor || '',
+            created_at: when.toISOString(),
+            labelDate: date,
+            artifacts,
+            ops_verification: {
+                ok: verification.ok,
+                quick_check: verification.quick_check,
+                integrity_check: verification.integrity_check,
+                user_version: verification.user_version,
+                table_count: verification.table_count,
+                error: verification.error,
+            },
+        };
+
+        fs.writeFileSync(path.join(directory, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+        promote(backupsDir, opsDbPath, stage, date);
+
+        return {
+            ok: true,
+            packageId: id,
+            directory,
+            opsDbPath,
+            manifest,
+            labelDate: date,
+            error: null,
+            code: null,
+        };
+    } catch (e) {
+        return failResult({
+            packageId: id,
+            directory,
+            opsDbPath,
+            labelDate: date,
+            error: e.message || String(e),
+            code: BACKUP_PACKAGE_IO_FAILED,
+        });
+    }
+}
+
+function loadManifest(packageDir) {
+    const file = path.join(packageDir, 'manifest.json');
+    if (!fs.existsSync(file)) {
+        throw new Error(`manifest.json not found in ${packageDir}`);
+    }
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
+}
+
+module.exports = {
+    BACKUP_VERIFICATION_FAILED,
+    BACKUP_PACKAGE_IO_FAILED,
+    hashFile,
+    walkFiles,
+    hashTree,
+    copyDirRecursive,
+    directoryByteSize,
+    assemblePackageSidecars,
+    verifyOpsDatabaseCopy,
+    copyOpsDbOnline,
+    createBackupPackage,
+    loadManifest,
+    promoteDailyAlias,
+    dailyAliasName,
+};

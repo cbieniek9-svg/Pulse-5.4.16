@@ -1,0 +1,25 @@
+<service>
+  <!--
+    TEMPLATE — Install-TGP-Service.ps1 always writes TGP-CommandCenter.xml with absolute
+    paths for the machine being installed. Copy/deploy must run the install script;
+    do not hand-edit paths into a foreign PC's tree.
+  -->
+  <id>TGP-CommandCenter</id>
+  <name>TGP Command Center</name>
+  <description>TGP Command Center headless API (phones, TV, /rec). Starts at boot before login. Electron-as-Node ABI 145.</description>
+  <executable>__TGP_ELECTRON_EXE__</executable>
+  <arguments>"__TGP_SERVER_CJS__"</arguments>
+  <workingdirectory>__TGP_APP_ROOT__</workingdirectory>
+  <env name="ELECTRON_RUN_AS_NODE" value="1"/>
+  <env name="TGP_SERVICE" value="1"/>
+  <env name="TGP_DATA_DIR" value="__TGP_DATA_DIR__"/>
+  <logmode>rotate</logmode>
+  <logpath>__TGP_LOG_PATH__</logpath>
+  <onfailure action="restart" delay="5 sec"/>
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="30 sec"/>
+  <resetfailure>1 hour</resetfailure>
+  <stoptimeout>15 sec</stoptimeout>
+  <startmode>Automatic</startmode>
+  <delayedAutoStart>true</delayedAutoStart>
+</service>

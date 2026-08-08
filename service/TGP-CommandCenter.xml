@@ -1,0 +1,20 @@
+﻿<service>
+  <id>TGP-CommandCenter</id>
+  <name>TGP Command Center</name>
+  <description>TGP Command Center headless API (phones, TV, /rec). Starts at boot before login. Electron-as-Node ABI 145.</description>
+  <executable>E:\Live\TGPV5\TGP_V5\resources\app\node_modules\electron\dist\electron.exe</executable>
+  <arguments>"E:\Live\TGPV5\TGP_V5\resources\app\server.cjs"</arguments>
+  <workingdirectory>E:\Live\TGPV5\TGP_V5\resources\app</workingdirectory>
+  <env name="ELECTRON_RUN_AS_NODE" value="1"/>
+  <env name="TGP_SERVICE" value="1"/>
+  <env name="TGP_DATA_DIR" value="E:\Live\TGPV5\TGP_V5"/>
+  <logmode>rotate</logmode>
+  <logpath>E:\Live\TGPV5\TGP_V5\resources\app\service\logs</logpath>
+  <onfailure action="restart" delay="5 sec"/>
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="30 sec"/>
+  <resetfailure>1 hour</resetfailure>
+  <stoptimeout>15 sec</stoptimeout>
+  <startmode>Automatic</startmode>
+  <delayedAutoStart>true</delayedAutoStart>
+</service>

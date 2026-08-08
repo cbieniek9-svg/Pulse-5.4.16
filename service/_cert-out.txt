@@ -1,0 +1,22 @@
+node:fs:1350
+  const result = binding.mkdir(
+                         ^
+
+Error: EPERM: operation not permitted, mkdir 'C:\Program Files\nodejs\certs'
+    at Object.mkdirSync (node:fs:1350:26)
+    at ensureLocalHttpsCredentials (E:\TGPV5\TGP_V5\resources\app\src\lib\local-https.cjs:55:8)
+    at [eval]:1:83
+    at runScriptInThisContext (node:internal/vm:219:10)
+    at node:internal/process/execution:451:12
+    at [eval]-wrapper:6:24
+    at runScriptInContext (node:internal/process/execution:449:60)
+    at evalFunction (node:internal/process/execution:283:30)
+    at evalTypeScript (node:internal/process/execution:295:3)
+    at node:internal/main/eval_string:71:3 {
+  errno: -4048,
+  code: 'EPERM',
+  syscall: 'mkdir',
+  path: 'C:\\Program Files\\nodejs\\certs'
+}
+
+Node.js v24.15.0
