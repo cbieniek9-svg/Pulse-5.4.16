@@ -1,0 +1,26 @@
+# Headless / Windows service reboot smoke
+
+Use after `service\INSTALL.cmd` / install succeeds. Expect `/api/ready` → `"appVersion": "5.3.4"`.
+Docs: `../docs/INDEX.md`
+
+1. Confirm service
+   - services.msc → **TGP Command Center** → Running, Startup type Automatic (Delayed Start)
+   - Or: `sc query TGP-CommandCenter`
+
+2. Ready endpoint
+   - Browser or phone on store LAN: `http://<store-pc>:3001/api/ready`
+   - Expect JSON with `"ok": true` and `"appVersion"`
+
+3. Reboot without logging in
+   - Restart the PC; leave it at the lock screen / sign-in screen
+   - From a phone: open `http://<store-pc>:3001/` — mobile login must load
+   - Confirm VERSION label matches the deployed build
+
+4. Desktop attach-or-serve
+   - Sign into Windows; open **TGP Command Center** `.exe`
+   - Window should load the same UI; `tgp_error.log` should mention UI-only / attach
+   - Port 3001 must still be owned by the service (not a second crash / Port Conflict)
+
+5. Failure recovery
+   - Kill the node process or stop the service briefly, then start it again
+   - WinSW should restart on failure; `/api/ready` returns within ~30s

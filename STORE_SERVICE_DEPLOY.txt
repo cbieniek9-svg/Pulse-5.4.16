@@ -1,0 +1,88 @@
+TGP — Store deploy with Windows service (auto-start before login)
+================================================================
+Version: 5.3.4  |  Full app copy steps: STORE_DEPLOY.txt
+Docs: docs\INDEX.md · docs\TESTING.md · docs\AI_HANDOFF_TGP_V5.md
+Goal: PC reboots → phones / TV / /rec / /financial work without anyone signing into Windows.
+
+------------------------------------------------------------------------
+A. Home PC (before you leave)
+------------------------------------------------------------------------
+1. Close TGP Command Center if running.
+2. cd resources\app
+3. npm run rebuild:electron
+4. node scripts\verify-store-deploy.cjs   (must say VERIFY OK — Electron ABI 145)
+5. Copy entire resources\app to USB (include node_modules, especially electron).
+   Always 145. Do NOT run rebuild:node for store deploys.
+
+------------------------------------------------------------------------
+B. Store PC — replace the app (same as usual)
+------------------------------------------------------------------------
+1. Stop TGP Command Center V3.exe
+2. Optional: copy tgp_ops.db + backups\ somewhere safe
+3. Replace resources\app\ from USB
+   — DO NOT overwrite tgp_ops.db or backups\ (they live next to the .exe /
+     install root, not inside a wipe of those files)
+4. Run scripts\verify-store-site.cmd
+
+------------------------------------------------------------------------
+C. Store PC — install the Windows service (ONCE)
+------------------------------------------------------------------------
+1. Close the desktop .exe if it is still open (frees port 3001).
+2. Open folder:  resources\app\service\
+3. Double-click  INSTALL.cmd
+4. Click YES on the Administrator / UAC prompt.
+5. Wait until you see  === SERVICE OK ===
+   (If it fails: open service\install.log and service\logs\)
+
+What this does:
+  - Downloads portable Node + WinSW if missing
+  - Registers Windows service:  TGP Command Center  (id: TGP-CommandCenter)
+  - Starts it now, and on every boot (before login)
+
+------------------------------------------------------------------------
+D. Confirm it worked
+------------------------------------------------------------------------
+1. services.msc → find "TGP Command Center" → Status = Running
+   Or CMD:  sc query TGP-CommandCenter
+2. On the store PC browser:  http://127.0.0.1:3001/api/ready
+   Expect:  "ok": true
+3. Phone on store Wi‑Fi: open http://<store-pc-ip>:3001/
+   Mobile login shows VERSION (e.g. 5.3.0)
+   Chromebook /rec and manager /financial bookmarks must load from the same host:port.
+4. Optional: open the desktop .exe — it should be UI-only
+   (service already owns the API; no second server)
+
+------------------------------------------------------------------------
+E. Reboot test (the whole point)
+------------------------------------------------------------------------
+1. Restart the store PC.
+2. Leave it at the lock / sign-in screen (do not log in).
+3. From a phone: open http://<store-pc-ip>:3001/ — login page must load.
+   Spot-check /rec and /financial URLs on the same port.
+
+------------------------------------------------------------------------
+F. Later updates (after first service install)
+------------------------------------------------------------------------
+1. Stop service:  services.msc → TGP Command Center → Stop
+   Or:  resources\app\service\TGP-CommandCenter.exe stop
+2. Replace resources\app\ as in section B (keep DB/backups).
+3. Start service again (or reboot).
+   If INSTALL.cmd is needed again (broken service), run section C.
+
+Uninstall service:  resources\app\service\tgp-service-uninstall.cmd  (Admin)
+
+------------------------------------------------------------------------
+Quick troubleshooting
+------------------------------------------------------------------------
+- Service missing in services.msc
+  → INSTALL.cmd was not run, or UAC was declined. Run C again.
+- Port conflict / API dead while .exe also open
+  → Close .exe; service should own :3001. Restart the service.
+- /api/ready fails after install
+  → Read service\logs\ and install root tgp_error.log
+  → Often better-sqlite3 ABI: re-run INSTALL.cmd (it checks/rebuilds).
+- Desktop .exe alone after stopping service (not recommended)
+  → Prefer keeping the service running. Service + .exe both use Electron ABI 145.
+  → If sqlite fails: npm run rebuild:electron then restart the service.
+
+More detail:  service\README.txt  |  service\REBOOT_SMOKE.txt

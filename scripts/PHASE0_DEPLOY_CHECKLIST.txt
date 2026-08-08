@@ -1,0 +1,98 @@
+# TGP Command Center — Phase 0 post-deploy checklist (v5.4.16)
+# Run on the store PC after copying resources/app (keep tgp_ops.db + backups\).
+# Full docs: resources/app/docs/INDEX.md
+
+1. VERSION
+   - Mobile login → VERSION 5.4.16
+   - Or: scripts\verify-store-site.cmd
+   - After build:ui on a running service, restart TGP-CommandCenter so restart_required clears
+   - better-sqlite3 error?
+     - **Store / Windows service + .exe (required):** `scripts\fix-native-modules.cmd` or `npm run rebuild:electron` (ABI **145**)
+     - Service runs Electron-as-Node — same ABI as the desktop app
+     - `fix-native-modules-node.cmd` / `rebuild:node` is for local Node unit tests only — restores to 145 before going live
+     - NODE_MODULE_VERSION **145** = Electron/service; **137** = system Node only
+
+2. TIMEZONE
+   - Settings Editor (/settings) → Store & TV → Store_Timezone (e.g. America/Edmonton)
+   - Mobile header clock matches wall clock.
+
+3. RHYTHM BOOT
+   - After first start: board populates for today's weekday (06:00 store time or boot catch-up)
+   - Blank board? Settings Editor → Daily Rhythm → Load Today's Schedule once.
+
+4. FINISH HABIT (Phase 0 exit criteria)
+   - Every TGP order day: FINISH (staff count + hardware flag)
+   - Reports or hub → TODAY'S BRIEFING / FINISH archive health (phase0_ready, trust band)
+   - Target: 4–8 weeks clean shift_order_history
+   - Missing FINISH in inbox cannot be dismissed
+
+5. SCORECARD & BRIEFING
+   - Hub → TODAY'S BRIEFING or Reports → Weekly Order Scorecard (after several FINISH days)
+   - Order-Day Briefing on order days (collapsed briefing panel in hub)
+   - Use at pre-order huddle
+
+6. TASK PLANNING → RHYTHM
+   - Reports → Task Planning: honest close times
+   - APPLY (already in rhythm) / ADD TO RHYTHM (3+ samples, not PULL:*)
+   - Rhythm templates: Settings Editor → Daily Rhythm
+
+7. ACTION INBOX
+   - Huddle open + mid-shift: hub TODAY'S BRIEFING or Reports
+   - ACK dismissible items; missing FINISH stays until archived
+
+8. TV & MAP
+   - Native TV (TV_Native_Shell=1): LIVE badge when SSE connected
+   - Purpose-pair every display in Settings Editor → Devices (tv purpose + one-time HTTPS URL)
+   - LAN TVs must open the HTTPS pairing URL (not plain http://<store-ip>:3001)
+   - A5 tri-color pulse when A5 tasks open
+
+9. MESSAGE CENTER
+   - Message_Center_Enabled=1 (default): pin / feed / ticker
+   - EOD → Reports Comms Handoff
+
+10. SETTINGS EDITOR
+   - Open /settings (manager login — enter name manually) — rhythms, vendors, deliveries, store/TV, staff, task audit, device pairing
+   - Confirm page scrolls on long staff / audit lists
+
+11. SECURE MODE (required since 5.4.11; preserved in 5.4.16)
+   - Tokenless / IP-only LAN TV access is denied. Require_TV_Device_Token defaults to 1 (migration 060).
+   - Pair every TV, CS desk, receiving, and markdown device under Settings → Devices with a purpose and token.
+   - LAN browsers must use HTTPS (accept the self-signed certificate once, then reopen the pairing URL).
+   - Fresh installs: if PC_ADMIN_PIN env is unset, a random PIN is written to pc-admin-pin.txt beside the exe — store that file securely.
+   - Confirm Store_Instance_Id is present under Store & TV (auto UUID; do not invent).
+   - TRAINING MODE is revoked; do not rely on TRAINING MODE / 1234.
+
+11b. BACKUP INTEGRITY (required since 5.4.12 — migration 061; preserved in 5.4.16)
+   - Settings → Maintenance: latest backup must be verified (header-only junk is unhealthy).
+   - EOD creates verified pre-purge and post-purge packages (ops + inventory + sidecars + manifest).
+   - Historical /reports dates labeled BACKUP must open a real backup — never live DB under a BACKUP chip.
+   - After upgrade, re-run EOD or a manual verified backup if readiness warns about unverified backups.
+
+11c. INCIDENT + INVENTORY INTEGRITY (required in 5.4.13 — migration 062; preserved in 5.4.16)
+   - Grant inventory intentionally under Settings → Staff for clerks who run /count (managers always allowed).
+   - Submitted investigations lock after submit; only Manager / Store Manager may reopen to amend.
+   - Reopening a committed backstock/count session clears that session's backstock_on_hand memory — re-commit before order finalize relies on new counts.
+
+11d. SPREADSHEET IMPORTS (5.4.14 — dependency-only; preserved in 5.4.16)
+   - Community SheetJS xlsx is gone; imports use ExcelJS (.xlsx) and xls-reader (.xls).
+   - If an old SMS .xls fails to parse (BIFF5 / mislabeled HTML): save as .xlsx or CSV and retry.
+   - Investigation attachment upload behavior unchanged for operators (multer 2 under the hood).
+
+11e. PERIOD DEPARTMENT FREIGHT ALLOCATION (required in 5.4.16 — migration 064; supersedes 5.4.15 period_rate)
+   - Authoritative: Daily Freight Allocation Total (N3) × Period Department Allocation %.
+   - Financial Log → Margin: enter/confirm department allocation % profile (must total 100%) before confirming costing.
+   - Produce Shrink receives freight at its period %; zero-% departments stay $0 freight.
+   - Invoice Estimated Freight is reference only; bill variance = bills − sum of daily N3 totals.
+   - Missing/unconfirmed profile blocks confirm/close (FREIGHT_ALLOC_PROFILE_MISSING) — never silent zeros or purchases×rate.
+
+12. WINDOWS SERVICE / HEADLESS (required — API before login)
+   - Goal: reboot → phones/TV/`/rec` work without anyone signing into Windows.
+   - Close the desktop .exe, then:
+     1) scripts\fetch-service-runtime.cmd
+     2) Admin: service\INSTALL.cmd (or tgp-service-install.cmd)
+   - Smoke: http://127.0.0.1:3001/api/ready → `{ "ok": true, ... }`
+   - Reboot smoke: at lock screen, phone still loads mobile login / VERSION.
+   - After login, opening the .exe should attach UI-only (service keeps :3001).
+   - Uninstall: Admin service\tgp-service-uninstall.cmd
+   - Details: service\README.txt | STORE_SERVICE_DEPLOY.txt
+   - ABI: always keep better-sqlite3 on Electron **145**. Service executable is electron.exe + ELECTRON_RUN_AS_NODE. Never rebuild:node on store.

@@ -1,0 +1,16 @@
+{
+  "name": "tgp-chaos-suite",
+  "version": "1.0.0",
+  "description": "Hell Infinity Mode: Destructive Chaos Testing for TGP Command Center",
+  "main": "run-chaos.js",
+  "scripts": {
+    "test": "playwright test",
+    "chaos": "node run-chaos.js"
+  },
+  "dependencies": {
+    "@playwright/test": "^1.40.0",
+    "axios": "^1.6.0",
+    "eventsource": "^2.0.2",
+    "playwright": "^1.60.0"
+  }
+}

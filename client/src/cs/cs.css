@@ -1,0 +1,623 @@
+.cs-portal-root {
+    box-sizing: border-box;
+    background: #0a0514;
+    color: #a855f7;
+    font-family: 'Arial Narrow', Arial, sans-serif;
+    margin: 0;
+    min-height: calc(100vh - 48px);
+    text-transform: uppercase;
+}
+
+.cs-portal-root *,
+.cs-portal-root *::before,
+.cs-portal-root *::after {
+    box-sizing: border-box;
+}
+
+.cs-portal-root.legacy-mode {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+}
+
+.cs-portal-root.hub-mode,
+.cs-portal-root.cs-full-mode,
+.cs-portal-root.betacs-mode {
+    display: block;
+}
+
+.cs-portal-root.legacy-mode #mode-root {
+    width: 100%;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.cs-portal-root .wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 16px 40px;
+    width: 100%;
+}
+
+.cs-portal-root .cs-box {
+    background: rgba(30, 10, 50, 0.8);
+    padding: 40px;
+    border-radius: 12px;
+    border: 2px solid #a855f7;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
+}
+
+.cs-portal-root.cs-full-mode .cs-box,
+.cs-portal-root.betacs-mode .cs-box {
+    max-width: none;
+    padding: 28px;
+}
+
+.cs-portal-root .cs-title {
+    font-size: 2em;
+    font-weight: 300;
+    letter-spacing: 4px;
+    margin-bottom: 30px;
+    text-align: center;
+    border-bottom: 2px solid #a855f7;
+    padding-bottom: 15px;
+    color: #fff;
+}
+
+.cs-portal-root.cs-full-mode .cs-title,
+.cs-portal-root.betacs-mode .cs-title {
+    font-size: 1.8em;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+}
+
+.cs-portal-root label {
+    color: #d8b4fe;
+    font-size: 0.9em;
+    font-weight: bold;
+    margin-bottom: 5px;
+    display: block;
+    letter-spacing: 1px;
+}
+
+.cs-portal-root.cs-full-mode label,
+.cs-portal-root.betacs-mode label {
+    font-size: 0.85em;
+}
+
+.cs-portal-root .st-input {
+    width: 100%;
+    padding: 15px;
+    background: #000;
+    border: 1px solid #4a1d82;
+    color: #fff;
+    border-radius: 6px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    font-size: 1.1em;
+    letter-spacing: 1px;
+}
+
+.cs-portal-root.cs-full-mode .st-input,
+.cs-portal-root.betacs-mode .st-input {
+    padding: 12px;
+    margin-bottom: 16px;
+    font-size: 1em;
+}
+
+.cs-portal-root textarea.st-input {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.cs-portal-root.cs-full-mode textarea.st-input,
+.cs-portal-root.betacs-mode textarea.st-input {
+    min-height: 90px;
+}
+
+.cs-portal-root .st-input:focus {
+    outline: none;
+    border-color: #a855f7;
+    box-shadow: 0 0 8px rgba(168, 85, 247, 0.5);
+}
+
+.cs-portal-root .st-btn {
+    width: 100%;
+    background: #a855f7;
+    border: none;
+    color: #000;
+    padding: 15px;
+    font-weight: bold;
+    font-size: 1.2em;
+    border-radius: 6px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: 0.2s;
+    font-family: inherit;
+    text-transform: uppercase;
+}
+
+.cs-portal-root.cs-full-mode .st-btn,
+.cs-portal-root.betacs-mode .st-btn {
+    padding: 14px;
+    font-size: 1.1em;
+}
+
+.cs-portal-root .st-btn:hover {
+    background: #fff;
+    box-shadow: 0 0 15px #a855f7;
+}
+
+.cs-portal-root .st-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.cs-portal-root .st-btn.sm {
+    width: auto;
+    padding: 6px 12px;
+    font-size: 0.75em;
+    margin-top: 8px;
+}
+
+.cs-portal-root .st-btn.ghost {
+    background: transparent;
+    border: 2px solid #a855f7;
+    color: #d8b4fe;
+}
+
+.cs-portal-root .st-btn.ghost:hover {
+    background: #a855f7;
+    color: #000;
+}
+
+.cs-portal-root .st-btn.warn {
+    background: #f59e0b;
+}
+
+.cs-portal-root .status-copy {
+    min-height: 22px;
+    margin-top: 15px;
+    color: #d8b4fe;
+    font-size: 0.9em;
+    letter-spacing: 1px;
+    text-align: center;
+}
+
+.cs-portal-root.cs-full-mode .status-copy,
+.cs-portal-root.betacs-mode .status-copy {
+    margin-top: 12px;
+    font-size: 0.85em;
+}
+
+.cs-portal-root .status-copy.success {
+    color: #86efac;
+}
+
+.cs-portal-root .status-copy.error {
+    color: #fda4af;
+}
+
+.cs-portal-root .loading {
+    text-align: center;
+    color: #d8b4fe;
+    padding: 60px 20px;
+    letter-spacing: 2px;
+}
+
+.cs-portal-root .tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.cs-portal-root .tab-btn {
+    flex: 1;
+    min-width: 140px;
+    background: rgba(30, 10, 50, 0.8);
+    border: 1px solid #4a1d82;
+    color: #d8b4fe;
+    padding: 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    font-weight: bold;
+    font-family: inherit;
+    text-transform: uppercase;
+}
+
+.cs-portal-root .tab-btn.active {
+    background: #a855f7;
+    color: #000;
+    border-color: #a855f7;
+}
+
+.cs-portal-root .panel {
+    display: none;
+}
+
+.cs-portal-root .panel.active {
+    display: block;
+}
+
+.cs-portal-root .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+@media (max-width: 640px) {
+    .cs-portal-root .grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+.cs-portal-root .board-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 900px) {
+    .cs-portal-root .board-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.cs-portal-root .board-col {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid #4a1d82;
+    border-radius: 8px;
+    padding: 12px;
+    min-height: 200px;
+}
+
+.cs-portal-root .board-col h3 {
+    margin: 0 0 12px;
+    font-size: 0.9em;
+    color: #fff;
+    letter-spacing: 2px;
+    text-align: center;
+    border-bottom: 1px solid #4a1d82;
+    padding-bottom: 8px;
+}
+
+.cs-portal-root .order-card {
+    background: rgba(30, 10, 50, 0.9);
+    border: 1px solid #6b21a8;
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 10px;
+    font-size: 0.72em;
+    line-height: 1.5;
+}
+
+.cs-portal-root .order-card.overdue {
+    border-color: #f43f5e;
+}
+
+.cs-portal-root .order-card .meta {
+    color: #c4b5fd;
+    margin-top: 6px;
+    font-size: 0.95em;
+}
+
+.cs-portal-root .order-card .items {
+    color: #fff;
+    font-weight: bold;
+    margin-top: 4px;
+}
+
+.cs-portal-root .empty-col {
+    color: #b0b0b0;
+    text-align: center;
+    padding: 24px 8px;
+    font-size: 0.8em;
+}
+
+.cs-portal-root .hint {
+    font-size: 0.7em;
+    color: #888;
+    text-align: center;
+    margin-top: 16px;
+    letter-spacing: 1px;
+    text-transform: none;
+}
+
+.cs-portal-root #mode-root {
+    width: 100%;
+}
+
+.cs-portal-root .hub-user {
+    text-align: right;
+    color: #d8b4fe;
+    font-size: 0.8em;
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+}
+
+.cs-portal-root .hub-alert {
+    background: rgba(244, 63, 94, 0.15);
+    border: 1px solid #f43f5e;
+    color: #fda4af;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    text-align: center;
+    letter-spacing: 1px;
+}
+
+.cs-portal-root .hub-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+.cs-portal-root .hub-btn {
+    width: 100%;
+    background: rgba(30, 10, 50, 0.9);
+    border: 2px solid #a855f7;
+    color: #fff;
+    padding: 22px 16px;
+    border-radius: 10px;
+    font-size: 1.15em;
+    font-weight: bold;
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-transform: uppercase;
+    font-family: inherit;
+}
+
+.cs-portal-root .hub-btn:hover:not(:disabled) {
+    background: #a855f7;
+    color: #000;
+}
+
+.cs-portal-root .hub-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.cs-portal-root .hub-btn small {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.65em;
+    color: #c4b5fd;
+    letter-spacing: 1px;
+    font-weight: normal;
+    text-transform: none;
+}
+
+.cs-portal-root .hub-btn:hover:not(:disabled) small {
+    color: #1e1b4b;
+}
+
+.cs-portal-root .back-row {
+    margin-bottom: 16px;
+}
+
+.cs-portal-root .due-section {
+    margin-bottom: 20px;
+}
+
+.cs-portal-root .due-section h3 {
+    color: #fff;
+    letter-spacing: 2px;
+    font-size: 0.95em;
+    margin: 0 0 10px;
+}
+
+.cs-portal-root .due-search-wrap {
+    max-width: 520px;
+    margin: 0 auto 20px;
+}
+
+.cs-portal-root .due-search-wrap label {
+    text-align: center;
+}
+
+.cs-portal-root .order-card.hidden-card {
+    display: none !important;
+}
+
+.cs-portal-root .due-empty-search {
+    color: #fda4af;
+    text-align: center;
+    padding: 16px;
+    font-size: 0.85em;
+    display: none;
+}
+
+.cs-portal-root .due-empty-search.show {
+    display: block;
+}
+
+.cs-portal-root .crm-hint {
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid #22c55e;
+    color: #86efac;
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    font-size: 0.75em;
+    letter-spacing: 1px;
+    text-transform: none;
+    display: none;
+}
+
+.cs-portal-root .crm-hint.show {
+    display: block;
+}
+
+.cs-portal-root .crm-result {
+    background: rgba(30, 10, 50, 0.9);
+    border: 1px solid #6b21a8;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    text-align: left;
+}
+
+.cs-portal-root .crm-result:hover {
+    border-color: #a855f7;
+}
+
+.cs-portal-root .crm-notes-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+@media (max-width: 640px) {
+    .cs-portal-root .crm-notes-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.cs-portal-root .crm-stats {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    max-width: 720px;
+    margin: 0 auto 14px;
+}
+
+.cs-portal-root .crm-stats > div {
+    min-width: 72px;
+    text-align: center;
+    padding: 8px 10px;
+    background: rgba(30, 10, 50, 0.75);
+    border: 1px solid #6b21a8;
+    border-radius: 8px;
+}
+
+.cs-portal-root .crm-stats strong {
+    display: block;
+    font-size: 1.25em;
+    color: #f5d0fe;
+}
+
+.cs-portal-root .crm-stats span {
+    font-size: 0.7em;
+    color: #c4b5fd;
+    text-transform: uppercase;
+}
+
+.cs-portal-root .crm-flags-banner {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 0 auto 12px;
+}
+
+.cs-portal-root .crm-pill {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 0.65em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+    background: #4c1d95;
+    color: #e9d5ff;
+}
+
+.cs-portal-root .crm-pill.vip {
+    background: #854d0e;
+    color: #fef3c7;
+}
+
+.cs-portal-root .crm-pill.alert {
+    background: #7f1d1d;
+    color: #fecaca;
+}
+
+.cs-portal-root .crm-pill.type-short,
+.cs-portal-root .crm-pill.type-reorder,
+.cs-portal-root .crm-pill.type-complaint {
+    background: #7f1d1d;
+    color: #fecaca;
+}
+
+.cs-portal-root .crm-pill.type-call,
+.cs-portal-root .crm-pill.type-pickup {
+    background: #14532d;
+    color: #bbf7d0;
+}
+
+.cs-portal-root .crm-flag-row {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin: 10px 0 14px;
+    font-size: 0.9em;
+}
+
+.cs-portal-root .crm-event-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 8px 0 12px;
+}
+
+.cs-portal-root .crm-event-actions .st-btn.active {
+    border-color: #c084fc;
+    color: #f5d0fe;
+}
+
+.cs-portal-root .crm-event-list {
+    max-height: 280px;
+    overflow: auto;
+}
+
+.cs-portal-root .crm-event {
+    border-top: 1px solid rgba(107, 33, 168, 0.45);
+    padding: 8px 0;
+    text-align: left;
+    font-size: 0.9em;
+}
+
+.cs-portal-root .crm-event-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.cs-portal-root .crm-order-notes {
+    margin-top: 6px;
+    padding: 6px 8px;
+    background: rgba(127, 29, 29, 0.25);
+    border-left: 3px solid #f87171;
+    color: #fecaca;
+    font-size: 0.85em;
+    white-space: pre-wrap;
+}
+
+.cs-portal-root .card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.cs-portal-root .back-row-user {
+    float: right;
+    color: #d8b4fe;
+    font-size: 0.75em;
+}

@@ -1,0 +1,116 @@
+'use strict';
+
+/**
+ * Run the unit suite one file at a time under the Electron runtime.
+ *
+ * better-sqlite3 is rebuilt against Electron's ABI (see the `rebuild:electron` script),
+ * so plain `node --test` cannot load it and every SQLite-backed test errors out.
+ * Running each file in its own process also means a single hanging test reports which
+ * file stalled instead of freezing the whole run.
+ *
+ * Usage:
+ *   node scripts/run-unit-electron.cjs                 # every discovered unit file
+ *   node scripts/run-unit-electron.cjs receiving auth  # only files matching a substring
+ */
+
+const { spawnSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+const TIMEOUT_MS = Number(process.env.UNIT_TIMEOUT_MS || 120000);
+const appDir = path.resolve(__dirname, '..');
+const testsDir = path.join(appDir, 'tests');
+
+/**
+ * Integration files that talk to a Command Center on a real port. They belong to the
+ * `test:api` run; inside the unit runner they would just burn their connect timeout.
+ */
+const NEEDS_LIVE_SERVER = new Set([
+    'betacs-portal-api.test.cjs',
+]);
+
+function discoverTestFiles() {
+    return fs.readdirSync(testsDir)
+        .filter((name) => name.endsWith('.test.cjs'))
+        .filter((name) => !NEEDS_LIVE_SERVER.has(name))
+        .sort()
+        .map((name) => path.posix.join('tests', name));
+}
+
+function resolveRuntime() {
+    try {
+        const electron = require(path.join(appDir, 'node_modules', 'electron'));
+        if (electron && fs.existsSync(electron)) return { exe: electron, label: 'Electron' };
+    } catch (_) { /* fall through to plain node */ }
+    console.warn('! Electron not found — falling back to node; SQLite-backed tests will skip.\n');
+    return { exe: process.execPath, label: 'node' };
+}
+
+function main() {
+    const filters = process.argv.slice(2);
+    const all = discoverTestFiles();
+    const files = filters.length
+        ? all.filter((f) => filters.some((needle) => f.includes(needle)))
+        : all;
+
+    if (!files.length) {
+        console.error(`No unit test files matched ${JSON.stringify(filters)}`);
+        process.exit(1);
+    }
+
+    const { exe, label } = resolveRuntime();
+    const failed = [];
+    const timedOut = [];
+    let totalPass = 0;
+    let totalSkip = 0;
+    const startedAll = Date.now();
+
+    console.log(`Running ${files.length} unit test files under ${label}\n`);
+
+    for (const file of files) {
+        const started = Date.now();
+        const res = spawnSync(exe, ['--test', file], {
+            cwd: appDir,
+            timeout: TIMEOUT_MS,
+            encoding: 'utf8',
+            env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+        });
+        const ms = Date.now() - started;
+        const out = `${res.stdout || ''}${res.stderr || ''}`;
+
+        if (res.error && res.error.code === 'ETIMEDOUT') {
+            timedOut.push(file);
+            console.log(`HANG  ${file} (>${TIMEOUT_MS}ms)`);
+            continue;
+        }
+        if (res.status !== 0) {
+            failed.push({ file, out });
+            console.log(`FAIL  ${file} (${ms}ms)`);
+            continue;
+        }
+        // The spec reporter prefixes counts with a glyph ("i pass 12"), TAP with "# pass 12".
+        const pass = Number((out.match(/^\W*pass (\d+)/m) || [])[1] || 0);
+        const skip = Number((out.match(/^\W*skipped (\d+)/m) || [])[1] || 0);
+        totalPass += pass;
+        totalSkip += skip;
+        console.log(`ok    ${file} (${pass} pass${skip ? `, ${skip} skipped` : ''}, ${ms}ms)`);
+    }
+
+    console.log(`\n${'='.repeat(64)}`);
+    console.log(
+        `files ${files.length}  assertions ${totalPass} passed`
+        + `${totalSkip ? `, ${totalSkip} skipped` : ''}`
+        + `  failed ${failed.length}  hung ${timedOut.length}`
+        + `  (${Math.round((Date.now() - startedAll) / 1000)}s)`,
+    );
+
+    for (const { file, out } of failed) {
+        console.log(`\n${'-'.repeat(64)}\nFAILED ${file}\n${'-'.repeat(64)}`);
+        console.log(out.split(/\r?\n/).slice(-60).join('\n'));
+    }
+    for (const file of timedOut) console.log(`\nHUNG ${file}`);
+
+    process.exit(failed.length || timedOut.length ? 1 : 0);
+}
+
+main();
