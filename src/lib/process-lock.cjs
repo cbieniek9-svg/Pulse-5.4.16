@@ -37,6 +37,7 @@ function pidAlive(pid) {
  */
 function acquireProcessLock() {
     const lockPath = getLockPath();
+    const reclaimPath = `${lockPath}.reclaim`;
     const payload = JSON.stringify({ pid: process.pid, started_at: new Date().toISOString() }, null, 0);
     try {
         fs.mkdirSync(getDataRoot(), { recursive: true });
@@ -53,7 +54,7 @@ function acquireProcessLock() {
         } catch (e) {
             if (e?.code !== 'EEXIST') return { ok: false, reason: e.message || String(e) };
 
-            const existing = readLock();
+            let existing = readLock();
             if (existing?.pid === process.pid) return { ok: true };
             if (existing && pidAlive(existing.pid)) {
                 return { ok: false, reason: `Another TGP server is running (pid ${existing.pid}).`, pid: existing.pid };
@@ -73,10 +74,49 @@ function acquireProcessLock() {
                 }
             }
 
-            try { fs.unlinkSync(lockPath); } catch (unlinkError) {
-                if (unlinkError?.code !== 'ENOENT') {
-                    return { ok: false, reason: unlinkError.message || String(unlinkError) };
+            // Stale cleanup itself must be serialized. Without this mutex, two
+            // reclaimers can both inspect the stale PID; one can then unlink the
+            // other reclaimer's newly-created live lock and both will start.
+            try {
+                fs.mkdirSync(reclaimPath);
+            } catch (reclaimError) {
+                if (reclaimError?.code === 'EEXIST') {
+                    try {
+                        const reclaimAgeMs = Date.now() - fs.statSync(reclaimPath).mtimeMs;
+                        if (reclaimAgeMs >= 30000) {
+                            fs.rmdirSync(reclaimPath);
+                            continue;
+                        }
+                    } catch (cleanupError) {
+                        if (cleanupError?.code === 'ENOENT') continue;
+                        return { ok: false, reason: cleanupError.message || String(cleanupError) };
+                    }
+                    return { ok: false, reason: 'Another TGP server is reclaiming the process lock.' };
                 }
+                return { ok: false, reason: reclaimError.message || String(reclaimError) };
+            }
+            try {
+                existing = readLock();
+                if (existing?.pid === process.pid) return { ok: true };
+                if (existing && pidAlive(existing.pid)) {
+                    return { ok: false, reason: `Another TGP server is running (pid ${existing.pid}).`, pid: existing.pid };
+                }
+                try { fs.unlinkSync(lockPath); } catch (unlinkError) {
+                    if (unlinkError?.code !== 'ENOENT') {
+                        return { ok: false, reason: unlinkError.message || String(unlinkError) };
+                    }
+                }
+                try {
+                    fs.writeFileSync(lockPath, payload, { encoding: 'utf8', flag: 'wx' });
+                    return { ok: true };
+                } catch (createError) {
+                    if (createError?.code === 'EEXIST') {
+                        return { ok: false, reason: 'Another TGP server acquired the process lock.' };
+                    }
+                    return { ok: false, reason: createError.message || String(createError) };
+                }
+            } finally {
+                try { fs.rmdirSync(reclaimPath); } catch (_) { /* best effort */ }
             }
         }
     }

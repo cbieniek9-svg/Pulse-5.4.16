@@ -43,6 +43,23 @@ test('process lock reclaims a stale PID but fails closed on a new malformed lock
     fs.rmSync(dir, { recursive: true, force: true });
 });
 
+test('process lock fails closed while stale-lock reclamation is already in progress', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tgp-lock-reclaim-'));
+    process.env.TGP_DATA_DIR = dir;
+    const { acquireProcessLock, getLockPath } = require('../src/lib/process-lock.cjs');
+    fs.writeFileSync(getLockPath(), JSON.stringify({ pid: 2147483647 }), 'utf8');
+    fs.mkdirSync(`${getLockPath()}.reclaim`);
+
+    const blocked = acquireProcessLock();
+    assert.equal(blocked.ok, false);
+    assert.match(blocked.reason, /reclaiming the process lock/);
+
+    const old = new Date(Date.now() - 31000);
+    fs.utimesSync(`${getLockPath()}.reclaim`, old, old);
+    assert.equal(acquireProcessLock().ok, true);
+    fs.rmSync(dir, { recursive: true, force: true });
+});
+
 test('probeLocalApiReady returns false when nothing listens', async () => {
     const { probeLocalApiReady } = require('../src/lib/app-boot.cjs');
     const probe = await probeLocalApiReady(59999, '127.0.0.1', 300);

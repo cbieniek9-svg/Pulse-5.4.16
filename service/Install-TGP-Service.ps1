@@ -87,7 +87,6 @@ function Stop-ConflictingListeners {
         }
         Remove-Item $lockPath -Force -ErrorAction SilentlyContinue
     }
-
     Get-CimInstance Win32_Process -Filter "Name='node.exe'" -ErrorAction SilentlyContinue | ForEach-Object {
         $cmd = [string]$_.CommandLine
         if ($cmd -and ($cmd -like "*server.cjs*") -and ($cmd -like "*$AppRoot*")) {
@@ -105,6 +104,10 @@ function Stop-ConflictingListeners {
             Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
         }
     }
+    # A process killed during stale-lock recovery can leave the atomic reclaim
+    # mutex behind. Conflicting app processes are stopped now, so clear it instead
+    # of waiting for the service's 30-second stale-mutex expiry.
+    Remove-Item "$lockPath.reclaim" -Recurse -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
 }
 
