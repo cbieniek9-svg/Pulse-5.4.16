@@ -415,7 +415,8 @@ function listMissingRhythmDetails(db, deps = {}) {
         if (skipFifo && /^FIFO Audit$/i.test(detail)) return;
 
         // FIFO expands into per-aisle rows — one boarded aisle must not mark the template done.
-        // Module/context/expand failures are treated as incomplete (fail closed), not covered.
+        // Module/context/expand failures are incomplete (fail closed). Bare fallback
+        // "FIFO Audit" (no aisle expand) may use prefix coverage; multi-aisle expects every row.
         if (/^FIFO Audit$/i.test(detail)) {
             if (!fifoExpandReady || !assignCtx) {
                 missing.push(detail);
@@ -430,8 +431,11 @@ function listMissingRhythmDetails(db, deps = {}) {
                     missing.push(detail);
                     return;
                 }
-                const allPresent = expectedDetails.every((d) => boardedDetails.has(d));
-                if (!allPresent) missing.push(detail);
+                if (expectedDetails.length === 1 && /^FIFO Audit$/i.test(expectedDetails[0])) {
+                    if (!openDetailCoversTemplate(detail, boardedDetails)) missing.push(detail);
+                    return;
+                }
+                if (!expectedDetails.every((d) => boardedDetails.has(d))) missing.push(detail);
             } catch (_) {
                 missing.push(detail);
             }

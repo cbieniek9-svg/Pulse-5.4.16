@@ -142,11 +142,14 @@ test('executeDailyRhythm loads tasks and sets stamp', () => {
 test('executeDailyRhythm returns alreadyLoaded when stamp matches and today has open tasks', () => {
     const db = mockDb({
         settings: { Daily_Rhythm_Last_Loaded: '2026-05-31' },
-        tasks: [{ status: 'Open', time_submitted: '2026-05-31T14:00:00.000Z' }],
+        tasks: [
+            { status: 'Open', task_detail: 'Store walk', time_submitted: '2026-05-31T14:00:00.000Z' },
+            { status: 'Open', task_detail: 'FIFO Audit', time_submitted: '2026-05-31T14:00:00.000Z' },
+        ],
     });
     const res = executeDailyRhythm(db, deps, { reason: 'test' });
     assert.equal(res.alreadyLoaded, true);
-    assert.equal(res.openTasks, 1);
+    assert.equal(res.openTasks, 2);
 });
 
 test('force reload when stamp set but board empty', () => {
