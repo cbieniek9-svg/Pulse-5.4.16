@@ -191,7 +191,10 @@ if (fs.existsSync(electronPkg)) {
 }
 
 console.log('\n--- unit tests ---\n');
-const unit = spawnSync(process.execPath, [
+const unitRuntime = fs.existsSync(electronExe)
+    ? { command: electronExe, prefix: [] }
+    : { command: process.execPath, prefix: [electronCli] };
+const unit = spawnSync(unitRuntime.command, [...unitRuntime.prefix,
     '--test',
     path.join(appRoot, 'tests', 'order-finish.test.cjs'),
     path.join(appRoot, 'tests', 'shift-metrics.test.cjs'),
@@ -221,7 +224,7 @@ const unit = spawnSync(process.execPath, [
 ], {
     cwd: appRoot,
     stdio: 'inherit',
-    env: { ...process.env, NODE_TEST: '1' },
+    env: { ...process.env, NODE_TEST: '1', ELECTRON_RUN_AS_NODE: '1' },
 });
 if (unit.status !== 0) bad('core unit tests failed');
 else ok('order-finish + shift-metrics + daily-rhythm + task-estimates + order-history tests');

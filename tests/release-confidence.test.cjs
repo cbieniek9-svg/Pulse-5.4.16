@@ -6,7 +6,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const appRoot = path.resolve(__dirname, '..');
-const { buildSteps, parseArgs } = require('../scripts/verify-release.cjs');
+const { buildSteps, parseArgs, resolveSqliteRuntime } = require('../scripts/verify-release.cjs');
 
 test('package exposes release verification scripts', () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(appRoot, 'package.json'), 'utf8'));
@@ -28,6 +28,11 @@ test('verify-release step plan includes smoke checks and supports quick mode', (
     assert.ok(names.includes('fresh-install-smoke'));
     assert.ok(names.includes('upgrade-smoke-copy'));
     assert.ok(!names.includes('store-deploy-preflight'));
+
+    const sqliteRuntime = resolveSqliteRuntime();
+    const core = steps.find((step) => step.name === 'core-unit-tests');
+    assert.equal(core.command, sqliteRuntime.exe);
+    assert.deepEqual(core.env, sqliteRuntime.env);
 
     assert.equal(parseArgs(['--quick', '--skip-backup']).quick, true);
     assert.equal(parseArgs(['--quick', '--skip-backup']).skipBackup, true);

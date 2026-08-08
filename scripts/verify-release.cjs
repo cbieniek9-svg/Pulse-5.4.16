@@ -78,7 +78,11 @@ function buildSteps(opts = {}) {
         },
         {
             name: 'core-unit-tests',
-            command: node,
+            // Several "core" tests open the inventory SQLite database during
+            // module initialization. Run the entire gate under the same Electron
+            // ABI as the packaged desktop and Windows service; using system Node
+            // here makes a correctly rebuilt store package fail preflight.
+            command: sqlite.exe,
             args: ['--test',
                 'tests/daily-direction.test.cjs',
                 'tests/eod-daily-direction-retention.test.cjs',
@@ -98,6 +102,7 @@ function buildSteps(opts = {}) {
                 'tests/eod-retention-snapshot.test.cjs',
                 'tests/safety-blurbs.test.cjs',
             ],
+            env: sqlite.env,
         },
         {
             name: 'fresh-install-smoke',
