@@ -1,0 +1,307 @@
+/* TGP TV dashboard — layout fixes (survives Vite rebuilds; linked from dist/index.html).
+
+   Dynamic KPI/grid CSS is still injected into #tv-overrides by tv-overrides.js. */
+
+.tv-fifo-assignments {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  border: 1px solid rgba(0, 255, 136, 0.25);
+  border-radius: 4px;
+  background: rgba(0, 255, 136, 0.04);
+}
+.tv-fifo-title {
+  color: #0f8;
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+  text-align: center;
+}
+.tv-fifo-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  justify-content: center;
+}
+.tv-fifo-chip {
+  background: rgba(255, 255, 255, 0.04);
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 0.78rem;
+  line-height: 1.25;
+  text-align: center;
+}
+.tv-fifo-chip strong { color: #fff; display: block; }
+.tv-fifo-chip small { color: #8cf; }
+
+
+
+.header { align-items: center !important; gap: 10px !important; overflow: visible !important; }
+
+.header-title {
+
+  flex-shrink: 0 !important;
+
+  white-space: nowrap !important;
+
+  font-size: 1.55rem !important;
+
+  letter-spacing: 1.5px !important;
+
+  padding: 0 0.12em !important;
+
+  overflow: visible !important;
+
+}
+
+.header-kpis { overflow: visible !important; flex-wrap: nowrap !important; gap: 5px !important; margin: 0 8px !important; flex: 1 !important; min-width: 0 !important; }
+
+.kpi-tile { min-width: 72px !important; max-width: 140px !important; flex: 1 !important; padding: 3px 8px !important; overflow: visible !important; }
+
+.kpi-tile-label {
+
+  font-size: 0.66rem !important;
+
+  letter-spacing: 0.2px !important;
+
+  line-height: 1.2 !important;
+
+  white-space: normal !important;
+
+  overflow: visible !important;
+
+  text-overflow: unset !important;
+
+  hyphens: none !important;
+
+  text-align: center !important;
+
+}
+
+.kpi-tile-value { font-size: 1.3rem !important; line-height: 1.05 !important; }
+
+.header-info { min-width: 158px !important; max-width: 200px !important; font-size: 0.79rem !important; white-space: nowrap !important; flex-shrink: 0 !important; }
+
+.main-content { grid-template-columns: 2fr 1fr 1fr !important; gap: 8px !important; }
+
+.col-center, .col-right {
+  overflow-y: auto !important;
+  gap: 6px !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+}
+/* Keep SAFETY WATCH from swallowing the right column when many keyword tasks match */
+.tv-safety-panel {
+  max-height: min(36vh, 420px) !important;
+  overflow-y: auto !important;
+}
+
+.card { min-height: 0 !important; line-height: 1.25 !important; }
+
+
+
+/* Live / reconnect badge (tv-overrides.js) */
+
+.tgp-tv-stream-status {
+
+  flex-shrink: 0;
+
+  font-size: 0.72rem;
+
+  font-weight: 700;
+
+  letter-spacing: 0.06em;
+
+  padding: 4px 10px;
+
+  border-radius: 999px;
+
+  border: 1px solid #555;
+
+  color: #aaa;
+
+  white-space: nowrap;
+
+}
+
+.tgp-tv-stream-status.is-live {
+
+  border-color: #0f8;
+
+  color: #0f8;
+
+  background: rgba(0, 255, 136, 0.08);
+
+}
+
+.tgp-tv-stream-status.is-poll {
+
+  border-color: #8cf;
+
+  color: #8cf;
+
+  background: rgba(136, 204, 255, 0.08);
+
+}
+
+.tgp-tv-stream-status.is-reconnect {
+
+  border-color: #f90;
+
+  color: #f90;
+
+  background: rgba(255, 153, 0, 0.1);
+
+  animation: tgp-tv-status-pulse 1.2s ease-in-out infinite;
+
+}
+
+@keyframes tgp-tv-status-pulse {
+
+  0%, 100% { opacity: 1; }
+
+  50% { opacity: 0.65; }
+
+}
+
+
+
+/* Expiry overlay — larger type for wall viewing */
+
+#tgp-tv-expiry { margin-bottom: 10px; }
+
+.tv-expiry-section-header { letter-spacing: 2px !important; }
+
+.tv-expiry-item-title {
+
+  font-size: 1.05em !important;
+
+  line-height: 1.25 !important;
+
+  font-weight: 700;
+
+}
+
+.tv-expiry-item-meta {
+
+  font-size: 0.92em !important;
+
+  line-height: 1.2 !important;
+
+  margin-top: 4px;
+
+}
+
+.tv-expiry-pull {
+
+  border-left: 5px solid #f44 !important;
+
+  background: rgba(255, 60, 60, 0.18) !important;
+
+  animation: tgp-tv-pulse 1.5s ease-in-out infinite;
+
+}
+
+.tv-expiry-warn {
+
+  border-left: 5px solid #f90 !important;
+
+  background: rgba(255, 153, 0, 0.12) !important;
+
+}
+
+.tv-expiry-calm {
+
+  border-left: 4px solid #0f8 !important;
+
+  background: rgba(0, 255, 136, 0.06) !important;
+
+  color: #9cf;
+
+}
+
+.tv-pull-task {
+
+  border-left: 4px solid #f44 !important;
+
+  box-shadow: 0 0 12px rgba(255, 50, 50, 0.35);
+
+}
+
+@keyframes tgp-tv-pulse {
+
+  0%, 100% { opacity: 1; }
+
+  50% { opacity: 0.82; }
+
+}
+
+
+
+/* Right-column crowding: de-emphasize secondary panels when expiry is critical.
+   Floor comms stays visible — it has its own header and is manager-facing direction. */
+body.tgp-tv-expiry-critical .col-right .tgp-tv-secondary-header,
+body.tgp-tv-expiry-critical .col-right .tgp-tv-secondary-block {
+  display: none !important;
+}
+
+/* Safety and Customer Orders must remain visible even during expiry-critical
+   right-column crowding. Workers need orders coming through the back door. */
+body.tgp-tv-expiry-critical .col-right .tv-customer-orders-section,
+body.tgp-tv-expiry-critical .col-right .tv-customer-orders-header,
+body.tgp-tv-expiry-critical .col-right .tv-customer-orders-list,
+body.tgp-tv-expiry-critical .col-right .tv-customer-orders-block,
+body.tgp-tv-expiry-critical .col-right .tv-safety-header,
+body.tgp-tv-expiry-critical .col-right .tv-safety-panel {
+  display: block !important;
+}
+
+body.tgp-tv-expiry-critical .col-right .tv-floor-comms-header,
+body.tgp-tv-expiry-critical .col-right .tv-floor-comms-block,
+body.tgp-tv-expiry-critical .col-right .tv-floor-comms-section {
+  display: block !important;
+}
+
+body.tgp-tv-expiry-critical .col-right .tv-floor-comms-header {
+  opacity: 1 !important;
+}
+
+body.tgp-tv-expiry-busy:not(.tgp-tv-expiry-critical) .col-right .tgp-tv-secondary-block {
+
+  opacity: 0.45;
+
+  max-height: 100px;
+
+  overflow: hidden;
+
+}
+
+body.tgp-tv-expiry-busy .col-right .tv-customer-orders-section,
+body.tgp-tv-expiry-busy .col-right .tv-customer-orders-block,
+body.tgp-tv-expiry-busy .col-right .tv-safety-panel {
+
+  opacity: 1 !important;
+
+  max-height: none !important;
+
+  overflow: visible !important;
+
+}
+
+
+
+@media (max-width: 1280px) {
+
+  .header-title { font-size: 1.3rem !important; letter-spacing: 1px !important; }
+
+  .kpi-tile-value { font-size: 1.1rem !important; }
+
+  .tv-expiry-item-title { font-size: 1em !important; }
+
+  .tv-expiry-item-meta { font-size: 0.85em !important; }
+
+  #recent-activity-list { display: none; }
+
+}
+
