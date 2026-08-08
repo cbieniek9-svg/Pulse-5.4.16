@@ -208,7 +208,7 @@ try {
     }
 
     if (-not $probeOk) {
-        Write-Log "Native module mismatch - rebuilding better-sqlite3 for Electron 41.3.0 (ABI 145)..."
+        Write-Log "Native module mismatch - rebuilding better-sqlite3 for the installed Electron version (ABI 145)..."
         $ErrorActionPreference = "Continue"
         try {
             $npm = Get-Command npm -ErrorAction SilentlyContinue
