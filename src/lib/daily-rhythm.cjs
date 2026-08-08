@@ -386,10 +386,19 @@ function listMissingRhythmDetails(db, deps = {}) {
     }
 
     let skipFifo = false;
+    let expandRhythmTaskForBoard = null;
+    let buildRhythmAssignContext = null;
     try {
-        const { shouldSkipFifoRhythm } = require('./rhythm-schedule-assign.cjs');
-        skipFifo = !!shouldSkipFifoRhythm(db, stamp);
+        const sched = require('./rhythm-schedule-assign.cjs');
+        skipFifo = !!sched.shouldSkipFifoRhythm(db, stamp);
+        expandRhythmTaskForBoard = sched.expandRhythmTaskForBoard;
+        buildRhythmAssignContext = sched.buildRhythmAssignContext;
     } catch (_) { /* ignore */ }
+
+    let assignCtx = null;
+    if (typeof buildRhythmAssignContext === 'function') {
+        try { assignCtx = buildRhythmAssignContext(db, stamp); } catch (_) { assignCtx = null; }
+    }
 
     const templates = db.all("SELECT id, detail FROM rhythm_tasks WHERE day=? OR day='Everyday'", day) || [];
     const missing = [];
@@ -399,6 +408,22 @@ function listMissingRhythmDetails(db, deps = {}) {
         if (!detail) return;
         // Intentionally not boarded today (e.g. FIFO already logged in Excel).
         if (skipFifo && /^FIFO Audit$/i.test(detail)) return;
+
+        // FIFO expands into per-aisle rows — one boarded aisle must not mark the template done.
+        if (/^FIFO Audit$/i.test(detail) && typeof expandRhythmTaskForBoard === 'function' && assignCtx) {
+            try {
+                const expected = expandRhythmTaskForBoard(db, t, assignCtx) || [];
+                const expectedDetails = expected
+                    .map((bt) => String(bt.task_detail || '').trim())
+                    .filter(Boolean);
+                if (expectedDetails.length) {
+                    const allPresent = expectedDetails.every((d) => boardedDetails.has(d));
+                    if (!allPresent) missing.push(detail);
+                    return;
+                }
+            } catch (_) { /* fall through to prefix coverage */ }
+        }
+
         if (!openDetailCoversTemplate(detail, boardedDetails)) missing.push(detail);
     });
     return { missing, deferralLookupFailed };

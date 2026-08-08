@@ -730,7 +730,12 @@ function updateLine(lineId, patch) {
     }
 
     const stamp = new Date().toISOString();
-    const snap = (patch?.upc != null || patch?.uom != null || typeof patch?.lookupItem === 'function')
+    // Only re-price when UPC/UOM change (or caller explicitly asks). Always injecting
+    // lookupItem on the route must not wipe snapshots on quantity-only edits.
+    const shouldResnapshot = patch?.upc != null
+        || patch?.uom != null
+        || patch?.refresh_prices === true;
+    const snap = shouldResnapshot
         ? captureCountPriceSnapshot(patch?.lookupItem, upc, uom, stamp)
         : {
             unit_cost: row.unit_cost,

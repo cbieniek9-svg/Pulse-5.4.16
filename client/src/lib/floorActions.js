@@ -255,10 +255,11 @@ export function createFloorActions({ token, user, sync, postActionFn, showNotice
         loadRhythm: async () => {
             if (!(await appConfirm("Load today's schedule?"))) return false;
             let res = await postJson('/api/daily-rhythm', { token }, token);
-            // Concurrent heal returns busy+alreadyLoaded — retry once with force top-up.
+            // Concurrent heal returns busy — retry without force (server tops up if incomplete).
+            // Never auto-force: when openToday=0, force clears the stamp and full-reseeds.
             if (res.busy) {
                 await new Promise((r) => setTimeout(r, 400));
-                res = await postJson('/api/daily-rhythm', { token, force: true }, token);
+                res = await postJson('/api/daily-rhythm', { token }, token);
             } else if (res.alreadyLoaded && !res.success) {
                 if (await appConfirm('Schedule already marked loaded. Force add any missing rhythm tasks?')) {
                     res = await postJson('/api/daily-rhythm', { token, force: true }, token);
