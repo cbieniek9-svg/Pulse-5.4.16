@@ -1,0 +1,4 @@
+TGP Center Store - FIFO Audit Log
+Date Logged Aisle / Location Vendor Code Item Description Quantity Expiration Date Action Taken / Notes
+May 20 Aisle 5 6320911763 Tim Hortons Decaf 640g 1 Apr-10-2026
+May 20 Aisle 5 5543760790 Melitta Bellacrema 907g 1 July-4-2026

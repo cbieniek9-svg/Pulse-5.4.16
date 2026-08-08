@@ -1,0 +1,89 @@
+# TGP Command Center — Store Instance Setup (Store #2+)
+# Release 5.4.16 — see resources/DOCUMENTATION_INDEX.md
+#
+# Existing devices must be purpose-paired (Settings → Devices).
+# LAN browsers must use HTTPS pairing URLs (not plain LAN HTTP).
+# Schema at migration 063 (period-rate freight). Configure period freight rates before confirm/close.
+# Spreadsheet imports: ExcelJS + xls-reader (community xlsx removed); BIFF5 → save-as xlsx/csv.
+# 5.4.14–5.4.13 integrity preserved: ExcelJS/xls-reader; investigation lock + manager reopen;
+# grant inventory for counts; committed count reopen clears that session's backstock_on_hand
+# (061 backup integrity preserved).
+
+Use the same semver build as Store #1. One SQLite database per store PC.
+
+## 1. Prepare at home
+
+  cd resources/app
+  npm run rebuild:electron
+  npm run verify:store
+  npm run prepare:store
+  # Always Electron ABI 145 — service runs Electron-as-Node
+
+Copy the versioned zip contents to the new store PC.
+
+## 2. Fresh install paths
+
+- Set TGP_DATA_DIR (optional) before first launch if not using default beside exe.
+- First launch creates tgp_ops.db and applies store-templates/default/ rhythm + zone skeleton.
+- Person names (Zone_Ownership, FIFO aisle assignments) are NOT in templates — configure in Manager → System Settings after go-live.
+
+## 3. Required settings
+
+| Setting | Example |
+|---------|---------|
+| Store_Instance_Id | (auto UUID on first boot — do not invent) |
+| Store_Code | STORE02 |
+| Store_Display_Name | TGP Store 2 |
+| Store_Timezone | America/Edmonton |
+| TV_Native_Shell | 1 |
+| Message_Center_Enabled | 1 (default after migration) |
+| Betacs_Enabled | 0 (leave off until CS go-live) |
+
+## 4. Floor setup
+
+- Zone map section labels + zone mapping (from template or manager settings).
+- FIFO Aisle Assignments chart (staff names per aisle).
+- Purpose-pair TV / CS / receiving / markdown devices from Settings → Devices (HTTPS one-time URL).
+- Open the HTTPS pairing URL on each TV (native shell); accept the self-signed cert once.
+- Bookmark /reports on manager PC for huddle + Phase 0 review.
+
+## 5. Apply template (optional reset)
+
+Manager API (authenticated):
+
+  POST /api/store-template/apply
+  { "template": "default", "force_rhythm": false, "force_zone": false }
+
+force_rhythm=true wipes rhythm_tasks + vendor_schedule before import (empty board only).
+force_zone=true overwrites Zone_Mapping, Zone_Names, Zone_Section_Labels.
+
+## 6. Phase 0 at new store
+
+Follow scripts/PHASE0_DEPLOY_CHECKLIST.txt:
+
+- FINISH every order day for 4–8 weeks.
+- Watch Reports → FINISH ARCHIVE HEALTH (phase0_ready, scorecard trust).
+- Use Task Planning → ADD TO RHYTHM for recurring work discovered in data.
+- Action inbox + order-day briefing at each order shift.
+
+## 7. Manager tools (same build as Store #1)
+
+| Tool | Where |
+|------|--------|
+| Exception inbox + FINISH health | Mobile hub + Reports |
+| Order-day briefing / rhythm advisor | Mobile hub + Reports |
+| Task planning APPLY / ADD TO RHYTHM | Mobile hub or Reports (manager login) |
+| Comms handoff archive | Reports (after EOD) |
+| Historical day review | Reports → date picker or History backup |
+
+## 8. HQ compare (optional)
+
+Export weekly snapshot JSON from each store backup folder:
+
+  { "store_code": "STORE01", "order_weekly_scorecard": { ... } }
+
+Compare:
+
+  node scripts/hq-snapshot-compare.cjs store01.json store02.json
+
+No cloud or merged database required.

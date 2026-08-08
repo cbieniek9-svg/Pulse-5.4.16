@@ -1,0 +1,181 @@
+/* Prism Bridge XI — cinematic shell layer on top of Pulse Holo tokens */
+
+body.pulse-holo.pulse-bridge,
+body.pulse-holo {
+    --pulse-bloom: radial-gradient(ellipse at 20% 0%, rgba(0, 229, 255, 0.22), transparent 55%),
+        radial-gradient(ellipse at 90% 100%, rgba(255, 43, 214, 0.16), transparent 50%),
+        linear-gradient(165deg, var(--pulse-void), var(--pulse-void-2) 55%, #061530);
+    --pulse-scanline: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 229, 255, 0.03) 2px,
+        rgba(0, 229, 255, 0.03) 4px
+    );
+}
+
+body.pulse-holo {
+    background: var(--pulse-bloom) !important;
+    background-attachment: fixed !important;
+    position: relative;
+}
+
+body.pulse-holo::before {
+    content: "";
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background-image:
+        linear-gradient(rgba(0, 229, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 229, 255, 0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.55;
+    mix-blend-mode: screen;
+}
+
+body.pulse-holo.pulse-intensity-highcontrast::before {
+    opacity: 0.25;
+}
+
+body.pulse-holo > * {
+    position: relative;
+    z-index: 1;
+}
+
+.pulse-bridge-shell {
+    border: 1px solid var(--pulse-border);
+    background: var(--pulse-glass);
+    box-shadow: var(--pulse-shadow-cyan), inset 0 0 40px rgba(0, 229, 255, 0.06);
+    border-radius: var(--pulse-radius);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.pulse-holo-panel {
+    border: 1px solid rgba(0, 229, 255, 0.28);
+    background: linear-gradient(180deg, rgba(8, 24, 48, 0.82), rgba(4, 12, 28, 0.72));
+    box-shadow: 0 0 0 1px rgba(255, 43, 214, 0.08), var(--pulse-shadow-cyan);
+    border-radius: calc(var(--pulse-radius) - 2px);
+    position: relative;
+    overflow: hidden;
+}
+
+.pulse-holo-panel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(115deg, transparent 40%, rgba(0, 229, 255, 0.06) 50%, transparent 60%);
+    opacity: 0.7;
+}
+
+.pulse-bridge-rail {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(0, 229, 255, 0.22);
+    background: linear-gradient(90deg, rgba(0, 229, 255, 0.1), transparent 60%, rgba(255, 43, 214, 0.08));
+    font-family: var(--pulse-display-font);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--pulse-cyan);
+    font-size: 0.78rem;
+}
+
+.pulse-bridge-rail .pulse-rail-title {
+    flex: 1;
+    color: var(--pulse-text);
+    text-shadow: 0 0 18px rgba(0, 229, 255, 0.55);
+}
+
+.pulse-bridge-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border: 1px solid rgba(0, 229, 255, 0.35);
+    border-radius: 999px;
+    font-size: 0.68rem;
+    color: var(--pulse-muted);
+    background: rgba(0, 0, 0, 0.25);
+}
+
+.pulse-bridge-chip.live {
+    color: var(--pulse-cyan);
+    border-color: rgba(0, 229, 255, 0.65);
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.25);
+}
+
+.pulse-boot-stagger > * {
+    animation: pulseBridgeEnter 0.55s ease both;
+}
+
+.pulse-boot-stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.pulse-boot-stagger > *:nth-child(2) { animation-delay: 0.06s; }
+.pulse-boot-stagger > *:nth-child(3) { animation-delay: 0.1s; }
+.pulse-boot-stagger > *:nth-child(4) { animation-delay: 0.14s; }
+.pulse-boot-stagger > *:nth-child(5) { animation-delay: 0.18s; }
+.pulse-boot-stagger > *:nth-child(6) { animation-delay: 0.22s; }
+.pulse-boot-stagger > *:nth-child(7) { animation-delay: 0.26s; }
+.pulse-boot-stagger > *:nth-child(8) { animation-delay: 0.3s; }
+
+@keyframes pulseBridgeEnter {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.985);
+        filter: blur(2px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+        filter: none;
+    }
+}
+
+@keyframes pulseBridgeGlow {
+    0%, 100% { box-shadow: 0 0 12px rgba(0, 229, 255, 0.2); }
+    50% { box-shadow: 0 0 28px rgba(0, 229, 255, 0.45), 0 0 40px rgba(255, 43, 214, 0.15); }
+}
+
+.pulse-live-glow {
+    animation: pulseBridgeGlow 2.4s ease-in-out infinite;
+}
+
+body.pulse-intensity-highcontrast .pulse-live-glow,
+body.pulse-intensity-highcontrast .pulse-boot-stagger > * {
+    animation: none !important;
+}
+
+#pulse-scanlines {
+    background-image: var(--pulse-scanline);
+    opacity: 0.35;
+}
+
+.pulse-nova-ops {
+    margin-top: 10px;
+    padding: 10px;
+}
+
+.pulse-nova-ops .pulse-opt-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+body[data-pulse-surface="tv"] .pulse-bridge-rail {
+    font-size: 0.95rem;
+    padding: 12px 18px;
+}
+
+body[data-pulse-surface="rec"] .pallet-box,
+body[data-pulse-surface="rec"] .card {
+    border-color: rgba(0, 229, 255, 0.28) !important;
+    box-shadow: 0 0 18px rgba(0, 229, 255, 0.12);
+}
+
+#panel-pulselab .mgr-card,
+#pulse-lab-root {
+    border-color: rgba(0, 229, 255, 0.3);
+}

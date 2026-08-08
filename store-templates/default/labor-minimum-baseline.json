@@ -1,0 +1,36 @@
+{
+  "source": "Time_Budget + DailyMinimumTaskListHoursBydept2022Dec8.xlsx",
+  "extracted_at": "2026-06-29",
+  "soft_overage_threshold_pct": 10,
+  "center_store_daily_equiv_hours": 41.07,
+  "by_weekday": {
+    "Sunday": {
+      "minimum_hours": 31.5,
+      "source": "DailyMinimumTaskListHoursBydept2022Dec8.xlsx (Grocery column)"
+    },
+    "Monday": {
+      "minimum_hours": 90,
+      "source": "DailyMinimumTaskListHoursBydept2022Dec8.xlsx (Grocery column)"
+    },
+    "Tuesday": {
+      "minimum_hours": 47.5,
+      "source": "DailyMinimumTaskListHoursBydept2022Dec8.xlsx (Grocery column)"
+    },
+    "Wednesday": {
+      "minimum_hours": 90,
+      "source": "DailyMinimumTaskListHoursBydept2022Dec8.xlsx (Grocery column)"
+    },
+    "Thursday": {
+      "minimum_hours": 41,
+      "source": "DailyMinimumTaskListHoursBydept2022Dec8.xlsx (Grocery column)"
+    },
+    "Friday": {
+      "minimum_hours": 90,
+      "source": "DailyMinimumTaskListHoursBydept2022Dec8.xlsx (Grocery column)"
+    },
+    "Saturday": {
+      "minimum_hours": 43,
+      "source": "DailyMinimumTaskListHoursBydept2022Dec8.xlsx (Grocery column)"
+    }
+  }
+}

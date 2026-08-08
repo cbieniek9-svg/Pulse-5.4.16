@@ -1,0 +1,35 @@
+Γ£ö network config defaults preserve LAN PoC behavior (9.8965ms)
+Γ£ö network config can disable LAN clients and bind localhost only (4.0772ms)
+Γ£û network config allows private LAN origins only when enabled (5.4448ms)
+Γ£ö network config normalizes unsafe host and port values (0.2832ms)
+Γä╣ tests 4
+Γä╣ suites 0
+Γä╣ pass 3
+Γä╣ fail 1
+Γä╣ cancelled 0
+Γä╣ skipped 0
+Γä╣ todo 0
+Γä╣ duration_ms 125.2465
+
+Γ£û failing tests:
+
+test at tests\network-config.test.cjs:30:1
+Γ£û network config allows private LAN origins only when enabled (5.4448ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (E:\TGPV5\TGP_V5\resources\app\tests\network-config.test.cjs:40:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

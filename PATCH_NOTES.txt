@@ -1,0 +1,667 @@
+Patch 44 - Period department freight allocation (5.4.16 — August 6 2026)
+- Corrects 5.4.15: authoritative freight is Daily Freight Allocation Total (N3) × Period Department Allocation %, not purchases × one rate.
+- Confirm a department allocation profile (must total 100%) before costing/period close. Profiles are snapshotted per period.
+- Produce Shrink receives freight at its period % (template 12.2%). Zero-% departments get $0 freight even with purchases.
+- Exact cent reconciliation via largest-remainder. Invoice estimates and freight bills remain reference/validation only.
+- Migration 064. Preserves migration 063 rate table for audit; does not convert 1.5207%-style rates into department percentages.
+
+Patch 43 - Period-rate freight (5.4.15 — August 5 2026) — superseded by 5.4.16
+- Introduced purchases × period freight rate%. Retained as historical/comparison only after 5.4.16.
+- Migration 063 receiving_period_freight_rates kept for audit.
+
+Patch 42 - Dependency cleanup (5.4.14 — August 4 2026)
+- Community SheetJS xlsx removed from the tree; ExcelJS for .xlsx and xls-reader for BIFF .xls.
+- Multer 2 for investigation attachment uploads (operator limits unchanged).
+- If an ancient BIFF5 / unreadable .xls fails: save as .xlsx or CSV and retry.
+- No new SQL migration — schema stays at 062. Preserves 5.4.13 incident/inventory integrity, 5.4.12 backup, 5.4.11 security, and 5.4.10 Receiving Book controls.
+
+Patch 41 - Incident and inventory integrity (5.4.13 — August 4 2026)
+- Submitted investigations lock; managers reopen to amend (audited). Original submit metadata stays frozen.
+- Signature roles are server-enforced; client-forged signer names are rejected.
+- Grant inventory intentionally for count clerks; managers always pass.
+- Committed count sessions reject line edits; reopen clears that session's backstock_on_hand memory until re-commit.
+- Migration 062. Preserves 5.4.12 backup integrity, 5.4.11 security hardening, and 5.4.10 Receiving Book financial controls.
+
+Patch 40 - Backup and recovery integrity (5.4.12 — August 4 2026)
+- Verified backup packages: ops + inventory + incident attachments + store-transfer docs + hashed manifest.
+- Dual EOD backups (pre-purge and post-purge); header-only files are not healthy; no EOD success after backup failure.
+- Historical BACKUP reports require a real backup source; live download and history export use verified packages.
+- Migration snapshots fail closed until a verified pre-migration package succeeds.
+- Migration 061. Preserves 5.4.11 security hardening and 5.4.10 Receiving Book financial controls.
+
+Patch 39 - Security access hardening (5.4.11 — August 4 2026)
+- Fail-closed: TRAINING MODE revoked; public sync omits trainingProfile and manager roster.
+- Devices require purpose-bound tokens (tv / cs_desk / receiving / markdown). Pair under Settings → Devices.
+- LAN browsers must use HTTPS pairing URLs; non-loopback HTTP credentials receive 426 HTTPS_REQUIRED.
+- Tokenless / IP-only / bare-station PoC identity paths are denied outside explicit test overrides.
+- Migration 060. Receiving Book financial controls from 5.4.10 are preserved.
+
+Patch 38 - Receiving financial controls (5.4.10 — August 3 2026)
+- Only invoice_freight can be confirmed for operational periods; full readiness is required before submission.
+- Submitter and approver must be different verified managers; direct period lock is retired.
+- Close-audit outbox writes are durable, verified, idempotent and retryable with operational warnings.
+- Financial administration is manager-only while daily receiving entry remains available to receiving staff.
+- Certification requires six explicit assertions tied to the current financial-content fingerprint.
+
+Patch 37 - Receiving release integrity (5.4.9 — August 3 2026)
+- Submission and close require a persisted manager costing choice with reason and timestamp.
+- Snapshot current-pointer and immutable-revision writes are atomic.
+- Operational-period activation returns the new operational period to the UI.
+
+Patch 36 - Receiving Book integrity completion (5.4.8 — August 3 2026)
+- Deleting/importing financial content clears certification, override and stale overflow review transactionally.
+- Certification, freight overrides and duplicate acknowledgements are bound to exact reviewed content.
+- Daily certification, overflow/duplicate acknowledgement, zero-sales confirmation and costing confirmation are available in Financial Log.
+- Migration 058 preserves 5.4.7 snapshot revision 1 before later revision writes.
+
+Patch 35 - Receiving freight save + close integrity (5.4.7 — August 3 2026)
+- Freight modal Save persists freight_* fields; delete uses line_id; pagination meta is separate state.
+- Authoritative live freight recon blocks certification and period close; manager override + audit.
+- Negative freight requires manager exception; blank sales ≠ confirmed zero; overflow ack + duplicate ack.
+- Snapshot revisions preserved; Excel exports all lines + Pulse Freight Reconciliation sheet.
+- PC_ADMIN PIN 1234 (env/file/legacy) fails readiness; activate requires manager confirmation.
+- Migration 057.
+
+Patch 34 - Receiving financial integrity (5.4.6 — August 3 2026)
+- Invoice freight is the primary costing method (SMS landed): base + dept freight.
+- Invoice payable excludes freight. Produce freight stays off produce_shrink.
+- Legacy % allocation is historical/compare only; base_cost_only is diagnostic.
+- Day freight recon + certification; transactional close; zero-safe sales history.
+- No silent 50-line drop; full export requires 35 daily sheets or fails visibly.
+- Viewing a period no longer changes the operational period setting.
+- Migrations 055–056. Legacy PC_ADMIN default PIN is a readiness FAIL until changed.
+
+Patch 33 - Financial workbook import error (5.4.5 — August 2 2026)
+- Import workbook failed after a successful parse because broadcastUpdate was
+  undefined. Wired broadcast + buildReportPayload so import completes cleanly.
+
+Patch 32 - Backstock commit memory + vendor clean order (5.4.1 — August 2 2026)
+- CLOSE & COMMIT on a backstock walk writes UPC × bay into durable memory.
+- Order finalize uses that memory and emits vendor # (V.Code) + UPC on the clean order.
+- Still separate from the floor labor order clock.
+
+Patch 31 - Order draft separate from labor clock (5.4.0 — August 2 2026)
+- /count START ORDER DRAFT scans what you want to order. Finalize subtracts open
+  backstock → pick list + clean order CSV for the relay. Does not touch Order_Start
+  or the floor labor order clock.
+
+Patch 30 - Backstock count walks (5.3.11 — August 2 2026)
+- /count START BACKSTOCK COUNT; concurrent with aisle counts; SESSION_TYPE on CSV;
+  GET /api/inventory/backstock/summary for order filter foundation.
+
+Patch 28 - Shrink edit + close-out (5.3.7 — August 1 2026)
+- Wrong scan: EDIT SKU/item/qty or VOID the line. Close shrink count when done;
+  reopen if you still need to fix something. Migration 053.
+
+Patch 27 - Stock with no barcode (5.3.6 — August 1 2026)
+- Gift cards / handling fees / bakery / packaging have no UPC in SMS. They are now
+  filed under their V.Code instead of being dropped as "missing code" (~3,200 items).
+- Reprinted page headings are recognised instead of being counted as missing codes.
+- ui-shell test boots a throwaway store, not the live one on port 3001.
+
+Patch 26 - Catalog columns read from the rows (5.3.5 — August 1 2026)
+- SMS has no data-only export; its printed report offsets header labels from the rows,
+  so the Price List lost ~96% of its rows. Columns are now worked out from the data.
+- Prices are stored only when unit cost x case pack lands near the case cost.
+- A 33,930-product Price List imports in full, with V.Code aliases.
+
+Patch 25 - Product catalog + UPC match (5.3.4 — August 1 2026)
+- Settings Product Catalog upload; Markdown autofills from shelf code / UPC (migration 051).
+- Preferred SMS upload: Price List with Cost (UPC, V.Code alias, retail, unit/case cost, case pack). Customer Price Catalog still accepted.
+- Check-digit aware lookup; suggestion pick links barcode alias; 15 MB upload cap; sync day-log store-local.
+
+Patch 24 - Floor / CS detail + richer CRM (5.3.3 — July 30 2026)
+- CS order notes on board + print; count scan qty gate; dry/frozen manager clocks (TV unchanged).
+- Markdown FIFO scan + SHRINK-by-SKU; richer CRM (tags/VIP/activity). Migrations 047–050.
+
+Patch 23 - Lighthouse / CLS / chaos (July 29 2026)
+- Portal a11y + SEO polish; settings/reports/floor CLS fixes; TV meta/defer only.
+- Authed Lighthouse 100s on throwaway TRAINING MODE API (LAN scoring).
+- Hell 3000 no longer inherits TGP_PORT into unit tests (prevents multi-hour hang).
+- Docs: docs/INDEX.md, docs/TESTING.md, AI handoff → 5.3.2.
+
+Patch 22 - TV display toggle apply fix
+- Fixes TV toggles saving but not visibly changing the dashboard.
+- Adds computed tv_display sync preferences and DOM guards for comms/ticker visibility.
+
+VERSION 5.3.0 (July 2026)
+-------------------------
+TGP 5.3.0 — FINANCIAL LOG (EWM RECEIVING WORKBOOK)
+  • /financial — manager portal for the 35-day Edmonton Wholesale Market receiving report.
+  • /log redirects to /financial (old bookmarks still work).
+  • Shadow mode ON by default — Settings → Store & TV to toggle or set allowlist before store-wide rollout.
+  • Period submit / approve / close & lock; duplicate-invoice and copy-down total warnings; dock reconcile vs /rec.
+  • Period checklist allows empty receiving days (holidays/weekends); API blocks edits when submitted (423).
+  • Workbook import dry-run preview; help text clarifies manual Full workbook export after close.
+  • Workbook import loads rebates, recounts, and department margin sheets; server enforces close checklist.
+  • Migrations 039–044 (receiving_report tables, analytics, period controls, shadow settings).
+  • EXISTING SHORTCUTS UNCHANGED: /rec, /markdown, /cs, /reports, /settings, /count, /safe, mobile uplink /.
+
+WINDOWS SERVICE (HEADLESS API) — ACTIVE IN 5.3.0
+  • Headless Node server (`server.cjs`) + WinSW Windows service starts the API at boot before anyone
+    logs into Windows. Survives reboots — phones, TV, /rec, and /financial keep working at the lock screen.
+  • Listens on http://127.0.0.1:3001 (LAN: http://<store-pc-ip>:3001). Confirm with /api/ready → "ok": true.
+  • Install once per store PC (Administrator UAC): resources\app\service\INSTALL.cmd
+    → services.msc shows "TGP Command Center" Running.
+  • Desktop .exe is optional UI-only when the service already owns port 3001 (attach-or-serve).
+  • Details: service\README.txt | STORE_SERVICE_DEPLOY.txt | service\REBOOT_SMOKE.txt
+  • Do NOT run npm run rebuild:node on store PCs — service and .exe both require Electron ABI 145.
+
+VERSION 5.2.7 (July 2026)
+-------------------------
+TGP 5.2.7 — STORE TRANSFERS WORKBOOK + RECEIVING TEMP TWEAKS
+  • /rec Store Transfers: one workbook (Invoice + Manifest tabs); ExcelJS preserves template formatting.
+  • Invoice tab renamed from Rec; product lines write from row 16 (ORDER # / Items / Qty / Price); extended price stamped in column J.
+  • Manifest delivery date (B6) left blank for trucking; single download (no duplicate file).
+  • TGP pallet temping: Dry Grocery temp optional; Grocery (chilled) renamed Perishables.
+  • Migrations 037–038 (store_transfers + line items / manifest metadata); exceljs dependency.
+
+VERSION 5.2.6 (July 2026)
+-------------------------
+TGP 5.2.6 — GENERATED INVESTIGATION PDF + PREMIUM LOAD RHYTHM
+  • Investigation export is a generated Letter PDF (full typed text); no Appendix B stamp.
+  • Premium Clerks can Load Daily Rhythm (API matches the mobile button).
+
+VERSION 5.2.5 (July 2026)
+-------------------------
+TGP 5.2.5 — INCIDENT INVESTIGATIONS ON /SAFE
+  • /safe INVESTIGATIONS tab: draft workflow, list, submit, attachments.
+  • Appendix B PDF export from submitted investigations.
+  • Migration 036 (incident_investigations + attachments).
+
+VERSION 5.2.4 (July 2026)
+-------------------------
+TGP 5.2.4 — INVENTORY COUNT FEATURE TOGGLE
+  • Inventory_Count_Enabled setting (default OFF).
+  • /count shows disabled screen; APIs return 403 until toggled on in Settings.
+  • Migration 035.
+
+VERSION 5.2.3 (July 2026)
+-------------------------
+TGP 5.2.3 — LIVE CAMERA OVER HTTPS
+  • Local HTTPS on :3443 (self-signed) so phones get a real camera permission prompt.
+  • /count auto-redirects from HTTP LAN → HTTPS; accept cert warning once.
+  • Snap barcode hardened (BarcodeDetector + UPC/EAN formats).
+
+VERSION 5.2.2 (July 2026)
+-------------------------
+TGP 5.2.2 — INVENTORY CAMERA + LOCATION HISTORY
+  • /count: camera barcode scan, location sessions, editable past counts.
+  • Export no longer wipes — reopen/edit/re-export anytime.
+
+VERSION 5.2.1 (July 2026)
+-------------------------
+TGP 5.2.1 — SUPERVISOR BUCKET + RHYTHM ASSIGN TAGS
+  • Roster tag: Supervisor (own bucket).
+  • Walks/huddle: Supervisor first; Premium covers if Supervisor off/not in yet.
+  • Settings → Daily Rhythm: Assign to dropdown per task.
+  • Migration 034.
+
+VERSION 5.2.0 (July 2026)
+-------------------------
+TGP 5.2.0 — INVENTORY COUNT + MARKDOWN SHELF QTY
+  • /count: wedge-scanner inventory staging (isolated pulse_inventory.db).
+  • /markdown: Qty on shelf (−/+) when entering kill dates; migration 033.
+  • Kill-date print/CSV include quantity.
+
+VERSION 5.1.5 (July 2026)
+-------------------------
+TGP 5.1.5 — BOARD + COLD CHAIN + PRISM
+  • Floor Comms: system-message dismiss sticks across sync (no re-post flicker).
+  • Prism UI skin only (holo/bridge CSS + display prefs); no Pulse backend/migrations.
+  • Routine task cards: ice/silver contrast so they pop on Prism cyan.
+  • Board hierarchy: Daily Direction first (prominent), Live Notices under (quieter);
+    both sections hidden when empty. Task list labeled TASKS (mobile + TV).
+  • /rec: PRINT COLD CHAIN (+ CSV) beside REC LOG — same date, for BOL to warehouse.
+  • /rec TGP temps: Dry Grocery (above 0°C); chilled/frozen out-of-range prompts 2 more
+    spot checks; average + all 3 spots on log/print/CSV (OUT OF TEMP for warehouse).
+  • Migration 030: receiving_pallets temp_spot_1/2/3 columns.
+
+VERSION 5.1.4 (July 2026)
+-------------------------
+TGP 5.1.4 — P2 SAME-CLASS HARDENING
+  • Atomic /api/settings-batch for notes, profile, Store/TV settings.
+  • Sync warns on stale Active_Manager instead of auto-clearing.
+  • EOD fail-closed when yesterday snapshot fails (durable error flag).
+  • Rhythm seed aborts if deferred-task list cannot be read.
+  • Reports auth/backups surface errors instead of empty lists.
+
+VERSION 5.1.3 (July 2026)
+-------------------------
+TGP 5.1.3 — SAME-CLASS HARDENING
+  • Today-only defer / reapply / huddle close (no carryover rewrites).
+  • Order_Start guards + explicit start_order_clock; /rec clock checkbox off by default.
+  • Dock sync errors show as unavailable, not empty.
+  • EOD resets Hardware_Arrived; unfinished clocks get an EOD end stamp.
+
+VERSION 5.1.2 (July 2026)
+-------------------------
+TGP 5.1.2 — CLOCK/RHYTHM HARDENING + HUB CLEANUP
+  • Daily rhythm seeds when only Urgent/High carryover remains.
+  • Order clock: separate post-work vs start-clock; no silent restart after FINISH; atomic stuck clear.
+  • /rec stays the Chromebook TGP pallet-scan station; phones keep TIME IN/OUT + dock status.
+  • Removed System Analytics from Management Hub.
+  • Stronger receiving/rhythm/app-log coverage.
+
+VERSION 5.1.1 (July 2026)
+-------------------------
+TGP 5.1.1 — SHIFT LEAD SELF-SELECT + SYNC FIX
+  • Fix sync-payload missing shift-lead imports (manager/premium sync).
+  • Eligible Premium/Manager can select themselves as Active shift lead even if not on today's schedule.
+
+VERSION 5.1.0 (July 2026)
+-------------------------
+TGP 5.1 — SINGLE-STORE HARDENED + SCALE SEAMS
+  • Store_Instance_Id (stable UUID) for future multi-store; one DB per store unchanged.
+  • Production readiness + manager "Secure this store" (opt-in device tokens).
+  • Fresh installs generate PC_ADMIN PIN file; upgrades keep prior PIN behavior.
+  • CI (test:ci) + Playwright webServer; mgr-settings helper modularization.
+  • Docs / release track: single-store-hardened.
+
+VERSION 5.0.0 (June 2026)
+-------------------------
+TGP 5 — RECEIVING FLOOR + /SAFE INSPECTIONS
+  • /rec — TGP pallet intake (plate, dept, temp) required before TGP time out; cold chain in Reports.
+  • Receiving checkbox creates work tasks only (not receive tasks); TGP → All Staff + order clock; other vendors → Unassigned, no clock.
+  • /safe — Monthly safety committee inspection (Interior / Exterior / Kitchen); draft, submit, paper-form print.
+  • Safe permission under Settings → Staff grants /safe access without Manager role.
+  • Findings logged for manager review — no auto board tasks from inspections.
+
+VERSION 4.8.0 (June 2026)
+-------------------------
+REPORTS LABOR LEDGER & SCHEDULE INTELLIGENCE
+  • Reports Today — Labor Ledger compares scheduled person-hours vs rhythm + order + fixed drag.
+  • Verdict: Surplus / Tight / Under with schedule vs FINISH mismatch flags.
+  • Learn — Order history shows FINISH roster and grocery/frozen/hardware split.
+  • Learn — Exception reason rollup, staff-count curve, inbox ACK log, rhythm defer log.
+  • Handoff — Shift lead and FINISH order crew on EOD summary.
+SETTINGS STAFF ONE-STOP SHOP
+  • Schedule health strip, two-step import preview, CSV template, name aliases UI.
+OPERATIONAL FIXES
+  • Labor STAFF independent of roster complement; explicit rhythm re-apply only.
+  • Inbox ACK dedupe; Daily Direction dirty guards during sync.
+
+4.7.0-poc-rec-file-maintenance-page
+- Added File Maintenance Log section directly to /rec with selectable date, print, and CSV export.
+- /rec time-out now captures optional Invoice / Ref # so Shannon can print next-day invoice control logs without Reports access.
+
+## Patch 14 — Persistent Daily Safety Blurbs
+
+- Added `safety_blurbs` and `daily_safety_focus` tables with migration 020.
+- Seeded 20 grocery-safe daily blurbs, including safe cutting, spills, exits, ladders, chemicals, lifting, broken glass, and receiving safety.
+- Added a Manager Settings tab to import/edit/disable blurbs and post or rotate today's safety focus.
+- TV Safety Watch now shows Today's Safety Focus persistently for the store date.
+- Reports now show the saved Daily Safety Focus for live and historical dates.
+- Full History ZIP export now includes safety blurb and daily focus tables.
+
+## 4.7.0 PoC Daily Direction TGP-day fix
+
+- Daily Direction now treats a date as a TGP Order Day when the briefing is blank but store activity shows a TGP expected order, TGP work task, active order clock, archived order history, or TGP vendor schedule.
+- The default floor message and Daily Direction day context no longer fall back to Non-TGP Day for real TGP days.
+- Added regression tests for expected TGP orders with a blank order-day briefing.
+
+## Patch 10 — Receiving Vendor Work Task Fix
+
+- Time-in now stores the “Create receiving work task” checkbox choice on the vendor row.
+- Time-out now closes the temporary receiving task and creates the follow-up “Work <vendor> order” task when that checkbox was selected.
+- TGP order behavior is preserved: timing out a TGP vendor still starts the order clock and creates/keeps the TGP work task.
+- Added migration 019 and regression tests for vendor receiving task creation.
+
+## Patch 9 — Long-Term History, Trends & Rule-Based Insights
+
+- Added configurable `Operational_Retention_Days` defaulting to 365 days.
+- Added daily report snapshots so trends survive raw-row cleanup.
+- Added Reports → Learn trend cards, explainable insights, Trend CSV export, and Full History ZIP export.
+- Reports label the old `shrink_log` data as Outdated Items.
+
+TGP Command Center V4.7 — Patch Notes
+
+====================================
+
+VERSION 4.7.0 (June 2026)
+-------------------------
+DAILY DIRECTION REPORT HISTORY
+  • Reports now show the saved Daily Direction snapshot for historical dates.
+  • Posted Shift Updates stay visible with the Daily Direction after EOD.
+  • Added regression coverage so EOD cannot accidentally purge Daily Direction history.
+
+POC LAN HARDENING
+  • Public /api/sync redacts TV and BLE presence secrets from anonymous clients.
+  • Training walkthrough login still lists the training profile name, but not the demo PIN.
+  • Protected endpoints no longer accept session tokens in URL query strings.
+  • Security audit adds regression coverage for sync redaction and query-token rejection.
+
+VERSION 4.6.5 (June 2026)
+-------------------------
+RHYTHM SCHEDULE AUTO-ASSIGN
+  • Daily rhythm @ 06:00 assigns tasks from IMPORTED SCHEDULE (Stock/Float, REC, shift lead).
+  • FIFO Audit splits into per-aisle tasks from FIFO aisle assignments when assignee is scheduled.
+  • No schedule for today → tasks stay Unassigned (premium assigns manually).
+
+VERSION 4.6.0 (June 2026)
+
+------------------------
+
+
+
+SETTINGS EDITOR & HUB CLEANUP
+
+  • Full-window Settings Editor (/settings) — rhythms, vendors, deliveries,
+
+    store/TV, staff, task audit, TV pairing
+
+  • Management hub: Today's Briefing panel; Daily Direction collapsed by default
+
+  • Electron-safe confirm/prompt dialogs; SSE live refresh; tab deep links
+
+
+
+VERSION 4.5.0 (May 2026)
+
+------------------------
+
+
+
+ULTIMATE OPS PASS
+
+  • Mobile manager hub = Reports brain: scorecard, task planning APPLY/ADD, comms preview
+
+  • Markdown tablet: Scan/OCR (local or cloud via TGP_OCR_MODE)
+
+  • TV: BLE presence strip when enabled
+
+  • Reports: print/CSV pull list from action inbox
+
+
+
+VERSION 4.4.0 (May 2026)
+
+------------------------
+
+
+
+BLE PRESENCE — ULTIMATE (CART-READY, OFF BY DEFAULT)
+
+  • Asset modes: staff badges | smart carts | both — FINISH hints follow mode
+
+  • Cart registry (presence_assets) + aisle template AISLE-A01…A12
+
+  • Hub relay ingest: forwarded[] batches from dumb aisle receivers
+
+  • Manager command center: seed demo carts, enable aisle map, live zone occupancy
+
+  • Dev: node scripts/presence-store-simulator.cjs — full store without hardware
+
+  • Doc: resources/BLE_PRESENCE_ULTIMATE.md
+
+
+
+VERSION 4.3.0 (May 2026)
+
+------------------------
+
+
+
+BLE PRESENCE (PRODUCTION — OFF BY DEFAULT)
+
+  • POST /api/presence/ingest — ESP32 gateways with X-Presence-Gateway-Key
+
+  • 4-corner zone map (strongest RSSI), live manager board, FINISH badge hint
+
+  • Migration 007 — gateway heartbeats, staff zone cache, staff_names on snapshots
+
+  • Enable in Manager → BLE PRESENCE after hardware mapped
+
+
+
+VERSION 4.2.5 (May 2026)
+
+------------------------
+
+
+
+TASK PLANNING → RHYTHM
+
+  • ADD TO RHYTHM — promote recurring tasks (3+ closes) into rhythm_tasks with learned est_mins
+
+  • APPLY only when template already exists; column renamed RHYTHM with clear labels
+
+  • Grouped PULL:* cannot be added from Reports (use mobile rhythm editor for specific pulls)
+
+
+
+Upgrade: replace resources\app — keep tgp_ops.db and backups\
+
+Run verify-store-site.cmd on store PC after copy.
+
+
+
+---
+
+
+
+VERSION 4.2.4 (May 2026)
+
+------------------------
+
+
+
+REPORTS — HONESTY + CLOSE THE LOOP
+
+  • FINISH archive health (56-day scan, phase0_ready, scorecard trust)
+
+  • Historical dates: no live bleed; archive_missing when no FINISH row
+
+  • Action inbox ACK; rhythm defer; APPLY estimates from planning
+
+  • Mobile hub: same FINISH banner, inbox, defer
+
+
+
+---
+
+
+
+VERSION 4.2.3 (May 2026)
+
+------------------------
+
+
+
+BUG FIX
+
+  • Previous-day Reports no longer 500 (weekday casing, safe legacy SQL)
+
+
+
+---
+
+
+
+VERSION 4.2.2 (May 2026)
+
+------------------------
+
+
+
+ACTIONABLE REPORTS
+
+  • Action inbox, executive KPI strip, order-day briefing, rhythm load advisor
+
+  • Task planning accuracy, OOS 30-day trends
+
+
+
+---
+
+
+
+VERSION 4.2.1 (May 2026)
+
+------------------------
+
+
+
+TV + COMMS
+
+  • Native TV SSE (~250ms refresh); LIVE badge
+
+  • Message Center zone picker on posts; floor feed filter by zone
+
+
+
+---
+
+
+
+VERSION 4.2.0 (May 2026)
+
+------------------------
+
+
+
+MESSAGE CENTER
+
+  • Pin / feed / ticker lanes; system auto-posts; EOD handoff in Reports
+
+  • Rollback: Message_Center_Enabled=0 restores legacy ticker
+
+
+
+---
+
+
+
+VERSION 4.1.x (May 2026)
+
+------------------------
+
+
+
+4.1.0 — Mobile modules, store templates, migrations, order-day briefing,
+
+        exception inbox v2, rhythm load advisor, FINISH staff roster,
+
+        Phase 0 checklist, HQ snapshot compare, native TV default
+
+
+
+4.1.1 — Zone owner fix for pulls; printable pull list; urgent/high persist overnight;
+
+        order store_date = start day; store-hours duration for PPH
+
+
+
+---
+
+
+
+VERSION 3.4.6 (May 2026)
+
+------------------------
+
+
+
+MAP — AISLE 5
+
+  • Tri-color interior fill (orange / blue / green) like other aisles
+
+  • Tri-color pulse on border + fill when A5 has open tasks
+
+
+
+---
+
+
+
+VERSION 3.4.5 (May 2026)
+
+------------------------
+
+
+
+REPORTS
+
+  • Weekly order scorecard — averages from clock days only (last 90 days)
+
+
+
+TV & MOBILE
+
+  • TV map High priority — orange pulse (matches mobile)
+
+
+
+---
+
+
+
+VERSION 3.4.0 (May 2026)
+
+------------------------
+
+
+
+WHAT'S NEW ON THE FLOOR
+
+  • FINISH button: staff count + hardware arrived gate
+
+  • Break-adjusted PPH on archived order days
+
+  • Task estimates learn from human closes (≥3 samples)
+
+  • npm run verify:store before every deploy copy
+
+
+
+Full detail: CHANGELOG.md
+
+
+
+4.7.0 PoC recoverability patch:
+- Added `npm run verify:backup` to drill the latest generated SQLite backup on a copy.
+- Added startup DB health logging and manager-readable `/api/maintenance/health`.
+- Added backup integrity/table inspection helpers for restore confidence.
+
+
+Patch 6 — Release confidence
+- Run `npm run verify:release` before copying to a store PC.
+- Run `npm run verify:fresh-install` to prove a blank data folder boots.
+- Run `npm run verify:upgrade` with `TGP_UPGRADE_SOURCE_DB` to test an existing store DB copy.
+- Numbered migrations now create a pre-migration snapshot in backups when pending migrations exist.
+- Manager Maintenance shows the release manifest and migration status.
+
+
+Patch 7 — Tokenless PoC store mode
+- Token/device pairing remains available, but TV/display access no longer requires a device token by default.
+- Set Require_TV_Device_Token=1 or TGP_REQUIRE_DEVICE_TOKEN=1 when you want to enforce device tokens.
+- Tokenless mode is intended only for the trusted single-store LAN proof of concept.
+
+Patch 13 — Receiving print + TV safety watch
+- Fixed Receiving Log, Expiry Pull, Weekly Trends, and HomeBase Audit exports after query-string session tokens were removed.
+- Added a main TV Safety Watch panel that highlights open task-board safety hazards and optional TV_Safety_Message/Safety_Message text.
+
+4.7.0 PoC receiving file-maintenance log patch:
+- Receiver can optionally enter Invoice / Ref # at vendor time-out.
+- Reports and mobile export helpers can print/export a File Maintenance Receiving Log.
+- The printout defaults to yesterday when no date is selected and keeps Shannon's paper workflow simple.
+
+## Patch 17 — Receiving Vendor Cleanup
+- Added canonical receiving vendor aliases to reduce duplicates like `coke`/`Coke`, `pepsi`/`pesis`, `Canada bread`/`Canada Bread`, and `complete`/`Complete`.
+- Added a vendor picker/autocomplete to `/rec` for unscheduled vendor arrivals.
+- Added migration 022 to normalize obvious existing receiving/vendor schedule rows while avoiding unsafe guesses for unknown junk values.
+- Added regression tests for vendor alias normalization.
+Patch 18 — Staff schedule alias cleanup
+- Isabella→Izzy, Abigail→Abby, Jessica→Jess, Lenora→Nora.
+- Jennifer O is not mapped to Jenn.
+- Shanelle is treated as inactive/gone.
+- Shannon is treated as File Maintenance; Connor and Dawn are known/pending staff names.
+- Schedule health should stop warning on these known names while rhythm tasks only assign to real app staff.
+
+
+
+## Patch 20 - TV Display Toggles
+
+- Added manager-controlled TV display toggles that preserve the current layout by default.
+- Toggles cover pinned Daily Huddle, Store Comms panel, auto/audit trail items, bottom ticker, and latest Shift Update feed items.
+- Added migration 024 to seed the new TV settings on existing store databases.

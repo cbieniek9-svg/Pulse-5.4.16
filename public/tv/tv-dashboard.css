@@ -1,0 +1,453 @@
+/* Native TV shell extras (maintainable source — see BUILD_NOTES.txt) */
+.tv-presence-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  font-size: 0.72rem;
+  color: #8cf;
+  margin-top: 6px;
+  padding: 4px 8px;
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  border-radius: 4px;
+  background: rgba(0, 229, 255, 0.06);
+}
+.tv-presence-label {
+  color: #0cf;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.tv-presence-warn {
+  color: #f90;
+  font-weight: 700;
+}
+.tv-fifo-assignments {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  border: 1px solid rgba(0, 255, 136, 0.25);
+  border-radius: 4px;
+  background: rgba(0, 255, 136, 0.04);
+}
+.tv-fifo-title {
+  color: #0f8;
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+  text-align: center;
+}
+.tv-fifo-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  justify-content: center;
+}
+.tv-fifo-chip {
+  background: rgba(255, 255, 255, 0.04);
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 0.78rem;
+  line-height: 1.25;
+  text-align: center;
+}
+.tv-fifo-chip strong {
+  color: #fff;
+  display: block;
+}
+.tv-fifo-chip small {
+  color: #8cf;
+}
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  justify-content: center;
+  font-size: 0.72rem;
+  color: #8cf;
+  margin-top: 8px;
+  margin-bottom: 0;
+  padding-top: 8px;
+  border-top: 1px solid rgba(136, 204, 255, 0.18);
+  width: 100%;
+  flex-shrink: 0;
+}
+
+/* Keep zone-owner legend under the tactical map (not centered inside it) */
+.task-map-container.centric {
+  justify-content: flex-start !important;
+  align-items: stretch !important;
+}
+.task-map-container.centric .tactical-svg {
+  flex: 1 1 auto;
+  height: auto !important;
+  min-height: 0;
+  width: 100%;
+  max-width: 1600px;
+  align-self: center;
+}
+#tv-col-center .card,
+#tv-col-right .card {
+  flex-direction: column;
+  align-items: flex-start;
+}
+#tv-col-center .card-meta,
+#tv-col-right .card-meta {
+  text-align: left;
+  margin-top: 4px;
+}
+.card-meta-assignee {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #b8dcf5;
+  line-height: 1.25;
+  letter-spacing: 0.02em;
+  word-break: break-word;
+}
+.task-badge-urgent circle {
+  animation: tv-badge-urgent-pulse 1.1s ease-in-out infinite;
+}
+@keyframes tv-badge-urgent-pulse {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 0 rgba(255, 68, 68, 0)); }
+  50% { opacity: 0.82; filter: drop-shadow(0 0 8px rgba(255, 68, 68, 0.95)); }
+}
+
+/* A5 tri-color segmented outline — custom pulse, not generic zone glow */
+.zone-block:not(.a5-tri).active line,
+.zone-block:not(.a5-tri).active rect {
+  animation: tv-map-active-glow 2s ease-in-out infinite;
+}
+.zone-block:not(.a5-tri).high line,
+.zone-block:not(.a5-tri).high rect {
+  animation: tv-map-high-glow 1.6s ease-in-out infinite;
+}
+.zone-block:not(.a5-tri).urgent line,
+.zone-block:not(.a5-tri).urgent rect {
+  animation: tv-map-urgent-glow 1s ease-in-out infinite;
+}
+.zone-block.a5-tri.active .a5-seg-orange { animation: tv-a5-tri-orange 2s ease-in-out infinite; }
+.zone-block.a5-tri.active .a5-seg-blue { animation: tv-a5-tri-blue 2s ease-in-out infinite; }
+.zone-block.a5-tri.active .a5-seg-green { animation: tv-a5-tri-green 2s ease-in-out infinite; }
+.zone-block.a5-tri.high .a5-seg-orange { animation: tv-a5-tri-orange 1.6s ease-in-out infinite; }
+.zone-block.a5-tri.high .a5-seg-blue { animation: tv-a5-tri-blue 1.6s ease-in-out infinite; }
+.zone-block.a5-tri.high .a5-seg-green { animation: tv-a5-tri-green 1.6s ease-in-out infinite; }
+.zone-block.a5-tri.urgent .a5-seg-orange { animation: tv-a5-tri-orange 1s ease-in-out infinite; }
+.zone-block.a5-tri.urgent .a5-seg-blue { animation: tv-a5-tri-blue 1s ease-in-out infinite; }
+.zone-block.a5-tri.urgent .a5-seg-green { animation: tv-a5-tri-green 1s ease-in-out infinite; }
+.zone-block.a5-tri.active .a5-fill-orange { animation: tv-a5-fill-orange 2s ease-in-out infinite; }
+.zone-block.a5-tri.active .a5-fill-blue { animation: tv-a5-fill-blue 2s ease-in-out infinite; }
+.zone-block.a5-tri.active .a5-fill-green { animation: tv-a5-fill-green 2s ease-in-out infinite; }
+.zone-block.a5-tri.high .a5-fill-orange { animation: tv-a5-fill-orange 1.6s ease-in-out infinite; }
+.zone-block.a5-tri.high .a5-fill-blue { animation: tv-a5-fill-blue 1.6s ease-in-out infinite; }
+.zone-block.a5-tri.high .a5-fill-green { animation: tv-a5-fill-green 1.6s ease-in-out infinite; }
+.zone-block.a5-tri.urgent .a5-fill-orange { animation: tv-a5-fill-orange 1s ease-in-out infinite; }
+.zone-block.a5-tri.urgent .a5-fill-blue { animation: tv-a5-fill-blue 1s ease-in-out infinite; }
+.zone-block.a5-tri.urgent .a5-fill-green { animation: tv-a5-fill-green 1s ease-in-out infinite; }
+.zone-block.a5-tri.urgent {
+  filter: drop-shadow(0 0 8px rgba(255, 68, 68, 0.45));
+}
+#tv-col-center .card.high,
+#tv-col-right .card.high {
+  border-left: 3px solid #fa0;
+  background: rgba(255, 170, 0, 0.1);
+}
+#tv-col-center .card.high .card-zone,
+#tv-col-right .card.high .card-zone {
+  color: #fa0;
+}
+@keyframes tv-map-active-glow {
+  0%, 100% { stroke-opacity: 1; stroke-width: 2.5px; }
+  50% { stroke-opacity: 0.45; stroke-width: 1.5px; }
+}
+@keyframes tv-map-high-glow {
+  0%, 100% { stroke-opacity: 1; stroke-width: 3px; filter: drop-shadow(0 0 4px rgba(255, 170, 0, 0.45)); }
+  50% { stroke-opacity: 0.55; stroke-width: 2px; filter: drop-shadow(0 0 10px rgba(255, 170, 0, 0.8)); }
+}
+@keyframes tv-a5-tri-orange {
+  0%, 100% { stroke-opacity: 1; stroke-width: 3px; filter: drop-shadow(0 0 5px rgba(255, 170, 0, 0.7)); }
+  33%, 66% { stroke-opacity: 0.35; stroke-width: 2px; filter: none; }
+}
+@keyframes tv-a5-tri-blue {
+  0%, 100%, 66% { stroke-opacity: 0.35; stroke-width: 2px; filter: none; }
+  33% { stroke-opacity: 1; stroke-width: 3px; filter: drop-shadow(0 0 5px rgba(0, 204, 255, 0.7)); }
+}
+@keyframes tv-a5-tri-green {
+  0%, 33%, 100% { stroke-opacity: 0.35; stroke-width: 2px; filter: none; }
+  66% { stroke-opacity: 1; stroke-width: 3px; filter: drop-shadow(0 0 5px rgba(0, 255, 136, 0.7)); }
+}
+@keyframes tv-a5-fill-orange {
+  0%, 100% { opacity: 1; }
+  33%, 66% { opacity: 0.45; }
+}
+@keyframes tv-a5-fill-blue {
+  0%, 100%, 66% { opacity: 0.45; }
+  33% { opacity: 1; }
+}
+@keyframes tv-a5-fill-green {
+  0%, 33%, 100% { opacity: 0.45; }
+  66% { opacity: 1; }
+}
+@keyframes tv-map-urgent-glow {
+  0%, 100% { stroke-opacity: 1; stroke-width: 4px; }
+  50% { stroke-opacity: 0.3; stroke-width: 1.5px; }
+}
+
+/* Wall-readable aisle / section labels on tactical map (outside zone-block glow) */
+.tactical-svg .zone-label,
+.tactical-svg .zone-sublabel {
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  pointer-events: none;
+}
+.tactical-svg .zone-label {
+  font-size: 22px !important;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.tactical-svg .zone-sublabel {
+  font-size: 15px !important;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+}
+
+.tv-comms-pinned-wrap { padding: 0 12px 8px; }
+.tv-comms-pinned-wrap .comms-pinned { margin-bottom: 6px; font-size: 0.95rem; }
+.tv-comms-pinned-wrap .comms-pinned-urgent { box-shadow: 0 0 12px rgba(255, 68, 68, 0.35); }
+#tv-comms-feed .comms-feed-item { margin-bottom: 6px; padding: 8px 10px; font-size: 0.82rem; }
+#tv-comms-feed .comms-feed-meta { font-size: 0.65rem; }
+.tv-floor-comms-header {
+  color: #0cf !important;
+  letter-spacing: 2px;
+  margin-top: 8px;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.35);
+  padding-bottom: 4px;
+}
+.tv-floor-comms-section { margin-bottom: 10px; }
+.comms-pinned { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.comms-pinned-warn { background: rgba(255, 170, 0, 0.12); border: 1px solid rgba(255, 170, 0, 0.4); color: #ffdca0; }
+.comms-pinned-urgent { background: rgba(255, 68, 68, 0.18); border: 1px solid rgba(255, 68, 68, 0.55); color: #fff; }
+.comms-pinned-label { font-weight: 800; font-size: 0.7rem; opacity: 0.9; }
+.comms-pinned-body { flex: 1; }
+.comms-pinned-by { font-size: 0.68rem; color: #8cf; }
+.comms-feed-item { background: rgba(255, 255, 255, 0.04); border-left: 3px solid #0cf; padding: 8px 10px; margin-bottom: 6px; border-radius: 0 4px 4px 0; }
+.comms-feed-item.comms-pri-warn { border-left-color: #fa0; }
+.comms-feed-item.comms-pri-urgent { border-left-color: #f44; }
+.comms-feed-body { color: #eef5ff; line-height: 1.3; margin-bottom: 3px; }
+.comms-feed-meta { color: #8cf; font-size: 0.65rem; opacity: 0.85; }
+.comms-zone-chip { display: inline-block; margin-right: 6px; padding: 1px 6px; border-radius: 3px; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.5px; background: rgba(0, 204, 255, 0.12); color: #8cf; border: 1px solid rgba(0, 204, 255, 0.35); vertical-align: middle; }
+
+
+/* Customer Orders are operationally critical: keep them visible on the TV even
+   when other right-column secondary panels are hidden for crowding. */
+.tv-customer-orders-section {
+  display: block !important;
+  margin-bottom: 10px;
+  flex: 0 0 auto;
+}
+.tv-customer-orders-header {
+  color: #8cf !important;
+  letter-spacing: 2px;
+}
+.tv-customer-orders-list {
+  display: grid;
+  gap: 6px;
+}
+.tv-customer-orders-block {
+  display: flex !important;
+  border-left: 3px solid #0cf;
+  background: rgba(0, 204, 255, 0.08);
+}
+
+/* Patch 13 — safety watch panel on the main TV screen */
+.tv-safety-header {
+  color: #ffdd66 !important;
+}
+.tv-safety-panel {
+  margin-bottom: 10px;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 221, 102, 0.32);
+  background: rgba(255, 221, 102, 0.06);
+}
+.tv-safety-panel.tv-safety-alert {
+  border-color: rgba(255, 68, 68, 0.65);
+  background: rgba(255, 68, 68, 0.1);
+  box-shadow: 0 0 14px rgba(255, 68, 68, 0.12);
+}
+.tv-safety-panel.tv-safety-ok {
+  border-color: rgba(0, 255, 136, 0.35);
+  background: rgba(0, 255, 136, 0.05);
+}
+.tv-safety-card {
+  padding: 8px 10px;
+  border-radius: 5px;
+  font-size: 0.84rem;
+  line-height: 1.3;
+}
+.tv-safety-card + .tv-safety-card,
+.tv-safety-card + .tv-safety-task,
+.tv-safety-task + .tv-safety-task {
+  margin-top: 6px;
+}
+.tv-safety-status {
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  font-weight: 800;
+  color: #ffdd66;
+  margin-bottom: 3px;
+}
+.tv-safety-clear .tv-safety-status {
+  color: #0f8;
+}
+.tv-safety-message {
+  border-left: 3px solid #ffdd66;
+  background: rgba(255, 221, 102, 0.08);
+  color: #fff;
+}
+.tv-safety-task {
+  margin: 6px 0 0;
+  border-left-color: #f44 !important;
+}
+.tv-safety-more {
+  margin-top: 6px;
+  color: #ffccaa;
+  font-size: 0.76rem;
+  text-align: center;
+}
+
+
+/* Patch 24 — TV readability: keep Daily Direction above map/FIFO and aligned with Active Directives */
+.tv-daily-direction-top-section {
+  margin: 0 0 8px !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+.col.col-left.tv-has-daily-direction-top {
+  justify-content: flex-start !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  gap: 6px !important;
+}
+
+.col.col-left.tv-has-daily-direction-top > .tv-daily-direction-top-section:first-child {
+  flex: 0 0 auto !important;
+}
+
+.col.col-left.tv-has-daily-direction-top > .task-map-container.centric {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+}
+
+
+/* Keep the Daily Direction heading metrics aligned with the TASKS header. */
+.tv-daily-direction-top-section .tv-floor-comms-header,
+#tv-col-center > .section-header:first-child {
+  display: flex !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+  min-height: 1.65rem !important;
+  height: auto !important;
+  max-height: none !important;
+  margin-top: 0 !important;
+  margin-bottom: 6px !important;
+  padding-top: 3px !important;
+  padding-bottom: 5px !important;
+  overflow: visible !important;
+  line-height: 1.35 !important;
+}
+
+.tv-daily-direction-top-section .tv-floor-comms-header {
+  font-size: inherit !important;
+}
+.tv-daily-direction-top-block {
+  display: grid;
+  gap: 4px;
+}
+.tv-daily-direction-top-block .comms-feed-item {
+  margin-bottom: 0 !important;
+  padding: 5px 8px !important;
+  font-size: 0.74rem !important;
+  line-height: 1.18 !important;
+}
+.tv-daily-direction-top-block .comms-feed-body {
+  margin-bottom: 2px !important;
+  line-height: 1.18 !important;
+}
+.tv-daily-direction-top-block .comms-feed-meta {
+  font-size: 0.58rem !important;
+}
+.tv-daily-direction-top-block .card {
+  margin-bottom: 0 !important;
+  padding: 5px 8px !important;
+}
+
+.tv-daily-direction-top-block .daily-direction-main {
+  border-left-width: 5px !important;
+  border-left-color: var(--dd-status, #fa0) !important;
+  background: rgba(0, 0, 0, 0.55) !important;
+  padding: 12px 14px !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.tv-daily-direction-top-block .daily-direction-update {
+  border-left-color: var(--dd-status, #fa0);
+  background: rgba(255, 170, 0, 0.08);
+}
+.tv-daily-direction-top-block .daily-direction-label {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--dd-status, #fa0);
+  font-size: 0.78rem;
+  margin-bottom: 6px;
+}
+.tv-daily-direction-top-block .daily-direction-body {
+  white-space: pre-wrap;
+  text-transform: none;
+  font-size: 1.05rem !important;
+  line-height: 1.4 !important;
+  color: #f5f9ff !important;
+}
+.tv-daily-direction-top-block .daily-direction-must-wins {
+  color: #bdefff;
+  margin-top: 8px;
+  font-size: 0.85rem;
+}
+
+.tv-daily-direction-top-section .tv-floor-comms-header {
+  color: var(--dd-status, #fa0) !important;
+  border-bottom-color: rgba(255, 170, 0, 0.45) !important;
+}
+.tv-daily-direction-top-section.dd-status-green .tv-floor-comms-header {
+  border-bottom-color: rgba(0, 255, 136, 0.45) !important;
+}
+.tv-daily-direction-top-section.dd-status-red .tv-floor-comms-header {
+  border-bottom-color: rgba(255, 68, 68, 0.45) !important;
+}
+
+.tv-daily-direction-top-section.dd-status-green,
+.tv-daily-direction-top-block .daily-direction-main.dd-status-green {
+  --dd-status: #0f8;
+}
+.tv-daily-direction-top-section.dd-status-yellow,
+.tv-daily-direction-top-block .daily-direction-main.dd-status-yellow {
+  --dd-status: #fa0;
+}
+.tv-daily-direction-top-section.dd-status-red,
+.tv-daily-direction-top-block .daily-direction-main.dd-status-red {
+  --dd-status: #f44;
+}
+
+#tgp-tv-expiry .tv-expiry-warning-compact {
+  border-left: 3px solid #f90;
+  background: rgba(255, 170, 0, 0.065);
+}
+#tgp-tv-expiry .tv-expiry-warning-compact .tv-expiry-item-title {
+  font-size: 0.92em !important;
+}
+#tgp-tv-expiry .tv-expiry-warning-compact .tv-expiry-item-meta {
+  font-size: 0.74em !important;
+  line-height: 1.15 !important;
+}
+#tgp-tv-expiry .tv-expiry-warning-compact-header {
+  margin-top: 4px !important;
+}
