@@ -386,10 +386,24 @@ function listMissingRhythmDetails(db, deps = {}) {
     }
 
     let skipFifo = false;
+    let expandRhythmTaskForBoard = null;
+    let buildRhythmAssignContext = null;
+    let fifoExpandReady = false;
     try {
-        const { shouldSkipFifoRhythm } = require('./rhythm-schedule-assign.cjs');
-        skipFifo = !!shouldSkipFifoRhythm(db, stamp);
-    } catch (_) { /* ignore */ }
+        const sched = require('./rhythm-schedule-assign.cjs');
+        skipFifo = !!sched.shouldSkipFifoRhythm(db, stamp);
+        expandRhythmTaskForBoard = sched.expandRhythmTaskForBoard;
+        buildRhythmAssignContext = sched.buildRhythmAssignContext;
+        fifoExpandReady = typeof expandRhythmTaskForBoard === 'function'
+            && typeof buildRhythmAssignContext === 'function';
+    } catch (_) {
+        fifoExpandReady = false;
+    }
+
+    let assignCtx = null;
+    if (fifoExpandReady) {
+        try { assignCtx = buildRhythmAssignContext(db, stamp); } catch (_) { assignCtx = null; }
+    }
 
     const templates = db.all("SELECT id, detail FROM rhythm_tasks WHERE day=? OR day='Everyday'", day) || [];
     const missing = [];
@@ -399,6 +413,35 @@ function listMissingRhythmDetails(db, deps = {}) {
         if (!detail) return;
         // Intentionally not boarded today (e.g. FIFO already logged in Excel).
         if (skipFifo && /^FIFO Audit$/i.test(detail)) return;
+
+        // FIFO expands into per-aisle rows — one boarded aisle must not mark the template done.
+        // Module/context/expand failures are incomplete (fail closed). Bare fallback
+        // "FIFO Audit" (no aisle expand) may use prefix coverage; multi-aisle expects every row.
+        if (/^FIFO Audit$/i.test(detail)) {
+            if (!fifoExpandReady || !assignCtx) {
+                missing.push(detail);
+                return;
+            }
+            try {
+                const expected = expandRhythmTaskForBoard(db, t, assignCtx) || [];
+                const expectedDetails = expected
+                    .map((bt) => String(bt.task_detail || '').trim())
+                    .filter(Boolean);
+                if (!expectedDetails.length) {
+                    missing.push(detail);
+                    return;
+                }
+                if (expectedDetails.length === 1 && /^FIFO Audit$/i.test(expectedDetails[0])) {
+                    if (!openDetailCoversTemplate(detail, boardedDetails)) missing.push(detail);
+                    return;
+                }
+                if (!expectedDetails.every((d) => boardedDetails.has(d))) missing.push(detail);
+            } catch (_) {
+                missing.push(detail);
+            }
+            return;
+        }
+
         if (!openDetailCoversTemplate(detail, boardedDetails)) missing.push(detail);
     });
     return { missing, deferralLookupFailed };

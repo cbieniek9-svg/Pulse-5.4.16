@@ -165,6 +165,26 @@ test('bootstrap PIN file read errors fail closed without regeneration', () => {
     assert.equal(writeAttempted, false);
 });
 
+test('PIN write failure returns unavailable with disabled (fail closed)', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tgp-pin-write-fail-'));
+    const err = new Error('injected write failure');
+    err.code = 'EACCES';
+    const resolved = resolvePcAdminPin({
+        dataRoot: dir,
+        env: {},
+        db: { get: () => null },
+        fs: {
+            lstatSync: () => { const e = new Error('ENOENT'); e.code = 'ENOENT'; throw e; },
+            readFileSync: () => { throw new Error('should not read'); },
+            mkdirSync: () => {},
+            writeFileSync: () => { throw err; },
+        },
+    });
+    assert.equal(resolved.pin, null);
+    assert.equal(resolved.source, 'unavailable');
+    assert.equal(resolved.disabled, true);
+});
+
 test('fresh bootstrap PIN file requests owner-only mode where supported', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tgp-pin-mode-'));
     const resolved = resolvePcAdminPin({ dataRoot: dir, env: {}, db: { get: () => null } });

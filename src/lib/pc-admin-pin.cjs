@@ -148,7 +148,8 @@ function resolvePcAdminPin(opts = {}) {
         }
         console.warn('[SECURITY] Could not write pc-admin-pin.txt:', e.message || e);
     }
-    return { pin: null, source: 'unavailable', insecureDefault: false, pinPath };
+    // Fail closed: a null PIN must never authorize (auth treats empty as comparable).
+    return { pin: null, source: 'unavailable', insecureDefault: false, pinPath, disabled: true };
 }
 
 function isFreshInstall(db) {

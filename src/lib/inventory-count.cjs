@@ -730,7 +730,14 @@ function updateLine(lineId, patch) {
     }
 
     const stamp = new Date().toISOString();
-    const snap = (patch?.upc != null || patch?.uom != null || typeof patch?.lookupItem === 'function')
+    // Re-price only when identity actually changes (or caller asks). Echoing the same
+    // upc/uom in a quantity patch must not wipe stored snapshots.
+    const prevUpc = String(row.upc || '');
+    const prevUom = String(row.uom || 'case');
+    const shouldResnapshot = patch?.refresh_prices === true
+        || upc !== prevUpc
+        || uom !== prevUom;
+    const snap = shouldResnapshot
         ? captureCountPriceSnapshot(patch?.lookupItem, upc, uom, stamp)
         : {
             unit_cost: row.unit_cost,

@@ -39,15 +39,16 @@ module.exports = {
         addColumn(db, `ALTER TABLE receiving_report_period_status ADD COLUMN costing_method_selected_by TEXT NOT NULL DEFAULT ''`);
         addColumn(db, `ALTER TABLE receiving_report_period_status ADD COLUMN costing_method_audit_json TEXT NOT NULL DEFAULT ''`);
 
-        // Historical submitted/approved/locked (or snapshotted) periods keep legacy allocation.
+        // Historical snapshotted periods keep legacy allocation. Insert only when no
+        // status row exists (empty costing_method on an existing row is handled below).
         try {
             db.exec(`
-                INSERT INTO receiving_report_period_status (
+                INSERT OR IGNORE INTO receiving_report_period_status (
                     period_start, status, costing_method, costing_method_reason,
                     costing_method_selected_at, costing_method_selected_by, updated_at, updated_by
                 )
-                SELECT s.period_start,
-                       COALESCE(ps.status, 'locked'),
+                SELECT DISTINCT s.period_start,
+                       'locked',
                        'legacy_fixed_allocation',
                        'historical_default',
                        datetime('now'),
@@ -56,7 +57,7 @@ module.exports = {
                        'migration_055'
                   FROM receiving_report_period_snapshots s
              LEFT JOIN receiving_report_period_status ps ON ps.period_start = s.period_start
-                 WHERE COALESCE(ps.costing_method, '') = ''
+                 WHERE ps.period_start IS NULL
             `);
         } catch (_) { /* snapshots optional */ }
 

@@ -10,7 +10,9 @@ const {
     closeLocationSession,
     finalizeOrderDraft,
     getOrderReport,
+    getSession,
     getSessionDetail,
+    isClosedStatus,
     insertScan,
     listActiveScans,
     updateLine,
@@ -196,6 +198,20 @@ function registerInventoryCountRoutes(server, ctx) {
     server.post('/api/inventory/sessions/:id/reopen', wrap(async (req, res) => {
         const auth = requireCountAuth(req, res);
         if (!auth) return;
+        const existing = getSession(req.params.id);
+        if (existing && isClosedStatus(existing.status)) {
+            const { assertInventoryControlReauth } = require('../../lib/inventory-reauth.cjs');
+            try {
+                await assertInventoryControlReauth({
+                    db,
+                    session: auth,
+                    data: req.body ?? {},
+                    action: 'reopen a locked inventory session',
+                });
+            } catch (e) {
+                return fail(res, e.status || 403, e.message, e.code);
+            }
+        }
         try {
             const countSession = reopenSession(req.params.id);
             res.json({ success: true, session: countSession });
