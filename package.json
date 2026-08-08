@@ -49,17 +49,17 @@
     "pdf-lib": "^1.17.1",
     "react": "19.2.6",
     "react-dom": "19.2.6",
-    "react-router-dom": "^7.9.1",
+    "react-router-dom": "^7.18.2",
     "scribe.js-ocr": "^0.11.10",
     "selfsigned": "^2.4.1",
     "xls-reader": "^0.7.0"
   },
   "devDependencies": {
-    "@electron/rebuild": "^3.6.0",
+    "@electron/rebuild": "^4.2.0",
     "@playwright/test": "1.60.0",
     "@vitejs/plugin-react": "^5.0.2",
     "asar": "3.2.0",
-    "electron": "41.3.0",
+    "electron": "41.10.3",
     "md-to-pdf": "^5.2.5",
     "vite": "^7.1.3"
   },

@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@playwright/test": "^1.40.0",
-    "axios": "^1.6.0",
+    "axios": "^1.18.0",
     "eventsource": "^2.0.2",
     "playwright": "^1.60.0"
   }
