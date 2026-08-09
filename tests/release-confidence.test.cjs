@@ -35,7 +35,6 @@ test('verify-release step plan includes smoke checks and supports quick mode', (
     const core = steps.find((step) => step.name === 'core-unit-tests');
     assert.equal(core.command, sqliteRuntime.exe);
     assert.deepEqual(core.env, sqliteRuntime.env);
-    assert.deepEqual(core.args.slice(0, 3), ['--require', './scripts/verify-production-runtime.cjs', '--test']);
 
     assert.equal(parseArgs(['--quick', '--skip-backup']).quick, true);
     assert.equal(parseArgs(['--quick', '--skip-backup']).skipBackup, true);

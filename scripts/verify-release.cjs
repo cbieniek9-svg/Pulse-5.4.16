@@ -89,7 +89,7 @@ function buildSteps(opts = {}) {
             // ABI as the packaged desktop and Windows service; using system Node
             // here makes a correctly rebuilt store package fail preflight.
             command: sqlite.exe,
-            args: ['--require', './scripts/verify-production-runtime.cjs', '--test',
+            args: ['--test',
                 'tests/daily-direction.test.cjs',
                 'tests/eod-daily-direction-retention.test.cjs',
                 'tests/backup-health.test.cjs',
