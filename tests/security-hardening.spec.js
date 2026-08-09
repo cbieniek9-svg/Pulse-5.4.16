@@ -1,23 +1,11 @@
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import fs from 'node:fs';
-import path from 'node:path';
 import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
-import { loginPortal } from './helpers/playwright-auth.js';
+import { loginPortal, readPlaywrightStaffCache } from './helpers/playwright-auth.js';
 
 const require = createRequire(import.meta.url);
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function staffCache() {
-    const cachePath = path.join(__dirname, '.playwright-staff-cache.json');
-    const cache = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
-    if (!cache?.managerA?.name || !cache?.managerA?.pin) {
-        throw new Error('Playwright manager credentials are unavailable.');
-    }
-    if (!cache?.securityPii?.customer || !cache?.securityPii?.contact) {
-        throw new Error('Playwright security PII fixture is unavailable.');
-    }
-    return cache;
+    return readPlaywrightStaffCache({ requireManagers: true, requireSecurityPii: true });
 }
 
 function deviceTokenFromPairingUrl(pairingUrl) {

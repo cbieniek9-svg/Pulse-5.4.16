@@ -41,6 +41,19 @@ async function stressSSE(url, token, count = 500) {
 
     return new Promise((resolve) => {
         let openCount = 0;
+        let settled = false;
+        const finish = () => {
+            if (settled) return;
+            settled = true;
+            resolve();
+        };
+
+        if (clients.length === 0) {
+            console.log('[Phase 1] No zombie clients connected. Resolving early.');
+            finish();
+            return;
+        }
+
         clients.forEach((es) => {
             es.onopen = () => {
                 openCount++;
@@ -69,7 +82,7 @@ async function stressSSE(url, token, count = 500) {
 
                     setTimeout(() => {
                         reconnectClients.forEach((c) => c.close());
-                        resolve();
+                        finish();
                     }, 10000);
                 }
             };
@@ -81,8 +94,8 @@ async function stressSSE(url, token, count = 500) {
         setTimeout(() => {
             if (openCount < clients.length) {
                 console.log(`[Phase 1] Could not connect all clients (${openCount}/${clients.length}). Resolving early.`);
-                resolve();
             }
+            finish();
         }, 15000);
     });
 }

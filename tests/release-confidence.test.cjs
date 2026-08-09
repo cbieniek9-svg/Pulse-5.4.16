@@ -10,6 +10,7 @@ const {
     buildSteps,
     parseArgs,
     runStep,
+    resolveSqliteRuntime,
 } = require('../scripts/verify-release.cjs');
 
 test('package exposes release verification scripts', () => {
@@ -36,7 +37,16 @@ test('verify-release step plan includes smoke checks and supports quick mode', (
     assert.ok(names.includes('upgrade-smoke-copy'));
     assert.ok(!names.includes('store-deploy-preflight'));
 
+    // Probe must use the production SQLite/Electron runtime.
+    const sqliteRuntime = resolveSqliteRuntime();
+    const probe = steps.find((step) => step.name === 'production-runtime-probe');
+    assert.ok(probe, 'production-runtime-probe step is present');
+    assert.equal(probe.command, sqliteRuntime.exe, 'production-runtime-probe uses the SQLite runtime');
+    assert.deepEqual(probe.env, sqliteRuntime.env, 'production-runtime-probe uses the SQLite runtime environment');
+
+    // Core units go through run-unit-electron (discovers every *.test.cjs) with skip-fail.
     const core = steps.find((step) => step.name === 'core-unit-tests');
+    assert.ok(core, 'core-unit-tests step is present');
     assert.equal(core.command, process.execPath);
     assert.deepEqual(core.args, ['scripts/run-unit-electron.cjs']);
     assert.equal(core.env.UNIT_FAIL_ON_SKIP, '1');

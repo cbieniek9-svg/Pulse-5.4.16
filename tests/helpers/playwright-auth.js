@@ -4,19 +4,55 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const CACHE_PATH = path.join(__dirname, '..', '.playwright-staff-cache.json');
 
-function managerCredentials() {
-    const cachePath = path.join(__dirname, '..', '.playwright-staff-cache.json');
-    const cache = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
-    if (!cache?.managerA?.name || !cache?.managerA?.pin) {
-        throw new Error('Playwright manager credentials are unavailable.');
+/**
+ * Shared reader for tests/.playwright-staff-cache.json.
+ * @param {{ requireManagers?: boolean, requireSecurityPii?: boolean, optional?: boolean }} [opts]
+ */
+export function readPlaywrightStaffCache(opts = {}) {
+    const {
+        requireManagers = false,
+        requireSecurityPii = false,
+        optional = false,
+    } = opts;
+
+    let cache;
+    try {
+        cache = JSON.parse(fs.readFileSync(CACHE_PATH, 'utf8'));
+    } catch (err) {
+        if (optional) return null;
+        throw new Error(`Playwright staff cache unavailable: ${err.message || err}`);
     }
-    return cache.managerA;
+
+    for (const key of requireManagers ? ['managerA', 'managerB', 'storeManager'] : ['managerA']) {
+        if (!cache?.[key]?.name || !cache?.[key]?.pin) {
+            if (optional) return null;
+            throw new Error(`Playwright ${key} credentials are unavailable.`);
+        }
+    }
+
+    if (requireSecurityPii) {
+        const pii = cache.securityPii;
+        if (!pii?.customer || !pii?.contact || !pii?.notes) {
+            if (optional) return null;
+            throw new Error('Playwright security PII fixture is unavailable.');
+        }
+    }
+
+    if (cache.name == null && cache.managerA?.name) {
+        cache = { ...cache, name: cache.managerA.name, pin: cache.managerA.pin };
+    }
+
+    return cache;
+}
+
+export function managerCredentials() {
+    return readPlaywrightStaffCache().managerA;
 }
 
 export function csDeviceToken() {
-    const cachePath = path.join(__dirname, '..', '.playwright-staff-cache.json');
-    const cache = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+    const cache = readPlaywrightStaffCache();
     if (!cache?.csDeviceToken) throw new Error('Playwright cs_desk device token is unavailable.');
     return cache.csDeviceToken;
 }

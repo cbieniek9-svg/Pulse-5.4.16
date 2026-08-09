@@ -1,7 +1,19 @@
 # Testing — Chaos, Hell 3000, Lighthouse
 
-**App:** TGP Command Center / Pulse **5.4.5**  
-**Updated:** 2026-07-29
+**App:** TGP Command Center / Pulse **5.4.16**  
+**Updated:** 2026-08-08
+
+## Layers
+
+| Layer | Command | Role |
+|-------|---------|------|
+| **Gate** | `npm run test:ci` / `test:gate` | Fast CI: syntax + core auth/rhythm/inventory/receiving units |
+| **Deep unit** | `npm run test:unit` | Full `tests/*.test.cjs` under Electron |
+| **Smoke UI** | `npm run test:smoke` | Playwright SPA happy paths (shared `tests/helpers/playwright-auth.js`) |
+| **Chaos** | `npm run test:chaos-monkey` | Preferred stress lane (throwaway DB only) |
+| **Classic chaos** | `node tests/run-chaos-monkey.cjs` | SSE / DB hammer / time-warp (legacy twin; keep one lane long-term) |
+
+Playwright staff fixtures: one reader — `readPlaywrightStaffCache` / `managerCredentials` in `tests/helpers/playwright-auth.js`.
 
 ## Golden rules
 
@@ -13,7 +25,9 @@
 
 | Command | What it does |
 |---------|----------------|
-| `npm run test:unit` | Unit tests via Electron-as-Node |
+| `npm run test:gate` / `test:ci` | Syntax + gate unit filters (auth, rhythm, inventory, receiving core) |
+| `npm run test:unit` | All unit tests via Electron-as-Node |
+| `npm run test:smoke` | Playwright smoke (floor / security / reports) |
 | `npm run test:hell3000` | Full Hell 3000 integrated pass |
 | `npm run test:chaos-monkey` | API + UI gremlin + destructive (uses `TGP_BASE_URL`) |
 | `node tests/run-chaos-monkey.cjs` | Classic SSE / DB hammer / time-warp / long-haul |

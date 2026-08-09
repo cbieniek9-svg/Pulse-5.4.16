@@ -92,8 +92,9 @@ function buildSteps(opts = {}) {
         },
         {
             name: 'core-unit-tests',
-            // Run every discovered unit file, one process at a time, rather than
-            // maintaining a partial list that silently misses new regressions.
+            // Run every discovered unit file via Electron-as-Node, one process at
+            // a time, rather than maintaining a partial list that silently misses
+            // new regressions. UNIT_FAIL_ON_SKIP rejects skipped SQLite suites.
             command: node,
             args: ['scripts/run-unit-electron.cjs'],
             env: { UNIT_FAIL_ON_SKIP: '1' },
