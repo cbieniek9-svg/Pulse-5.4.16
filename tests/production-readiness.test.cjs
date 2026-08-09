@@ -352,6 +352,11 @@ test('readiness report is ok for local-only healthy setup', () => {
                 https_active: false,
                 warnings: [],
             },
+            deployFidelity: {
+                ui_exists: true,
+                restart_required: false,
+                summary: 'Process matches on-disk app version and UI build.',
+            },
             now: new Date('2026-06-21T12:00:00Z'),
         });
 

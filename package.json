@@ -6,7 +6,7 @@
   "main": "main.cjs",
   "scripts": {
     "postinstall": "npm run rebuild:electron",
-    "rebuild:electron": "electron-rebuild -f -w better-sqlite3 -v 41.3.0",
+    "rebuild:electron": "electron-rebuild -f -w better-sqlite3",
     "rebuild:node": "npm rebuild better-sqlite3",
     "test": "playwright test",
     "test:smoke": "playwright test tests/sales_floor.spec.js tests/security_audit.spec.js tests/reports_dashboard.spec.js",
@@ -23,7 +23,7 @@
     "test:chaos-monkey": "node tests/chaos-monkey/run.cjs",
     "test:simulation": "set TGP_TEST_MODE=1&& set TGP_SIM_DAYS=365&& node tests/year-simulation.cjs",
     "test:destructive": "set TGP_TEST_MODE=1&& node tests/destructive-maintenance.cjs",
-    "prepare:store": "npm install && npm run rebuild:electron && npm run build:ui && node scripts/verify-store-deploy.cjs",
+    "prepare:store": "npm install && npm run rebuild:electron && npm run build:ui && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/fetch-service-runtime.ps1 -SkipNode && node scripts/verify-store-deploy.cjs",
     "verify:store": "node scripts/verify-store-deploy.cjs",
     "dev:ui": "vite --config client/vite.config.js",
     "build:ui": "vite build --config client/vite.config.js",

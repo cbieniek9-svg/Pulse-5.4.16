@@ -1,6 +1,6 @@
 TGP — Store deploy with Windows service (auto-start before login)
 ================================================================
-Version: 5.3.4  |  Full app copy steps: STORE_DEPLOY.txt
+Version: 5.4.16  |  Full app copy steps: STORE_DEPLOY.txt
 Docs: docs\INDEX.md · docs\TESTING.md · docs\AI_HANDOFF_TGP_V5.md
 Goal: PC reboots → phones / TV / /rec / /financial work without anyone signing into Windows.
 

@@ -2,7 +2,7 @@
 
 Starts the API at boot **before anyone logs in**, so phones, TV, and `/rec` keep working after a reboot.
 
-**Current app version:** 5.3.4 · Docs: `../docs/INDEX.md`
+**Current app version:** 5.4.16 · Docs: `../docs/INDEX.md`
 
 ## Find it in Windows
 
@@ -58,7 +58,7 @@ Admin: `tgp-service-uninstall.cmd`
 | `INSTALL.cmd` | Double-click installer (elevates) |
 | `Install-TGP-Service.ps1` | Real installer + `install.log` |
 | `TGP-CommandCenter.xml` | WinSW config (rewritten with absolute paths on install) |
-| `TGP-CommandCenter.exe` | WinSW wrapper (downloaded by fetch script) |
+| `TGP-CommandCenter.exe` | WinSW wrapper (included by `prepare:store`; store install should not need internet) |
 | `../node_modules/electron/dist/electron.exe` | Service runtime (Electron-as-Node, ABI 145) |
 | `../runtime/node/` | Optional portable Node for rebuild tooling only |
 | `../server.cjs` | Headless API entry |

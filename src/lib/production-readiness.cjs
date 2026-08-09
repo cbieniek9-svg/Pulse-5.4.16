@@ -109,7 +109,13 @@ function addCheck(checks, id, label, status, summary, details = {}) {
     });
 }
 
-function buildProductionReadinessReport({ db, health = null, network = null, now = new Date() } = {}) {
+function buildProductionReadinessReport({
+    db,
+    health = null,
+    network = null,
+    now = new Date(),
+    deployFidelity = null,
+} = {}) {
     const settings = db?.getSettings ? db.getSettings() : {};
     const checks = [];
 
@@ -352,7 +358,7 @@ function buildProductionReadinessReport({ db, health = null, network = null, now
         { store_code: store.code, instance_id: store.instanceId || null },
     );
 
-    const deploy = inspectDeployFidelity(getDeployBootFingerprint());
+    const deploy = deployFidelity || inspectDeployFidelity(getDeployBootFingerprint());
     if (!deploy.ui_exists) {
         addCheck(
             checks,

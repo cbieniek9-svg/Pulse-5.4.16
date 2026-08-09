@@ -1,6 +1,6 @@
 # Headless / Windows service reboot smoke
 
-Use after `service\INSTALL.cmd` / install succeeds. Expect `/api/ready` → `"appVersion": "5.3.4"`.
+Use after `service\INSTALL.cmd` / install succeeds. Expect `/api/ready` → `"appVersion": "5.4.16"`.
 Docs: `../docs/INDEX.md`
 
 1. Confirm service
