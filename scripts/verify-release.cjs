@@ -92,31 +92,11 @@ function buildSteps(opts = {}) {
         },
         {
             name: 'core-unit-tests',
-            // Several "core" tests open the inventory SQLite database during
-            // module initialization. Run the entire gate under the same Electron
-            // ABI as the packaged desktop and Windows service; using system Node
-            // here makes a correctly rebuilt store package fail preflight.
-            command: sqlite.exe,
-            args: ['--test',
-                'tests/daily-direction.test.cjs',
-                'tests/eod-daily-direction-retention.test.cjs',
-                'tests/backup-health.test.cjs',
-                'tests/db-health.test.cjs',
-                'tests/verify-backup.test.cjs',
-                'tests/migration-safety.test.cjs',
-                'tests/release-manifest.test.cjs',
-                'tests/trusted-device-tokens.test.cjs',
-                'tests/sync-payload-audience.test.cjs',
-                'tests/production-readiness.test.cjs',
-                'tests/manager-maintenance-ui.test.cjs',
-                'tests/release-confidence.test.cjs',
-                'tests/tokenless-store-mode.test.cjs',
-                'tests/history-trends.test.cjs',
-                'tests/history-export.test.cjs',
-                'tests/eod-retention-snapshot.test.cjs',
-                'tests/safety-blurbs.test.cjs',
-            ],
-            env: sqlite.env,
+            // Run every discovered unit file, one process at a time, rather than
+            // maintaining a partial list that silently misses new regressions.
+            command: node,
+            args: ['scripts/run-unit-electron.cjs'],
+            env: { UNIT_FAIL_ON_SKIP: '1' },
         },
         {
             name: 'fresh-install-smoke',

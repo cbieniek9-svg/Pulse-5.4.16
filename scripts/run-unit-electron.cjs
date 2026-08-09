@@ -18,6 +18,7 @@ const fs = require('fs');
 const path = require('path');
 
 const TIMEOUT_MS = Number(process.env.UNIT_TIMEOUT_MS || 120000);
+const FAIL_ON_SKIP = process.env.UNIT_FAIL_ON_SKIP === '1';
 const appDir = path.resolve(__dirname, '..');
 const testsDir = path.join(appDir, 'tests');
 
@@ -42,7 +43,10 @@ function resolveRuntime() {
         const electron = require(path.join(appDir, 'node_modules', 'electron'));
         if (electron && fs.existsSync(electron)) return { exe: electron, label: 'Electron' };
     } catch (_) { /* fall through to plain node */ }
-    console.warn('! Electron not found — falling back to node; SQLite-backed tests will skip.\n');
+    if (FAIL_ON_SKIP) {
+        throw new Error('Electron runtime is required when UNIT_FAIL_ON_SKIP=1. Run npm install before the release gate.');
+    }
+    console.warn('! Electron not found — falling back to node; SQLite-backed tests may skip.\n');
     return { exe: process.execPath, label: 'node' };
 }
 
@@ -58,7 +62,14 @@ function main() {
         process.exit(1);
     }
 
-    const { exe, label } = resolveRuntime();
+    let runtime;
+    try {
+        runtime = resolveRuntime();
+    } catch (error) {
+        console.error(error.message || error);
+        process.exit(1);
+    }
+    const { exe, label } = runtime;
     const failed = [];
     const timedOut = [];
     let totalPass = 0;
@@ -110,7 +121,10 @@ function main() {
     }
     for (const file of timedOut) console.log(`\nHUNG ${file}`);
 
-    process.exit(failed.length || timedOut.length ? 1 : 0);
+    if (FAIL_ON_SKIP && totalSkip) {
+        console.error(`\nFAIL  ${totalSkip} skipped assertion(s) are not allowed in the release gate.`);
+    }
+    process.exit(failed.length || timedOut.length || (FAIL_ON_SKIP && totalSkip) ? 1 : 0);
 }
 
 main();

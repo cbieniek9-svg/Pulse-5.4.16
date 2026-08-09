@@ -9,7 +9,6 @@ const appRoot = path.resolve(__dirname, '..');
 const {
     buildSteps,
     parseArgs,
-    resolveSqliteRuntime,
     runStep,
 } = require('../scripts/verify-release.cjs');
 
@@ -37,10 +36,10 @@ test('verify-release step plan includes smoke checks and supports quick mode', (
     assert.ok(names.includes('upgrade-smoke-copy'));
     assert.ok(!names.includes('store-deploy-preflight'));
 
-    const sqliteRuntime = resolveSqliteRuntime();
     const core = steps.find((step) => step.name === 'core-unit-tests');
-    assert.equal(core.command, sqliteRuntime.exe);
-    assert.deepEqual(core.env, sqliteRuntime.env);
+    assert.equal(core.command, process.execPath);
+    assert.deepEqual(core.args, ['scripts/run-unit-electron.cjs']);
+    assert.equal(core.env.UNIT_FAIL_ON_SKIP, '1');
 
     assert.equal(parseArgs(['--quick', '--skip-backup']).quick, true);
     assert.equal(parseArgs(['--quick', '--skip-backup']).skipBackup, true);
