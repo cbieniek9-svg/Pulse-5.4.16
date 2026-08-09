@@ -117,7 +117,6 @@ function buildSteps(opts = {}) {
                 'tests/safety-blurbs.test.cjs',
             ],
             env: sqlite.env,
-            failOnSkip: true,
         },
         {
             name: 'fresh-install-smoke',
@@ -158,7 +157,7 @@ function runReleaseVerification(opts = {}) {
     for (const step of buildSteps(opts)) {
         const result = runStep(step.name, step.command, step.args, {
             env: step.env || {},
-            failOnSkip: step.failOnSkip === true,
+            failOnSkip: step.name === 'core-unit-tests',
         });
         steps.push(result);
         if (!result.ok && !opts.keepGoing) break;
