@@ -171,7 +171,6 @@ try {
 
 const electronExe = path.join(appRoot, 'node_modules', 'electron', 'dist', 'electron.exe');
 const electronCli = path.join(appRoot, 'node_modules', 'electron', 'cli.js');
-let electronRuntimeOk = false;
 const sqliteProbe = "try { require('better-sqlite3'); console.log('OK', process.versions.modules); process.exit(0); } catch (e) { console.error(e.message || e); process.exit(1); }";
 if (fs.existsSync(electronExe) || fs.existsSync(electronCli)) {
     const el = fs.existsSync(electronExe)
@@ -188,7 +187,6 @@ if (fs.existsSync(electronExe) || fs.existsSync(electronCli)) {
             env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
         });
     if (el.status === 0) {
-        electronRuntimeOk = true;
         ok(`better-sqlite3 loads under Electron-as-Node (ABI 145) — Windows service + .exe OK`);
         const out = String(el.stdout || '').trim();
         if (out && !out.includes('145')) {
@@ -213,61 +211,6 @@ if (fs.existsSync(electronPkg)) {
     else ok(`Electron ${ev}`);
 } else {
     bad('electron package missing');
-}
-
-console.log('\n--- unit tests ---\n');
-if (!electronRuntimeOk) {
-    console.log('  SKIP  core unit tests — production Electron runtime probe failed above');
-} else {
-    const unitRuntime = fs.existsSync(electronExe)
-        ? { command: electronExe, prefix: [] }
-        : { command: process.execPath, prefix: [electronCli] };
-    const unit = spawnSync(unitRuntime.command, [...unitRuntime.prefix,
-        '--require',
-        path.join(appRoot, 'scripts', 'verify-production-runtime.cjs'),
-        '--test',
-        path.join(appRoot, 'tests', 'order-finish.test.cjs'),
-        path.join(appRoot, 'tests', 'shift-metrics.test.cjs'),
-        path.join(appRoot, 'tests', 'store-timezone.test.cjs'),
-        path.join(appRoot, 'tests', 'rhythm-task-expand.test.cjs'),
-        path.join(appRoot, 'tests', 'zone-map-general.test.cjs'),
-        path.join(appRoot, 'tests', 'daily-rhythm.test.cjs'),
-        path.join(appRoot, 'tests', 'task-estimates.test.cjs'),
-        path.join(appRoot, 'tests', 'order-history-regression.test.cjs'),
-        path.join(appRoot, 'tests', 'order-weekly-scorecard.test.cjs'),
-        path.join(appRoot, 'tests', 'zone-owners.test.cjs'),
-        path.join(appRoot, 'tests', 'order-day-briefing.test.cjs'),
-        path.join(appRoot, 'tests', 'manager-exceptions.test.cjs'),
-        path.join(appRoot, 'tests', 'store-template.test.cjs'),
-        path.join(appRoot, 'tests', 'migrations.test.cjs'),
-        path.join(appRoot, 'tests', 'kill-zone-map.test.cjs'),
-        path.join(appRoot, 'tests', 'store-hours.test.cjs'),
-        path.join(appRoot, 'tests', 'order-store-date.test.cjs'),
-        path.join(appRoot, 'tests', 'comms-center.test.cjs'),
-        path.join(appRoot, 'tests', 'reports-analytics.test.cjs'),
-        path.join(appRoot, 'tests', 'presence-engine.test.cjs'),
-        path.join(appRoot, 'tests', 'backup-health.test.cjs'),
-        path.join(appRoot, 'tests', 'db-health.test.cjs'),
-        path.join(appRoot, 'tests', 'verify-backup.test.cjs'),
-        path.join(appRoot, 'tests', 'presence-ultimate.test.cjs'),
-        path.join(appRoot, 'tests', 'manager-hub-meta.test.cjs'),
-    ], {
-        cwd: appRoot,
-        encoding: 'utf8',
-        env: { ...process.env, NODE_TEST: '1', ELECTRON_RUN_AS_NODE: '1' },
-    });
-    if (unit.stdout) process.stdout.write(unit.stdout);
-    if (unit.stderr) process.stderr.write(unit.stderr);
-    const unitOutput = `${unit.stdout || ''}\n${unit.stderr || ''}`;
-    const reportedSkipped = [...unitOutput.matchAll(/^\W*skipped\s+(\d+)/gmi)]
-        .reduce((total, match) => total + Number(match[1] || 0), 0);
-    const skipDirectives = (unitOutput.match(/#\s*SKIP\b/gi) || []).length;
-    if (unit.status !== 0) bad('core unit tests failed');
-    else if (reportedSkipped > 0 || skipDirectives > 0) {
-        bad(`core unit tests skipped ${Math.max(reportedSkipped, skipDirectives)} check(s) — production preflight requires zero skips`);
-    } else {
-        ok('order-finish + shift-metrics + daily-rhythm + task-estimates + order-history tests');
-    }
 }
 
 console.log('\n--- TV bundle (legacy React — deprecated) ---\n');

@@ -56,14 +56,22 @@ function runStep(name, command, args, opts = {}) {
         windowsHide: true,
         env: { ...process.env, TGP_TEST_MODE: '1', ...(opts.env || {}) },
     });
+    const stdout = (res.stdout || '').trim();
+    const stderr = (res.stderr || '').trim();
+    const output = `${stdout}\n${stderr}`;
+    const reportedSkipped = [...output.matchAll(/^\W*skipped\s+(\d+)/gmi)]
+        .reduce((total, match) => total + Number(match[1] || 0), 0);
+    const skipDirectives = (output.match(/#\s*SKIP\b/gi) || []).length;
+    const skipped = Math.max(reportedSkipped, skipDirectives);
     return {
         name,
-        ok: res.status === 0,
+        ok: res.status === 0 && (!opts.failOnSkip || skipped === 0),
         status: res.status,
         ms: Date.now() - started,
         command: [command, ...args].join(' '),
-        stdout: (res.stdout || '').trim(),
-        stderr: (res.stderr || '').trim(),
+        stdout,
+        stderr,
+        skipped,
     };
 }
 
@@ -109,6 +117,7 @@ function buildSteps(opts = {}) {
                 'tests/safety-blurbs.test.cjs',
             ],
             env: sqlite.env,
+            failOnSkip: true,
         },
         {
             name: 'fresh-install-smoke',
@@ -147,7 +156,10 @@ function buildSteps(opts = {}) {
 function runReleaseVerification(opts = {}) {
     const steps = [];
     for (const step of buildSteps(opts)) {
-        const result = runStep(step.name, step.command, step.args, { env: step.env || {} });
+        const result = runStep(step.name, step.command, step.args, {
+            env: step.env || {},
+            failOnSkip: step.failOnSkip === true,
+        });
         steps.push(result);
         if (!result.ok && !opts.keepGoing) break;
     }
@@ -210,4 +222,5 @@ module.exports = {
     buildSteps,
     runReleaseVerification,
     resolveSqliteRuntime,
+    runStep,
 };
