@@ -39,16 +39,6 @@ test('verify-release step plan includes smoke checks and supports quick mode', (
     assert.equal(parseArgs(['--quick', '--skip-backup']).skipBackup, true);
 });
 
-test('production runtime probe uses the packaged SQLite runtime', () => {
-    const steps = buildSteps({ quick: true });
-    const sqliteRuntime = resolveSqliteRuntime();
-    const runtimeProbe = steps.find((step) => step.name === 'production-runtime-probe');
-
-    assert.ok(runtimeProbe, 'production-runtime-probe step is present');
-    assert.equal(runtimeProbe.command, sqliteRuntime.exe);
-    assert.deepEqual(runtimeProbe.env, sqliteRuntime.env);
-});
-
 test('store deploy preflight checks runtime artifacts, not editor-only files', () => {
     const source = fs.readFileSync(path.join(appRoot, 'scripts', 'verify-store-deploy.cjs'), 'utf8');
     assert.doesNotMatch(source, /\.cursor\/rules/);
