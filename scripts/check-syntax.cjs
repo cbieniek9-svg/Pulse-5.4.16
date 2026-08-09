@@ -48,6 +48,7 @@ const DEFAULT_FILES = [
     'scripts/fresh-install-smoke.cjs',
     'scripts/upgrade-smoke.cjs',
     'scripts/verify-release.cjs',
+    'scripts/verify-production-runtime.cjs',
     'src/actions/handlers.cjs',
     'public/tv/tv-dashboard.js',
 ];

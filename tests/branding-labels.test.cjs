@@ -33,8 +33,10 @@ test('TGP Center Store branding is used for app/window/TV titles', () => {
         'client/src/settings/tabs/StoreTvTab.jsx': [
             'placeholder="TGP Center Store"',
         ],
-        'dist/ui/index.html': [
-            'TGP',
+        // Unit tests must work on a clean checkout before generated dist/ exists.
+        // Store preflight separately verifies and serves the production build.
+        'client/index.html': [
+            '<title>TGP Command Center</title>',
         ],
     };
 

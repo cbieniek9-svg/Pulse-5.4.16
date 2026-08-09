@@ -24,6 +24,7 @@ test('verify-release step plan includes smoke checks and supports quick mode', (
     const steps = buildSteps({ quick: true });
     const names = steps.map((s) => s.name);
     assert.ok(names.includes('syntax-check'));
+    assert.ok(names.includes('production-runtime-probe'));
     assert.ok(names.includes('core-unit-tests'));
     assert.ok(names.includes('fresh-install-smoke'));
     assert.ok(names.includes('upgrade-smoke-copy'));

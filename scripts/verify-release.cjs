@@ -77,6 +77,12 @@ function buildSteps(opts = {}) {
             args: ['scripts/check-syntax.cjs'],
         },
         {
+            name: 'production-runtime-probe',
+            command: sqlite.exe,
+            args: ['scripts/verify-production-runtime.cjs'],
+            env: sqlite.env,
+        },
+        {
             name: 'core-unit-tests',
             // Several "core" tests open the inventory SQLite database during
             // module initialization. Run the entire gate under the same Electron
