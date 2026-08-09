@@ -56,14 +56,22 @@ function runStep(name, command, args, opts = {}) {
         windowsHide: true,
         env: { ...process.env, TGP_TEST_MODE: '1', ...(opts.env || {}) },
     });
+    const stdout = (res.stdout || '').trim();
+    const stderr = (res.stderr || '').trim();
+    const output = `${stdout}\n${stderr}`;
+    const reportedSkipped = [...output.matchAll(/^\W*skipped\s+(\d+)/gmi)]
+        .reduce((total, match) => total + Number(match[1] || 0), 0);
+    const skipDirectives = (output.match(/#\s*SKIP\b/gi) || []).length;
+    const skipped = Math.max(reportedSkipped, skipDirectives);
     return {
         name,
-        ok: res.status === 0,
+        ok: res.status === 0 && (!opts.failOnSkip || skipped === 0),
         status: res.status,
         ms: Date.now() - started,
         command: [command, ...args].join(' '),
-        stdout: (res.stdout || '').trim(),
-        stderr: (res.stderr || '').trim(),
+        stdout,
+        stderr,
+        skipped,
     };
 }
 
@@ -84,31 +92,12 @@ function buildSteps(opts = {}) {
         },
         {
             name: 'core-unit-tests',
-            // Several "core" tests open the inventory SQLite database during
-            // module initialization. Run the entire gate under the same Electron
-            // ABI as the packaged desktop and Windows service; using system Node
-            // here makes a correctly rebuilt store package fail preflight.
-            command: sqlite.exe,
-            args: ['--test',
-                'tests/daily-direction.test.cjs',
-                'tests/eod-daily-direction-retention.test.cjs',
-                'tests/backup-health.test.cjs',
-                'tests/db-health.test.cjs',
-                'tests/verify-backup.test.cjs',
-                'tests/migration-safety.test.cjs',
-                'tests/release-manifest.test.cjs',
-                'tests/trusted-device-tokens.test.cjs',
-                'tests/sync-payload-audience.test.cjs',
-                'tests/production-readiness.test.cjs',
-                'tests/manager-maintenance-ui.test.cjs',
-                'tests/release-confidence.test.cjs',
-                'tests/tokenless-store-mode.test.cjs',
-                'tests/history-trends.test.cjs',
-                'tests/history-export.test.cjs',
-                'tests/eod-retention-snapshot.test.cjs',
-                'tests/safety-blurbs.test.cjs',
-            ],
-            env: sqlite.env,
+            // Run every discovered unit file via Electron-as-Node, one process at
+            // a time, rather than maintaining a partial list that silently misses
+            // new regressions. UNIT_FAIL_ON_SKIP rejects skipped SQLite suites.
+            command: node,
+            args: ['scripts/run-unit-electron.cjs'],
+            env: { UNIT_FAIL_ON_SKIP: '1' },
         },
         {
             name: 'fresh-install-smoke',
@@ -147,7 +136,10 @@ function buildSteps(opts = {}) {
 function runReleaseVerification(opts = {}) {
     const steps = [];
     for (const step of buildSteps(opts)) {
-        const result = runStep(step.name, step.command, step.args, { env: step.env || {} });
+        const result = runStep(step.name, step.command, step.args, {
+            env: step.env || {},
+            failOnSkip: step.name === 'core-unit-tests',
+        });
         steps.push(result);
         if (!result.ok && !opts.keepGoing) break;
     }
@@ -210,4 +202,5 @@ module.exports = {
     buildSteps,
     runReleaseVerification,
     resolveSqliteRuntime,
+    runStep,
 };

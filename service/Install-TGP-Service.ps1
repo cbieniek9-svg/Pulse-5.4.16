@@ -157,11 +157,12 @@ Write-Log "Data: $InstallRoot"
 Write-Log "User: $env:USERNAME"
 Write-Log "Runtime: Electron as Node (ABI 145 always)"
 
-# 1) Fetch WinSW (+ portable Node for optional rebuild tooling) if missing
+# 1) Fetch WinSW if missing. Portable Node is optional rebuild tooling and must
+# not force a network download on the store PC after a correctly prepared copy.
 $fetchPs1 = Join-Path $Scripts "fetch-service-runtime.ps1"
-if (-not (Test-Path $Wrapper) -or -not (Test-Path $PortableNode)) {
-    Write-Log "Fetching WinSW + portable Node tooling..."
-    & $fetchPs1
+if (-not (Test-Path $Wrapper)) {
+    Write-Log "Fetching missing WinSW service wrapper..."
+    & $fetchPs1 -SkipNode
     if (-not $?) { throw "fetch-service-runtime failed" }
 }
 

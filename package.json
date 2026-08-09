@@ -24,7 +24,7 @@
     "test:chaos-monkey": "node tests/chaos-monkey/run.cjs",
     "test:simulation": "set TGP_TEST_MODE=1&& set TGP_SIM_DAYS=365&& node tests/year-simulation.cjs",
     "test:destructive": "set TGP_TEST_MODE=1&& node tests/destructive-maintenance.cjs",
-    "prepare:store": "npm install && npm run rebuild:electron && npm run build:ui && node scripts/verify-store-deploy.cjs",
+    "prepare:store": "npm install && npm run rebuild:electron && npm run build:ui && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/fetch-service-runtime.ps1 -SkipNode && npm run verify:release && node scripts/verify-store-deploy.cjs",
     "verify:store": "node scripts/verify-store-deploy.cjs",
     "dev:ui": "vite --config client/vite.config.js",
     "build:ui": "vite build --config client/vite.config.js",

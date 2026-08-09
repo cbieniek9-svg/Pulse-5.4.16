@@ -26,6 +26,25 @@ function mustExist(rel, label) {
     return p;
 }
 
+function mustWindowsExecutable(rel, label) {
+    const p = mustExist(rel, label);
+    if (!fs.existsSync(p)) return p;
+    try {
+        const stat = fs.statSync(p);
+        const fd = fs.openSync(p, 'r');
+        const magic = Buffer.alloc(2);
+        try { fs.readSync(fd, magic, 0, 2, 0); } finally { fs.closeSync(fd); }
+        if (magic.toString('ascii') !== 'MZ' || stat.size < 100 * 1024) {
+            bad(`${label || rel} is not a valid Windows executable (bad/truncated download)`);
+        } else {
+            ok(`${label || rel} PE signature`);
+        }
+    } catch (e) {
+        bad(`${label || rel} could not be inspected: ${e.message}`);
+    }
+    return p;
+}
+
 console.log('\n=== TGP verify-store-deploy ===\n');
 
 mustExist('main.cjs', 'Electron main');
@@ -34,6 +53,7 @@ mustExist('src/lib/app-boot.cjs', 'Shared app boot');
 mustExist('service/TGP-CommandCenter.xml', 'WinSW service config');
 mustExist('service/TGP-CommandCenter.xml.template', 'WinSW service XML template');
 mustExist('service/tgp-service-install.cmd', 'Service install script');
+mustWindowsExecutable('service/TGP-CommandCenter.exe', 'WinSW service wrapper');
 mustExist('service/README.txt', 'Service README');
 
 {
@@ -108,6 +128,9 @@ if (pkg.version !== APP_VERSION) {
 
 [
     'STORE_DEPLOY.txt',
+    'STORE_SERVICE_DEPLOY.txt',
+    'service/README.txt',
+    'service/REBOOT_SMOKE.txt',
     'scripts/PHASE0_DEPLOY_CHECKLIST.txt',
     'scripts/STORE_INSTANCE_SETUP.txt',
 ].forEach((rel) => {
@@ -189,45 +212,6 @@ if (fs.existsSync(electronPkg)) {
 } else {
     bad('electron package missing');
 }
-
-console.log('\n--- unit tests ---\n');
-const unitRuntime = fs.existsSync(electronExe)
-    ? { command: electronExe, prefix: [] }
-    : { command: process.execPath, prefix: [electronCli] };
-const unit = spawnSync(unitRuntime.command, [...unitRuntime.prefix,
-    '--test',
-    path.join(appRoot, 'tests', 'order-finish.test.cjs'),
-    path.join(appRoot, 'tests', 'shift-metrics.test.cjs'),
-    path.join(appRoot, 'tests', 'store-timezone.test.cjs'),
-    path.join(appRoot, 'tests', 'rhythm-task-expand.test.cjs'),
-    path.join(appRoot, 'tests', 'zone-map-general.test.cjs'),
-    path.join(appRoot, 'tests', 'daily-rhythm.test.cjs'),
-    path.join(appRoot, 'tests', 'task-estimates.test.cjs'),
-    path.join(appRoot, 'tests', 'order-history-regression.test.cjs'),
-    path.join(appRoot, 'tests', 'order-weekly-scorecard.test.cjs'),
-    path.join(appRoot, 'tests', 'zone-owners.test.cjs'),
-    path.join(appRoot, 'tests', 'order-day-briefing.test.cjs'),
-    path.join(appRoot, 'tests', 'manager-exceptions.test.cjs'),
-    path.join(appRoot, 'tests', 'store-template.test.cjs'),
-    path.join(appRoot, 'tests', 'migrations.test.cjs'),
-    path.join(appRoot, 'tests', 'kill-zone-map.test.cjs'),
-    path.join(appRoot, 'tests', 'store-hours.test.cjs'),
-    path.join(appRoot, 'tests', 'order-store-date.test.cjs'),
-    path.join(appRoot, 'tests', 'comms-center.test.cjs'),
-    path.join(appRoot, 'tests', 'reports-analytics.test.cjs'),
-    path.join(appRoot, 'tests', 'presence-engine.test.cjs'),
-    path.join(appRoot, 'tests', 'backup-health.test.cjs'),
-    path.join(appRoot, 'tests', 'db-health.test.cjs'),
-    path.join(appRoot, 'tests', 'verify-backup.test.cjs'),
-    path.join(appRoot, 'tests', 'presence-ultimate.test.cjs'),
-    path.join(appRoot, 'tests', 'manager-hub-meta.test.cjs'),
-], {
-    cwd: appRoot,
-    stdio: 'inherit',
-    env: { ...process.env, NODE_TEST: '1', ELECTRON_RUN_AS_NODE: '1' },
-});
-if (unit.status !== 0) bad('core unit tests failed');
-else ok('order-finish + shift-metrics + daily-rhythm + task-estimates + order-history tests');
 
 console.log('\n--- TV bundle (legacy React — deprecated) ---\n');
 const tvCheck = spawnSync(process.execPath, [path.join(appRoot, 'scripts', 'check-tv-index.cjs')], {
