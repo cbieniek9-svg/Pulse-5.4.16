@@ -52,6 +52,7 @@ test('store deploy preflight checks runtime artifacts, not editor-only files', (
     assert.match(source, /Install-TGP-Service\.ps1 must regenerate it on the store PC/);
     assert.match(source, /mustWindowsExecutable\('service\/TGP-CommandCenter\.exe', 'WinSW service wrapper'\)/);
     assert.doesNotMatch(source, /--- unit tests ---/);
+    assert.doesNotMatch(source, /const unitRuntime\s*=/, 'store preflight must not duplicate the release unit runner');
 
     const installer = fs.readFileSync(path.join(appRoot, 'service', 'Install-TGP-Service.ps1'), 'utf8');
     assert.match(installer, /if \(-not \(Test-Path \$Wrapper\)\)/);
