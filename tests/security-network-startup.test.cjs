@@ -323,6 +323,9 @@ test('desktop boot gate blocks createWindow when attach/serve did not succeed', 
     const mainSrc = fs.readFileSync(path.join(appRoot, 'main.cjs'), 'utf8');
     assert.match(mainSrc, /shouldOpenDesktopUi/);
     assert.match(mainSrc, /openUi:\s*false/);
+    assert.match(mainSrc, /const processLock = acquireProcessLock\(\)/);
+    assert.match(mainSrc, /processLock\.ok[\s\S]*?tryAttachUiOnly/);
+    assert.match(mainSrc, /if \(ownsProcessLock\) releaseProcessLock\(\)/);
     assert.match(
         mainSrc,
         /if\s*\(\s*!openUi\s*\)\s*return;[\s\S]*?createWindow\s*\(\s*\)\s*;/,

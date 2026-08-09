@@ -64,17 +64,22 @@ export function prepareInvestigation(investigation) {
         },
         person_types: investigation.person_types || {},
         witnesses: Array.isArray(investigation.witnesses) ? investigation.witnesses : [],
-        signoffs: {
-            lead: { name: '', date: '', signatureFile: '' },
-            safety_committee: { name: '', date: '', signatureFile: '' },
-            senior_management: { name: '', date: '', signatureFile: '' },
-            ...(investigation.signoffs || {}),
-        },
+        signoffs: mergeSignoffs(investigation.signoffs ?? {}),
     };
     ['descriptionLines', 'immediateContributions', 'rootLinks', 'correctiveLinks', 'actionLog'].forEach((key) => {
         if (!Array.isArray(prepared.payload[key])) prepared.payload[key] = base[key];
     });
     return prepared;
+}
+
+function mergeSignoffs(signoffs) {
+    const src = signoffs ?? {};
+    const defaults = { name: '', date: '', signatureFile: '' };
+    return {
+        lead: { ...defaults, ...(src.lead || {}) },
+        safety_committee: { ...defaults, ...(src.safety_committee || {}) },
+        senior_management: { ...defaults, ...(src.senior_management || {}) },
+    };
 }
 
 export function getPath(object, path) {

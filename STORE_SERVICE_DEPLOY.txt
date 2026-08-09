@@ -1,6 +1,6 @@
 TGP — Store deploy with Windows service (auto-start before login)
 ================================================================
-Version: 5.3.4  |  Full app copy steps: STORE_DEPLOY.txt
+Version: 5.4.16  |  Full app copy steps: STORE_DEPLOY.txt
 Docs: docs\INDEX.md · docs\TESTING.md · docs\AI_HANDOFF_TGP_V5.md
 Goal: PC reboots → phones / TV / /rec / /financial work without anyone signing into Windows.
 
@@ -9,15 +9,15 @@ A. Home PC (before you leave)
 ------------------------------------------------------------------------
 1. Close TGP Command Center if running.
 2. cd resources\app
-3. npm run rebuild:electron
-4. node scripts\verify-store-deploy.cjs   (must say VERIFY OK — Electron ABI 145)
-5. Copy entire resources\app to USB (include node_modules, especially electron).
+3. npm run prepare:store   (builds UI/native module, fetches WinSW, runs preflight)
+4. Confirm preflight prints VERIFY OK — Electron ABI 145
+5. Copy entire resources\app to USB (include node_modules, especially electron + service\TGP-CommandCenter.exe)
    Always 145. Do NOT run rebuild:node for store deploys.
 
 ------------------------------------------------------------------------
 B. Store PC — replace the app (same as usual)
 ------------------------------------------------------------------------
-1. Stop TGP Command Center V3.exe
+1. Stop TGP Command Center .exe and TGP-CommandCenter service if updating
 2. Optional: copy tgp_ops.db + backups\ somewhere safe
 3. Replace resources\app\ from USB
    — DO NOT overwrite tgp_ops.db or backups\ (they live next to the .exe /
@@ -47,7 +47,7 @@ D. Confirm it worked
 2. On the store PC browser:  http://127.0.0.1:3001/api/ready
    Expect:  "ok": true
 3. Phone on store Wi‑Fi: open http://<store-pc-ip>:3001/
-   Mobile login shows VERSION (e.g. 5.3.0)
+   Mobile login shows VERSION 5.4.16
    Chromebook /rec and manager /financial bookmarks must load from the same host:port.
 4. Optional: open the desktop .exe — it should be UI-only
    (service already owns the API; no second server)

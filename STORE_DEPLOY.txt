@@ -41,9 +41,9 @@ Patch notes: PATCH_NOTES.txt | CHANGELOG.md
 --- Tonight / before copy (home PC) ---
 1. Close TGP Command Center if running (unlocks better_sqlite3.node for rebuild)
 2. cd resources\app
-3. npm run rebuild:electron
-4. node scripts\verify-store-deploy.cjs   (must print VERIFY OK — Electron ABI 145)
-5. Copy entire resources\app folder to USB (include node_modules + electron)
+3. npm run prepare:store   (builds UI/native module, fetches WinSW, runs preflight)
+4. Confirm preflight prints VERIFY OK — Electron ABI 145
+5. Copy entire resources\app folder to USB (include node_modules + electron + service\TGP-CommandCenter.exe)
    Always ABI 145. Do NOT run rebuild:node for store copies.
 
 --- Tomorrow on store PC ---

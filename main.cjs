@@ -19,6 +19,7 @@ const {
 } = require('./src/lib/app-boot.cjs');
 const { buildNetworkConfig } = require('./src/lib/network-config.cjs');
 const { shouldOpenDesktopUi } = require('./src/lib/desktop-boot-gate.cjs');
+const { acquireProcessLock, releaseProcessLock } = require('./src/lib/process-lock.cjs');
 
 const HEADLESS_TEST = process.env.TGP_HEADLESS_TEST === '1' || process.argv.includes('--headless-test');
 
@@ -50,6 +51,7 @@ if (!app.requestSingleInstanceLock()) {
 
 let mainWindow;
 let runtimeClose = null;
+let ownsProcessLock = false;
 let localAppUrl = 'http://127.0.0.1:3001/';
 let uiOnlyMode = false;
 
@@ -106,8 +108,8 @@ function createWindow() {
  * Try UI-only attach to a healthy loopback API. Refuses when restart_required is set.
  * @returns {Promise<'attached'|'restart_required'|'not_ready'>}
  */
-async function tryAttachUiOnly(port) {
-    const probe = await probeLocalApiReady(port, '127.0.0.1', 800);
+async function tryAttachUiOnly(port, timeoutMs = 800) {
+    const probe = await probeLocalApiReady(port, '127.0.0.1', Math.max(50, timeoutMs));
     const decision = canAttachUiOnly(probe);
     if (decision.attach) {
         uiOnlyMode = true;
@@ -149,6 +151,33 @@ async function resolveLocalAppUrl() {
         return { startedServer: false, openUi: false };
     }
 
+    // The service and desktop can be launched at nearly the same time during
+    // login. Electron's single-instance lock only coordinates desktop windows;
+    // this shared data-root lock prevents both processes from opening SQLite.
+    const processLock = acquireProcessLock();
+    if (!processLock.ok) {
+        // A service holding the lock may still be finishing migrations/listen.
+        // Hard 15s overall deadline — each wait/probe is capped by remaining time.
+        const attachDeadline = Date.now() + 15000;
+        while (Date.now() < attachDeadline) {
+            const remainingBeforeWait = attachDeadline - Date.now();
+            if (remainingBeforeWait <= 0) break;
+            await new Promise((resolve) => setTimeout(resolve, Math.min(250, remainingBeforeWait)));
+            const remainingForProbe = attachDeadline - Date.now();
+            if (remainingForProbe <= 0) break;
+            const retry = await tryAttachUiOnly(port, Math.min(800, remainingForProbe));
+            if (retry === 'attached') return { startedServer: false, openUi: true };
+            if (retry === 'restart_required') return { startedServer: false, openUi: false };
+        }
+        const error = new Error(
+            `${processLock.reason || 'Another Command Center process owns the data directory'} `
+            + 'The existing process did not become ready; restart the Windows service.',
+        );
+        error.code = 'TGP_PROCESS_LOCKED';
+        throw error;
+    }
+    ownsProcessLock = true;
+
     try {
         const runtime = await startAppServer({
             appRoot: __dirname,
@@ -165,10 +194,19 @@ async function resolveLocalAppUrl() {
                 app.quit();
             },
         });
-        runtimeClose = runtime.close;
+        runtimeClose = async () => {
+            try {
+                await runtime.close();
+            } finally {
+                if (ownsProcessLock) releaseProcessLock();
+                ownsProcessLock = false;
+            }
+        };
         localAppUrl = runtime.localAppUrl;
         return { startedServer: true, openUi: true };
     } catch (err) {
+        if (ownsProcessLock) releaseProcessLock();
+        ownsProcessLock = false;
         if (err && err.code === 'EADDRINUSE') {
             const retry = await tryAttachUiOnly(port);
             if (retry === 'attached') {

@@ -2,13 +2,16 @@
 'use strict';
 
 /**
- * Headless TGP Command Center API (plain Node — for Windows service / no login session).
+ * Headless TGP Command Center API (Electron-as-Node in the Windows service).
  *
  * Usage:
  *   set TGP_DATA_DIR=E:\path\to\install\root
- *   node server.cjs
+ *   set ELECTRON_RUN_AS_NODE=1
+ *   node_modules\electron\dist\electron.exe server.cjs
  *
- * Requires better-sqlite3 rebuilt for this Node (npm run rebuild:node), not Electron ABI.
+ * Store service and desktop both require better-sqlite3 rebuilt for Electron
+ * (`npm run rebuild:electron`). Plain Node remains supported for development
+ * only when the module has deliberately been rebuilt with `npm run rebuild:node`.
  */
 
 const path = require('path');

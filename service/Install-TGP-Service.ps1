@@ -87,7 +87,6 @@ function Stop-ConflictingListeners {
         }
         Remove-Item $lockPath -Force -ErrorAction SilentlyContinue
     }
-
     Get-CimInstance Win32_Process -Filter "Name='node.exe'" -ErrorAction SilentlyContinue | ForEach-Object {
         $cmd = [string]$_.CommandLine
         if ($cmd -and ($cmd -like "*server.cjs*") -and ($cmd -like "*$AppRoot*")) {
@@ -105,6 +104,10 @@ function Stop-ConflictingListeners {
             Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
         }
     }
+    # A process killed during stale-lock recovery can leave the atomic reclaim
+    # mutex behind. Conflicting app processes are stopped now, so clear it instead
+    # of waiting for the service's 30-second stale-mutex expiry.
+    Remove-Item "$lockPath.reclaim" -Recurse -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
 }
 
@@ -154,11 +157,12 @@ Write-Log "Data: $InstallRoot"
 Write-Log "User: $env:USERNAME"
 Write-Log "Runtime: Electron as Node (ABI 145 always)"
 
-# 1) Fetch WinSW (+ portable Node for optional rebuild tooling) if missing
+# 1) Fetch WinSW if missing. Portable Node is optional rebuild tooling and must
+# not force a network download on the store PC after a correctly prepared copy.
 $fetchPs1 = Join-Path $Scripts "fetch-service-runtime.ps1"
-if (-not (Test-Path $Wrapper) -or -not (Test-Path $PortableNode)) {
-    Write-Log "Fetching WinSW + portable Node tooling..."
-    & $fetchPs1
+if (-not (Test-Path $Wrapper)) {
+    Write-Log "Fetching missing WinSW service wrapper..."
+    & $fetchPs1 -SkipNode
     if (-not $?) { throw "fetch-service-runtime failed" }
 }
 
@@ -208,7 +212,7 @@ try {
     }
 
     if (-not $probeOk) {
-        Write-Log "Native module mismatch - rebuilding better-sqlite3 for Electron 41.3.0 (ABI 145)..."
+        Write-Log "Native module mismatch - rebuilding better-sqlite3 for the installed Electron version (ABI 145)..."
         $ErrorActionPreference = "Continue"
         try {
             $npm = Get-Command npm -ErrorAction SilentlyContinue

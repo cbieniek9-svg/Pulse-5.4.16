@@ -21,6 +21,7 @@ backups/
 runtime/
 service/TGP-CommandCenter.exe
 service/logs/
+service/install-result.txt
 
 # Dependencies, build output, editor, local DBs
 node_modules/

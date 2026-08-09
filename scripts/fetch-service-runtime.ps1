@@ -1,7 +1,8 @@
 #Requires -Version 5.1
 param(
     [string]$NodeVersion = "24.15.0",
-    [string]$WinSWVersion = "2.12.0"
+    [string]$WinSWVersion = "2.12.0",
+    [switch]$SkipNode
 )
 
 $ErrorActionPreference = "Stop"
@@ -21,7 +22,7 @@ function Get-File([string]$Url, [string]$OutFile) {
 
 # --- Portable Node ---
 $nodeExe = Join-Path $RuntimeDir "node.exe"
-if (-not (Test-Path $nodeExe)) {
+if (-not $SkipNode -and -not (Test-Path $nodeExe)) {
     $nodeZipName = "node-v$NodeVersion-win-x64.zip"
     $nodeUrl = "https://nodejs.org/dist/v$NodeVersion/$nodeZipName"
     $nodeZip = Join-Path $TempDir $nodeZipName
@@ -36,7 +37,7 @@ if (-not (Test-Path $nodeExe)) {
     Copy-Item -Path (Join-Path $inner "*") -Destination $RuntimeDir -Recurse -Force
     $ver = & $nodeExe -v
     Write-Host "OK  Node $ver -> $RuntimeDir"
-} else {
+} elseif (-not $SkipNode) {
     $ver = & $nodeExe -v
     Write-Host "OK  Node already at $nodeExe ($ver)"
 }

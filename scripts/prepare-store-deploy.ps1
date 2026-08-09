@@ -22,22 +22,32 @@ $nodeVer = node -v
 Write-Host "Node: $nodeVer"
 
 Write-Host ""
-Write-Host "[1/3] npm install (rebuilds better-sqlite3 for Electron ABI 145 via postinstall)..." -ForegroundColor Yellow
+Write-Host "[1/6] Fetch WinSW service wrapper (store install must not depend on internet)..." -ForegroundColor Yellow
+& (Join-Path $PSScriptRoot "fetch-service-runtime.ps1") -SkipNode
+if (-not $?) { exit 1 }
+
+Write-Host ""
+Write-Host "[2/6] npm install (rebuilds better-sqlite3 for Electron ABI 145 via postinstall)..." -ForegroundColor Yellow
 npm install
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host ""
-Write-Host "[2/3] rebuild:electron (confirm ABI 145 for Windows service + .exe)..." -ForegroundColor Yellow
+Write-Host "[3/6] rebuild:electron (confirm ABI 145 for Windows service + .exe)..." -ForegroundColor Yellow
 npm run rebuild:electron
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host ""
-Write-Host "[3/4] verify-store-deploy (Electron ABI 145, version, unit tests)..." -ForegroundColor Yellow
+Write-Host "[4/6] verify-release (runtime, zero-skip unit tests, fresh/upgrade/backup smokes)..." -ForegroundColor Yellow
+node scripts/verify-release.cjs
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host ""
+Write-Host "[5/6] verify-store-deploy (artifacts, Electron ABI 145, versions)..." -ForegroundColor Yellow
 node scripts/verify-store-deploy.cjs
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host ""
-Write-Host "[4/4] Deploy manifest..." -ForegroundColor Yellow
+Write-Host "[6/6] Deploy manifest..." -ForegroundColor Yellow
 $ver = node -e "console.log(require('./src/app-version.cjs').APP_VERSION)"
 $manifest = @"
 TGP Store Deploy Package

@@ -13,7 +13,7 @@ where node >nul 2>&1 || (
 echo Node (build tooling only):
 node -v
 echo.
-echo Rebuilding better-sqlite3 for Electron 41.3.0 (ABI 145)...
+echo Rebuilding better-sqlite3 for the installed Electron version (ABI 145)...
 call npm run rebuild:electron
 if errorlevel 1 exit /b 1
 echo.
