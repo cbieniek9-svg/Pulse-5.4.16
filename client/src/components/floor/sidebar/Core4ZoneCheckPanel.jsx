@@ -19,7 +19,10 @@ export default function Core4ZoneCheckPanel() {
     const [notes, setNotes] = useState('');
 
     useEffect(() => {
-        if (!zones.length) return;
+        if (!zones.length) {
+            if (zone) setZone('');
+            return;
+        }
         if (!zones.includes(zone)) setZone(zones[0]);
     }, [zones, zone]);
 

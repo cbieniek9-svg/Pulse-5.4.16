@@ -98,6 +98,7 @@ function ensureLocalHttpsCredentials(opts = {}) {
     }
 
     if (reuse) {
+        restrictWindowsFileAcl(paths.key);
         return {
             key: fs.readFileSync(paths.key),
             cert: fs.readFileSync(paths.cert),

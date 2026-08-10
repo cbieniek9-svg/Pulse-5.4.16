@@ -363,7 +363,7 @@ function saveInspectionRun(db, runId, patch, actorName, serverTime = new Date().
                 if (!['mgmt', 'non_mgmt'].includes(roleType) || ![1, 2].includes(slotNum)) continue;
                 const printName = String(sig.print_name || '').trim().slice(0, 120);
                 if (!printName) continue;
-                const sigId = String(sig.sig_id || `${runId}_${roleType}_${slotNum}`);
+                const sigId = `${runId}_${roleType}_${slotNum}`;
                 db.run(
                     `INSERT INTO safety_inspection_signatures (sig_id, run_id, role_type, slot_num, print_name, signed_at)
                      VALUES (?,?,?,?,?,?)

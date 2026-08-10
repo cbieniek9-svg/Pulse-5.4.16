@@ -111,6 +111,7 @@ function resolvePcAdminPin(opts = {}) {
 
     const existing = readPinFile(pinPath, io);
     if (existing.status === 'valid') {
+        if (io === fs) restrictWindowsFileAcl(pinPath);
         return { pin: existing.pin, source: 'file', insecureDefault: false, pinPath };
     }
     if (existing.status !== 'absent') {

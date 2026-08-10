@@ -29,12 +29,19 @@ try {
   Log "sc: $(sc.exe query TGP-CommandCenter 2>&1 | Out-String)"
 
   $readyOk = $false
-  try {
-    $r = Invoke-WebRequest -UseBasicParsing http://127.0.0.1:3001/api/ready -TimeoutSec 15
-    Log "ready: $($r.Content)"
-    $readyOk = $true
-  } catch {
-    Log "ready fail: $($_.Exception.Message)"
+  $readyDeadline = (Get-Date).AddSeconds(90)
+  while (-not $readyOk -and (Get-Date) -lt $readyDeadline) {
+    try {
+      $r = Invoke-WebRequest -UseBasicParsing http://127.0.0.1:3001/api/ready -TimeoutSec 5
+      Log "ready: $($r.Content)"
+      $readyOk = $true
+    } catch {
+      Log "ready fail: $($_.Exception.Message)"
+      Start-Sleep -Seconds 2
+    }
+  }
+  if (-not $readyOk) {
+    Log "ready deadline exceeded ($readyDeadline)"
     if (Test-Path (Join-Path $logDir "*")) {
       Get-ChildItem $logDir | ForEach-Object { Log "--- $($_.Name) ---"; Get-Content $_.FullName -Tail 30 | ForEach-Object { Log $_ } }
     }

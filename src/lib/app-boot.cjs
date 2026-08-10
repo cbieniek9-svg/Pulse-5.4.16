@@ -814,9 +814,23 @@ async function startAppServer(opts = {}) {
         logMsg,
         getSweep: () => globalSweep,
         getRhythm: () => globalRhythm,
-    }).then(() => {
+    }).then((outcome) => {
         if (!bootHealth) return;
         bootHealth.checks = bootHealth.checks || {};
+        if (outcome && outcome.ok === false) {
+            const errMsg = [outcome.eod_error, outcome.rhythm_error].filter(Boolean).join('; ')
+                || 'EOD catch-up failed';
+            bootHealth.checks.eod_catch_up = {
+                ok: false,
+                status: 'error',
+                error: errMsg,
+                completed_at: new Date().toISOString(),
+            };
+            bootHealth.warnings = bootHealth.warnings || [];
+            bootHealth.warnings.push(`EOD catch-up failed: ${errMsg}`);
+            if (bootHealth.status === 'ok') bootHealth.status = 'warning';
+            return;
+        }
         bootHealth.checks.eod_catch_up = {
             ok: true,
             status: 'ok',
@@ -872,6 +886,7 @@ async function startAppServer(opts = {}) {
 }
 
 async function catchUpMissedSweeps({ db, getStoreDateStamp, logMsg, getSweep, getRhythm }) {
+    const outcome = { ok: true, eod_error: null, rhythm_error: null };
     try {
         const lastSweepRow = db.get("SELECT setting_value FROM settings WHERE setting_name = 'Last_EOD_Sweep'");
         const todayStr = getStoreDateStamp();
@@ -909,6 +924,8 @@ async function catchUpMissedSweeps({ db, getStoreDateStamp, logMsg, getSweep, ge
         }
     } catch (e) {
         logMsg('EOD catch-up error: ' + e.message);
+        outcome.ok = false;
+        outcome.eod_error = e.message || String(e);
     }
 
     // Rhythm must not die when EOD catch-up throws (missed morning board).
@@ -920,7 +937,10 @@ async function catchUpMissedSweeps({ db, getStoreDateStamp, logMsg, getSweep, ge
         }
     } catch (e) {
         logMsg('Rhythm boot ensure failed: ' + e.message);
+        outcome.ok = false;
+        outcome.rhythm_error = e.message || String(e);
     }
+    return outcome;
 }
 
 module.exports = {

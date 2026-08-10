@@ -315,7 +315,8 @@ function registerOpsRoutes(server, ctx) {
                 actual_order_minutes: actualOrderMinutes,
                 raw_clock_minutes: rawClockMinutes,
                 spans_calendar_day: spansCalendarDay,
-                exception_reason: exceptionReason,
+                // Persist what landed on the row: request value when provided, else existing DB value.
+                exception_reason: exceptionReason != null ? exceptionReason : (row.exception_reason ?? null),
             }));
         };
         if (typeof db.transaction === 'function') db.transaction(write)();

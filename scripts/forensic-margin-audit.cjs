@@ -181,11 +181,20 @@ async function runAudit(workbookPath) {
     }));
 
     const deptAudits = [];
+    const skippedRequiredDepts = [];
     Object.entries(DEPT_SHEET_NAMES).forEach(([dept, names]) => {
         const ws = findSheet(wb, names);
         const excelDept = readExcelDeptSingle(ws);
         const pulseDept = buildDeptMarginPayload(db, periodStart, dept)?.totals;
-        if (!excelDept || !pulseDept) return;
+        if (!excelDept || !pulseDept) {
+            skippedRequiredDepts.push({
+                department: dept,
+                reason: !excelDept && !pulseDept
+                    ? 'excel_sheet_and_pulse_payload_missing'
+                    : (!excelDept ? 'excel_sheet_missing' : 'pulse_payload_missing'),
+            });
+            return;
+        }
         deptAudits.push({
             department: dept,
             single_period: [
@@ -214,7 +223,8 @@ async function runAudit(workbookPath) {
         (n, d) => n + (d.single_period || []).filter((r) => r.status === 'DIFF').length,
         0,
     );
-    const trustworthy = sections.every((s) => s.pass) && deptDiffs === 0;
+    const deptAuditsComplete = skippedRequiredDepts.length === 0;
+    const trustworthy = sections.every((s) => s.pass) && deptDiffs === 0 && deptAuditsComplete;
     const cycleMissing = (cycle.periods || []).filter((p) => p.missing);
 
     return {
@@ -224,10 +234,11 @@ async function runAudit(workbookPath) {
         verdict: trustworthy && cycleMissing.length === 0 ? 'TRUSTWORTHY' : 'REVIEW_REQUIRED',
         trustworthy_single_period: sections[0].pass,
         trustworthy_count_cycle: sections[1].pass && cycleMissing.length === 0,
-        trustworthy_dept_audits: deptDiffs === 0,
+        trustworthy_dept_audits: deptDiffs === 0 && deptAuditsComplete,
         sections,
         period_breakdown: periodBreakdown,
         missing_periods_in_db: cycleMissing.map((p) => p.period_number),
+        skipped_required_departments: skippedRequiredDepts,
         dept_audits: deptAudits,
         purchase_detail: purchaseDetail,
         notes: [

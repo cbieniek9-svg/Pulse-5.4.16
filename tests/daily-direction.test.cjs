@@ -186,16 +186,23 @@ function mockDb(overrides = {}) {
                     row.updated_by = params[7];
                 }
             }
-            if (sql.includes('UPDATE daily_direction SET') && sql.includes('floor_message = ?') && sql.includes('posted_snapshot_json')) {
-                // postShiftUpdate / updatePosted: floor, edited, snapshot, dismissFp?, at, by, store_date
-                const storeDate = params.length >= 7 ? params[6] : params[5];
+            // postShiftUpdate (and legacy 6-param floor edit): exclude silent posted-board
+            // sync (must_wins + snapshot, 6 params) which also mentions floor_message.
+            if (sql.includes('UPDATE daily_direction SET')
+                && sql.includes('floor_message = ?')
+                && sql.includes('floor_message_edited')
+                && sql.includes('posted_snapshot_json')
+                && !sql.includes('must_wins_json')
+                && (params.length === 6 || params.length === 7)) {
+                // floor, edited, snapshot, dismissFp?, at, by, store_date
+                const storeDate = params.length === 7 ? params[6] : params[5];
                 const row = state.daily_direction.find((r) => r.store_date === storeDate);
                 if (row) {
                     row.floor_message = params[0];
                     row.floor_message_edited = params[1];
                     row.posted_snapshot_json = params[2];
                     row.shift_update_draft_json = '';
-                    if (params.length >= 7) {
+                    if (params.length === 7) {
                         row.amendment_dismissed_fingerprint = params[3];
                         row.updated_at = params[4];
                         row.updated_by = params[5];

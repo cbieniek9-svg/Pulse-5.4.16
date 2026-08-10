@@ -49,7 +49,7 @@ export function useSettingsSync({ token, enabled = true }) {
 
     useEffect(() => () => {
         if (streamDebounceRef.current) clearTimeout(streamDebounceRef.current);
-    }, []);
+    }, [refresh]);
 
     const onStreamEvent = useCallback(() => {
         if (streamDebounceRef.current) clearTimeout(streamDebounceRef.current);

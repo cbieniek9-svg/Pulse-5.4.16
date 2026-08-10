@@ -2,7 +2,11 @@ const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 /** Local calendar Y-M-D (avoids UTC day shift from toISOString). */
 export function toLocalDateStamp(date) {
-    const d = date instanceof Date ? date : new Date(date);
+    let raw = date;
+    if (typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        raw = `${raw}T12:00:00`;
+    }
+    const d = raw instanceof Date ? raw : new Date(raw);
     if (Number.isNaN(d.getTime())) return '';
     const p = (n) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;

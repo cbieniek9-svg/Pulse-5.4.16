@@ -100,13 +100,15 @@ function pushDirArtifact(artifacts, role, relPath, srcDir, destDir) {
     });
 }
 
-function pushInventoryArtifact(artifacts, invDest) {
-    artifacts.push({
+function pushInventoryArtifact(artifacts, invDest, extra = null) {
+    const artifact = {
         role: 'inventory_db',
         path: 'pulse_inventory.db',
         size: fs.statSync(invDest).size,
         hash: hashFile(invDest),
-    });
+    };
+    if (extra && typeof extra === 'object') Object.assign(artifact, extra);
+    artifacts.push(artifact);
 }
 
 /**
@@ -132,10 +134,20 @@ async function assemblePackageSidecars({
         const invDest = path.join(packageDir, 'pulse_inventory.db');
         try {
             await copyInventory(inventorySrc, invDest);
+            pushInventoryArtifact(artifacts, invDest);
         } catch (_) {
             copyFileSync(inventorySrc, invDest);
+            const verification = verifyOpsDatabaseCopy(invDest);
+            if (!verification.ok) {
+                throw new Error(
+                    verification.error || 'inventory database verification failed after copyFileSync fallback',
+                );
+            }
+            pushInventoryArtifact(artifacts, invDest, {
+                fallback_used: true,
+                verification_ok: true,
+            });
         }
-        pushInventoryArtifact(artifacts, invDest);
     }
 
     pushDirArtifact(

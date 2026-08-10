@@ -329,6 +329,17 @@ export default function DevicesTab() {
         credentialResolver.current = null;
     }, []);
 
+    const refreshDevices = async () => {
+        try {
+            await refresh();
+        } catch (e) {
+            showNotice(
+                `Device list refresh failed: ${e?.message || e}. The last action may have succeeded — refresh manually if the list looks stale.`,
+                'warning',
+            );
+        }
+    };
+
     const presentCredential = (result) => {
         const presentation = buildCredentialPresentation(result, network);
         if (!presentation) {
@@ -358,12 +369,12 @@ export default function DevicesTab() {
             const result = await createDevice(label, purpose, token);
             await presentCredential(result);
             showNotice('Device created. One-time token generated.', 'success');
-            await refresh();
             return true;
         } catch (e) {
             showNotice(e.message, 'error');
             return false;
         } finally {
+            await refreshDevices();
             operationLock.current = false;
             setBusy(false);
         }
@@ -377,10 +388,10 @@ export default function DevicesTab() {
             const result = await authorizeDevice(id, label, purpose, token);
             await presentCredential(result);
             showNotice('Device authorized. Token pairing URL generated.', 'success');
-            await refresh();
         } catch (e) {
             showNotice(e.message, 'error');
         } finally {
+            await refreshDevices();
             operationLock.current = false;
             setBusy(false);
         }
@@ -397,10 +408,10 @@ export default function DevicesTab() {
                 : await issueDeviceToken(id, token);
             await presentCredential(result);
             showNotice('Device token issued.', 'success');
-            await refresh();
         } catch (e) {
             showNotice(e.message, 'error');
         } finally {
+            await refreshDevices();
             operationLock.current = false;
             setBusy(false);
         }
@@ -415,10 +426,10 @@ export default function DevicesTab() {
             const result = await repurposeDevice(id, purpose, token);
             await presentCredential(result);
             showNotice('Device purpose changed and token rotated.', 'success');
-            await refresh();
         } catch (e) {
             showNotice(e.message, 'error');
         } finally {
+            await refreshDevices();
             operationLock.current = false;
             setBusy(false);
         }
@@ -432,10 +443,10 @@ export default function DevicesTab() {
             if (!(await appConfirm('Revoke only the token for this device?'))) return;
             await revokeDeviceToken(id, token);
             showNotice('Device token revoked.', 'success');
-            await refresh();
         } catch (e) {
             showNotice(e.message, 'error');
         } finally {
+            await refreshDevices();
             operationLock.current = false;
             setBusy(false);
         }
@@ -449,10 +460,10 @@ export default function DevicesTab() {
             if (!(await appConfirm('Delete this device and revoke its access?'))) return;
             await deleteDevice(id, token);
             showNotice('Device deleted.', 'success');
-            await refresh();
         } catch (e) {
             showNotice(e.message, 'error');
         } finally {
+            await refreshDevices();
             operationLock.current = false;
             setBusy(false);
         }

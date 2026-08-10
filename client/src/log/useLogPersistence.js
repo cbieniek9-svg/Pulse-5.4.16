@@ -390,6 +390,11 @@ export function useLogPersistence({ token, storeDate }) {
             }
         }
 
+        // Own persistence before optimistic UI so a later paste cannot invalidate this save.
+        pasteInFlightRef.current = true;
+        if (pasteTimerRef.current) clearTimeout(pasteTimerRef.current);
+        const opId = ++pasteOpRef.current;
+
         const absStart = page * pageSize + startIdx;
         const nextAll = [...allDayLinesRef.current];
         while (nextAll.length < absStart + patches.length) nextAll.push(emptyLine());
@@ -401,13 +406,12 @@ export function useLogPersistence({ token, storeDate }) {
         allDayLinesRef.current = nextAll;
         applyPage(nextAll, page);
 
-        // Invalidate any prior scheduled paste before starting this save.
-        if (pasteTimerRef.current) clearTimeout(pasteTimerRef.current);
-        const opId = ++pasteOpRef.current;
         pasteTimerRef.current = setTimeout(async () => {
             pasteTimerRef.current = null;
-            if (opId !== pasteOpRef.current) return;
-            pasteInFlightRef.current = true;
+            if (opId !== pasteOpRef.current) {
+                pasteInFlightRef.current = false;
+                return;
+            }
             try {
                 let aborted = false;
                 for (let offset = 0; offset < patches.length; offset += 1) {

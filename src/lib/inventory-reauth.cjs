@@ -6,6 +6,7 @@ const { isManagerRole } = require('./staff-permissions.cjs');
 const MAX_PIN_ATTEMPTS = 5;
 const BASE_BACKOFF_MS = 1000;
 const MAX_BACKOFF_MS = 60_000;
+const MAX_PIN_ATTEMPT_ENTRIES = 500;
 /** @type {Map<string, { failures: number, lockedUntil: number }>} */
 const pinAttempts = new Map();
 
@@ -19,11 +20,42 @@ function getThrottleState(key) {
     return pinAttempts.get(key) || { failures: 0, lockedUntil: 0 };
 }
 
+/** Drop soft-lock entries whose backoff has expired. Hard locks (max attempts) are retained. */
+function pruneExpiredPinAttempts(now = Date.now()) {
+    for (const [k, state] of pinAttempts) {
+        if (state.failures >= MAX_PIN_ATTEMPTS) continue;
+        if (state.lockedUntil <= now) pinAttempts.delete(k);
+    }
+}
+
+/** Ensure room for a new key before recording failure state. */
+function enforcePinAttemptBound() {
+    if (pinAttempts.size < MAX_PIN_ATTEMPT_ENTRIES) return;
+    pruneExpiredPinAttempts();
+    if (pinAttempts.size < MAX_PIN_ATTEMPT_ENTRIES) return;
+    for (const [k, state] of pinAttempts) {
+        if (pinAttempts.size < MAX_PIN_ATTEMPT_ENTRIES) return;
+        if (state.failures < MAX_PIN_ATTEMPTS) pinAttempts.delete(k);
+    }
+    while (pinAttempts.size >= MAX_PIN_ATTEMPT_ENTRIES) {
+        const oldest = pinAttempts.keys().next().value;
+        if (oldest == null) break;
+        pinAttempts.delete(oldest);
+    }
+}
+
 function recordPinFailure(key) {
+    pruneExpiredPinAttempts();
+    const isNew = !pinAttempts.has(key);
+    if (isNew) enforcePinAttemptBound();
     const state = getThrottleState(key);
     state.failures += 1;
-    const exp = Math.min(state.failures - 1, 5);
-    state.lockedUntil = Date.now() + Math.min(MAX_BACKOFF_MS, BASE_BACKOFF_MS * (2 ** exp));
+    if (state.failures >= MAX_PIN_ATTEMPTS) {
+        state.lockedUntil = Date.now() + MAX_BACKOFF_MS;
+    } else {
+        const exp = Math.min(state.failures - 1, 5);
+        state.lockedUntil = Date.now() + Math.min(MAX_BACKOFF_MS, BASE_BACKOFF_MS * (2 ** exp));
+    }
     pinAttempts.set(key, state);
     return state;
 }
@@ -44,10 +76,6 @@ async function verifyActorPin(db, session, confirmPin) {
     const throttle = getThrottleState(key);
     if (throttle.lockedUntil > Date.now()) {
         return false;
-    }
-    if (throttle.failures >= MAX_PIN_ATTEMPTS) {
-        // Max backoff has expired — clear the hard cap so another PIN attempt is allowed.
-        clearPinFailures(key);
     }
 
     const staff = typeof db.findStaffByName === 'function'

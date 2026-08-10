@@ -52,9 +52,11 @@ export default function OrderFinishGateModal({ syncData, clockKind = 'dry', onCa
     useEffect(() => {
         // Seed once per open/clockKind — do not overwrite edits when syncData identity churns.
         if (seededKindRef.current === clockKind) return;
-        seededKindRef.current = clockKind;
+        // Wait until source data is ready; do not mark seeded on empty defaults.
+        if (!syncData) return;
         setStaff(String(defaultOrderFinishStaff(syncData, clockKind)));
         setHardware(syncData?.settings?.Hardware_Arrived === '1');
+        seededKindRef.current = clockKind;
     }, [syncData, clockKind]);
 
     const elapsedMins = Number(

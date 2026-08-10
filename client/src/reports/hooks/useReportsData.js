@@ -61,8 +61,14 @@ export default function useReportsData(token) {
             }
             const url = `/api/reports${q.length ? `?${q.join('&')}` : ''}`;
             const d = await fetchJson(url, { headers: { 'x-session-token': token } });
-            if (d.meta?.reportStart) setViewStart(d.meta.reportStart);
-            if (d.meta?.reportEnd) setViewEnd(d.meta.reportEnd);
+            if (d.meta?.reportStart) {
+                viewStartRef.current = d.meta.reportStart;
+                setViewStart(d.meta.reportStart);
+            }
+            if (d.meta?.reportEnd) {
+                viewEndRef.current = d.meta.reportEnd;
+                setViewEnd(d.meta.reportEnd);
+            }
             if (
                 d.meta?.isLiveToday === false
                 && mode === 'today'

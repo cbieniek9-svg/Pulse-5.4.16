@@ -87,10 +87,12 @@ export default function MarkdownShrinkPanel({ token, showToast }) {
     const autoItemRef = useRef('');
     const resolvedSkuRef = useRef('');
     const loadSeqRef = useRef(0);
+    const lookupSeqRef = useRef(0);
 
     useEffect(() => { itemValueRef.current = item; }, [item]);
 
     const resolveSku = useCallback(async (code, { focusQty = false } = {}) => {
+        const seq = ++lookupSeqRef.current;
         const isNewCode = resolvedSkuRef.current !== code;
         resolvedSkuRef.current = code;
         const nameNow = itemValueRef.current;
@@ -99,6 +101,7 @@ export default function MarkdownShrinkPanel({ token, showToast }) {
 
         try {
             const found = await lookupItem(token, code);
+            if (seq !== lookupSeqRef.current) return;
             setCatalogHit(found);
             if (found?.description && (isNewCode || !nameNow.trim())) {
                 applyName(found.description);
@@ -106,11 +109,14 @@ export default function MarkdownShrinkPanel({ token, showToast }) {
                 applyName('');
             }
         } catch (e) {
+            if (seq !== lookupSeqRef.current) return;
             setCatalogHit(null);
             setScanStatus({ msg: e.message || 'Catalog lookup failed', ok: false });
         }
         // After a camera/scan decode only — typed blur/Enter should not steal focus.
-        if (focusQty) requestAnimationFrame(() => qtyRef.current?.focus());
+        if (focusQty && seq === lookupSeqRef.current) {
+            requestAnimationFrame(() => qtyRef.current?.focus());
+        }
     }, [token]);
 
     const onDecode = useCallback(async (code) => {
@@ -655,7 +661,11 @@ export default function MarkdownShrinkPanel({ token, showToast }) {
                             id="sh-sku"
                             className="input"
                             value={sku}
-                            onChange={(e) => { setSku(e.target.value); setCatalogHit(null); }}
+                            onChange={(e) => {
+                                lookupSeqRef.current += 1;
+                                setSku(e.target.value);
+                                setCatalogHit(null);
+                            }}
                             onBlur={() => {
                                 const clean = normalizeScannedCode(sku);
                                 if (clean && clean !== sku) setSku(clean);

@@ -52,7 +52,6 @@ export default function RecApp() {
         confirmResolve.current?.(ok);
         confirmResolve.current = null;
         setConfirmAsk(null);
-        if (!ok) setBusyId('');
     }, []);
 
     const storeTransfersEnabled = !!(data?.features?.storeTransfers || data?.settings?.Store_Transfers_Enabled === '1');

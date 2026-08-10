@@ -28,7 +28,9 @@ function RhythmRow({ row, onSave, onDelete }) {
             est_mins: row.est_mins || 15,
             assign_bucket: row.assign_bucket || '',
         });
-    }, [row]);
+    // Reset only when the identified row changes — not on sync identity churn.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: row.id only
+    }, [row.id]);
 
     return (
         <tr data-rhythm-id={row.id}>

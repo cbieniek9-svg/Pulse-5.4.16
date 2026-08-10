@@ -173,6 +173,8 @@ function resolveZoneForBeacon(sightings, config, beaconId) {
         .forEach((s) => {
             const gw = config.gateway_by_id[s.gateway_id];
             if (!gw) return;
+            // Reject missing RSSI before Number() — null/'' coerce to 0 and would skew zones.
+            if (s.rssi == null || s.rssi === '') return;
             const rssi = Number(s.rssi);
             if (!Number.isFinite(rssi)) return;
             if (rssi > bestRssi) {

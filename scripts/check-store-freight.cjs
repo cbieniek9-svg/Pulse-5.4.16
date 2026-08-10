@@ -9,9 +9,16 @@
  */
 
 const path = require('path');
-const { parseWorkbookFile } = require('../src/lib/edmonton-receiving-workbook-import.cjs');
+const {
+    parseWorkbookFile,
+    summarizeWorkbook,
+    readCountCycleBlock,
+} = require('../src/lib/edmonton-receiving-workbook-import.cjs');
 const { buildReceivingTotalsPayload } = require('../src/lib/edmonton-receiving-analytics.cjs');
 const { buildCountCyclePayload } = require('../src/lib/edmonton-receiving-count-cycle.cjs');
+const { addDays } = require('../src/lib/edmonton-receiving-report.cjs');
+
+const CYCLE_PURCHASE_CELLS = ['N15', 'N16', 'N17'];
 
 async function main() {
     const workbookPath = process.argv[2];
@@ -32,15 +39,41 @@ async function main() {
         throw new Error('Total Grocery sheet missing');
     }
 
+    const summary = summarizeWorkbook(wb);
+    const cycleBlock = readCountCycleBlock(wb);
+    if (!summary.period_start || summary.period_number == null) {
+        throw new Error('Could not derive period start/number from workbook; refusing to compare freight.');
+    }
+    if (!cycleBlock
+        || cycleBlock.period_number_start == null
+        || cycleBlock.period_number_end == null) {
+        throw new Error('Workbook is missing a Periods X–Y count-cycle block; cannot validate freight periods.');
+    }
+    if (!cycleBlock.applies_to_this_workbook) {
+        throw new Error(
+            `Workbook Period ${summary.period_number} is not the count-cycle end period `
+            + `(${cycleBlock.period_number_end}); refuse hard-coded freight compare.`,
+        );
+    }
+    const startNum = Number(cycleBlock.period_number_start);
+    const endNum = Number(cycleBlock.period_number_end);
+    const span = endNum - startNum;
+    if (!Number.isFinite(startNum) || !Number.isFinite(endNum) || span !== 2) {
+        throw new Error(
+            `Expected a 3-period count cycle for N15–N17; got Periods ${startNum}–${endNum}.`,
+        );
+    }
+
     function freightAlloc(total) {
         return Math.round((total * 0.478 + total * 0.142) * 100) / 100;
     }
 
-    const periods = [
-        { num: 7, start: '2026-04-19', excelPurch: tg.N15?.v },
-        { num: 8, start: '2026-05-24', excelPurch: tg.N16?.v },
-        { num: 9, start: '2026-06-21', excelPurch: tg.N17?.v },
-    ];
+    const endPeriodStart = summary.period_start;
+    const periods = CYCLE_PURCHASE_CELLS.map((addr, i) => ({
+        num: startNum + i,
+        start: addDays(endPeriodStart, (i - span) * 35),
+        excelPurch: tg[addr]?.v,
+    }));
 
     console.log('=== STORE DB vs EXCEL COUNT-CYCLE PURCHASES ===');
     periods.forEach(({ num, start, excelPurch }) => {
@@ -63,7 +96,7 @@ async function main() {
         });
     });
 
-    const cycle = buildCountCyclePayload(db, '2026-06-21');
+    const cycle = buildCountCyclePayload(db, endPeriodStart);
     console.log('=== COUNT CYCLE PERIOD LIST ===', (cycle.periods || []).map((p) => p.period_number));
     console.log('=== CYCLE TOTAL GROCERY ===', {
         opening: cycle.departments?.total_grocery?.opening,
