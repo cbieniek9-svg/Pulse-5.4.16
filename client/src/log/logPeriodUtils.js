@@ -1,9 +1,17 @@
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+/** Local calendar Y-M-D (avoids UTC day shift from toISOString). */
+export function toLocalDateStamp(date) {
+    const d = date instanceof Date ? date : new Date(date);
+    if (Number.isNaN(d.getTime())) return '';
+    const p = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
 export function addDays(dateStr, delta) {
     const dt = new Date(`${dateStr}T12:00:00`);
     dt.setDate(dt.getDate() + Number(delta || 0));
-    return dt.toISOString().slice(0, 10);
+    return toLocalDateStamp(dt);
 }
 
 export function shiftDate(dateStr, delta) {
@@ -25,7 +33,7 @@ export function weekDates(periodStart, weekNum) {
     return Array.from({ length: 7 }, (_, i) => {
         const d = new Date(start);
         d.setDate(d.getDate() + i);
-        return d.toISOString().slice(0, 10);
+        return toLocalDateStamp(d);
     });
 }
 

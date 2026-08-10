@@ -54,23 +54,27 @@ function runStep(name, command, args, opts = {}) {
         cwd: appRoot,
         encoding: 'utf8',
         windowsHide: true,
+        maxBuffer: 16 * 1024 * 1024,
+        timeout: opts.timeoutMs || 10 * 60 * 1000,
         env: { ...process.env, TGP_TEST_MODE: '1', ...(opts.env || {}) },
     });
     const stdout = (res.stdout || '').trim();
     const stderr = (res.stderr || '').trim();
-    const output = `${stdout}\n${stderr}`;
+    const spawnError = res.error ? String(res.error.message || res.error) : '';
+    const output = `${stdout}\n${stderr}\n${spawnError}`;
     const reportedSkipped = [...output.matchAll(/^\W*skipped\s+(\d+)/gmi)]
         .reduce((total, match) => total + Number(match[1] || 0), 0);
     const skipDirectives = (output.match(/#\s*SKIP\b/gi) || []).length;
     const skipped = Math.max(reportedSkipped, skipDirectives);
     return {
         name,
-        ok: res.status === 0 && (!opts.failOnSkip || skipped === 0),
+        ok: res.status === 0 && !res.error && (!opts.failOnSkip || skipped === 0),
         status: res.status,
         ms: Date.now() - started,
         command: [command, ...args].join(' '),
         stdout,
         stderr,
+        error: spawnError,
         skipped,
     };
 }
@@ -156,7 +160,7 @@ function printHuman(result) {
     result.steps.forEach((s) => {
         console.log(`${s.ok ? 'OK  ' : 'FAIL'} ${s.name} (${s.ms}ms)`);
         if (!s.ok) {
-            const detail = s.stderr || s.stdout || `exit ${s.status}`;
+            const detail = s.error || s.stderr || s.stdout || `exit ${s.status}`;
             console.error(detail.split('\n').slice(-12).join('\n'));
         }
     });

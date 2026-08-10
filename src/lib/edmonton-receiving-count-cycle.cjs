@@ -310,9 +310,9 @@ function deptMetrics(opening, purchases, closing, sales) {
 }
 
 function buildCountCyclePayload(db, anchorDate, opts = {}) {
+    // Do not call repairStrayCountCycleImports here — reads must not delete manager-entered
+    // count-cycle / margin flags. Repair runs on the workbook import path only.
     const skipPrior = opts.skipPrior === true;
-    if (!skipPrior) repairStrayCountCycleImports(db);
-
     const countPeriodStart = resolveCountPeriodStart(db, anchorDate);
     const countMeta = readMarginMeta(db, countPeriodStart) || {};
     const endNum = Number(countMeta.period_number);

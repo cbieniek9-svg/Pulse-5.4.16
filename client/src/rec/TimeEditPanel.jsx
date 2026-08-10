@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { resolveUrl } from '../lib/api.js';
 import { datetimeLocalToIso, isoToDatetimeLocal } from './recUtils.js';
 
@@ -20,16 +20,32 @@ function joinLocal(date, time) {
 export default function TimeEditPanel({ entry, token, showDeparted = true, showInvoice = true, onSaved }) {
     const initialIn = splitIso(entry.arrived_at);
     const initialOut = splitIso(entry.departed_at);
+    const initialInvoice = entry.invoice_ref || '';
     const [arrivedDate, setArrivedDate] = useState(initialIn.date);
     const [arrivedTime, setArrivedTime] = useState(initialIn.time);
     const [departedDate, setDepartedDate] = useState(initialOut.date);
     const [departedTime, setDepartedTime] = useState(initialOut.time);
-    const [invoice, setInvoice] = useState(entry.invoice_ref || '');
+    const [invoice, setInvoice] = useState(initialInvoice);
     const [busy, setBusy] = useState(false);
     const [savedMsg, setSavedMsg] = useState('');
 
+    const dirty = useMemo(() => {
+        if (arrivedDate !== initialIn.date || arrivedTime !== initialIn.time) return true;
+        if (showDeparted && (departedDate !== initialOut.date || departedTime !== initialOut.time)) return true;
+        if (showInvoice && String(invoice || '') !== String(initialInvoice || '')) return true;
+        return false;
+    }, [
+        arrivedDate, arrivedTime, departedDate, departedTime, invoice,
+        initialIn.date, initialIn.time, initialOut.date, initialOut.time,
+        initialInvoice, showDeparted, showInvoice,
+    ]);
+
     const save = async () => {
         if (!token) return alert('Session expired — refresh /rec and sign in again.');
+        if (!dirty) {
+            setSavedMsg('No changes.');
+            return;
+        }
         const arrivedLocal = joinLocal(arrivedDate, arrivedTime);
         if (!arrivedLocal) return alert('Time in date and time are required.');
         const arrived_at = datetimeLocalToIso(arrivedLocal);
@@ -100,7 +116,7 @@ export default function TimeEditPanel({ entry, token, showDeparted = true, showI
                 ) : null}
             </div>
             <div className="card-actions">
-                <button type="button" className="btn btn-secondary btn-small" disabled={busy} onClick={save}>
+                <button type="button" className="btn btn-secondary btn-small" disabled={busy || !dirty} onClick={save}>
                     {busy ? 'SAVING…' : 'SAVE TIMES'}
                 </button>
                 {savedMsg ? <span className="hint" style={{ marginLeft: 8, color: '#8f8' }}>{savedMsg}</span> : null}

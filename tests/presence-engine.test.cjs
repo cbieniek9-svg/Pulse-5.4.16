@@ -18,7 +18,12 @@ function makeDb() {
 
     return {
         getSettings: () => settings,
-        get() { return null; },
+        get(sql, ...params) {
+            if (sql.includes('presence_staff_zones') && sql.includes('beacon_id')) {
+                return staff_zones[params[0]] || null;
+            }
+            return null;
+        },
         all(sql, ...params) {
             if (sql.includes('beacon_events')) {
                 const since = params[0];
@@ -61,6 +66,9 @@ function makeDb() {
                     gateway_id: params[4],
                     rssi: params[5],
                     updated_at: params[6],
+                    asset_type: params[7],
+                    asset_label: params[8],
+                    zone_since: params[9],
                 };
             }
         },

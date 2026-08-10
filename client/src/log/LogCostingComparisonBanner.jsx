@@ -93,12 +93,16 @@ export default function LogCostingComparisonBanner({
 }) {
     const [pctInputs, setPctInputs] = useState(EMPTY_PCT);
     const [billsInput, setBillsInput] = useState('');
+    const [billsReady, setBillsReady] = useState(false);
     const [busy, setBusy] = useState(false);
     const [profileMeta, setProfileMeta] = useState(null);
 
     useEffect(() => {
         let cancelled = false;
         if (!token || !periodStart) return undefined;
+        setBillsInput('');
+        setBillsReady(false);
+        setPctInputs(EMPTY_PCT);
         fetchFreightAllocProfile(token, periodStart)
             .then((res) => {
                 if (cancelled) return;
@@ -109,12 +113,19 @@ export default function LogCostingComparisonBanner({
                     next[key] = map[key] == null || map[key] === '' ? '' : String(map[key]);
                 });
                 setPctInputs(next);
-                if (res?.actual_freight_bills_total != null) {
-                    setBillsInput(String(res.actual_freight_bills_total));
-                }
+                setBillsInput(
+                    res?.actual_freight_bills_total != null
+                        ? String(res.actual_freight_bills_total)
+                        : '',
+                );
+                setBillsReady(true);
             })
             .catch(() => {
-                if (!cancelled) setProfileMeta(null);
+                if (!cancelled) {
+                    setProfileMeta(null);
+                    setBillsInput('');
+                    setBillsReady(false);
+                }
             });
         return () => { cancelled = true; };
     }, [token, periodStart, comparison?.alloc_profile_status, comparison?.missing_alloc_profile]);
@@ -332,14 +343,14 @@ export default function LogCostingComparisonBanner({
                                 type="number"
                                 step="0.01"
                                 value={billsInput}
-                                disabled={busy}
+                                disabled={busy || !billsReady}
                                 onChange={(e) => setBillsInput(e.target.value)}
                             />
                         </label>
                         <button
                             type="button"
                             className="log-btn log-btn-secondary log-btn-small"
-                            disabled={busy}
+                            disabled={busy || !billsReady}
                             onClick={saveBills}
                         >
                             Save bills total

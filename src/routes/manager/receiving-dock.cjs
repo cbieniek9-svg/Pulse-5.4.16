@@ -18,6 +18,7 @@ const {
     getStoreTransfer,
     resolveTransferFilePath,
 } = require('../../lib/store-transfers.cjs');
+const { isManagerRole } = require('../../lib/staff-permissions.cjs');
 const { createReceivingGuards } = require('./receiving-helpers.cjs');
 
 /**
@@ -146,7 +147,12 @@ function registerReceivingDockRoutes(server, ctx) {
         const session = requireReceivingAuth(req, res);
         if (!session) return;
         const b = req.body ?? {};
-        const allowAfterDeparted = String(b.correction || b.force || req.query?.correction || '') === '1';
+        const wantsCorrection = String(b.correction || b.force || req.query?.correction || '') === '1';
+        if (wantsCorrection && !isManagerRole(session.role)) {
+            fail(res, 403, 'Post-departure corrections require a manager.');
+            return;
+        }
+        const allowAfterDeparted = wantsCorrection;
         const bodyStoreDate = String(b.store_date || '').trim();
         const storeDate = (/^\d{4}-\d{2}-\d{2}$/.test(bodyStoreDate) && allowAfterDeparted)
             ? bodyStoreDate
@@ -239,8 +245,13 @@ function registerReceivingDockRoutes(server, ctx) {
         const session = requireReceivingAuth(req, res);
         if (!session) return;
         try {
-            const allowAfterDeparted = String(req.query?.force || req.body?.force || '') === '1'
+            const wantsCorrection = String(req.query?.force || req.body?.force || '') === '1'
                 || String(req.query?.correction || '') === '1';
+            if (wantsCorrection && !isManagerRole(session.role)) {
+                fail(res, 403, 'Post-departure corrections require a manager.');
+                return;
+            }
+            const allowAfterDeparted = wantsCorrection;
             const result = deleteReceivingPallet(db, req.params.palletId, req.query?.exp_id, {
                 allowAfterDeparted,
             });

@@ -31,7 +31,7 @@ export default function ItemsCatalogTab() {
         setBusy(true);
         try {
             const result = await searchItems(token, query, 100);
-            setRows(result.rows);
+            setRows(result.rows || []);
             if (result.stats) setStats(result.stats);
         } catch (e) {
             showNotice(e.message || 'Catalog search failed.', 'error');

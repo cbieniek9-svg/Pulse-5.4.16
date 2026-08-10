@@ -67,7 +67,7 @@ function saveDailyDirectionEdits(db, storeDate, edits, actorName) {
     const updatedAt = nowIso();
 
     if (row) {
-        db.run(`
+        const result = db.run(`
             UPDATE daily_direction SET
                 walk_notes_json = ?,
                 must_wins_json = ?,
@@ -79,7 +79,7 @@ function saveDailyDirectionEdits(db, storeDate, edits, actorName) {
                 manager_only_notes = ?,
                 updated_at = ?,
                 updated_by = ?
-            WHERE store_date = ?
+            WHERE store_date = ? AND posted_at IS NULL
         `,
         JSON.stringify(walkNotes),
         JSON.stringify(mustWins),
@@ -92,6 +92,9 @@ function saveDailyDirectionEdits(db, storeDate, edits, actorName) {
         updatedAt,
         actorName,
         storeDate);
+        if (!result?.changes) {
+            throw Object.assign(new Error('Daily Direction already posted for today.'), { status: 409 });
+        }
     } else {
         db.run(`
             INSERT INTO daily_direction (
@@ -192,7 +195,7 @@ function approveDailyDirection(db, deps, {
     // Do not create pinned/ticker comms rows for this workflow.
     const postedMsgId = null;
 
-    db.run(`
+    const postResult = db.run(`
         UPDATE daily_direction SET
             posted_at = ?,
             posted_by = ?,
@@ -204,7 +207,7 @@ function approveDailyDirection(db, deps, {
             shift_update_draft_json = '',
             updated_at = ?,
             updated_by = ?
-        WHERE store_date = ?
+        WHERE store_date = ? AND posted_at IS NULL
     `,
     postedAt,
     actorName,
@@ -213,6 +216,9 @@ function approveDailyDirection(db, deps, {
     postedAt,
     actorName,
     storeDate);
+    if (Number(postResult?.changes) === 0) {
+        throw Object.assign(new Error('Daily Direction already posted for today.'), { status: 409 });
+    }
 
     const huddleClosed = closeDailyDirectionHuddleTask(db, actorName, storeDate);
 
@@ -327,68 +333,64 @@ function postShiftUpdate(db, deps, {
         throw Object.assign(new Error('Shift Update message is required.'), { status: 400 });
     }
 
-    const seq = nextShiftUpdateSequence(db, storeDate);
     const postedAt = nowIso();
     const triggerList = (triggers || []).slice(0, 8);
-    const snapshot = {
-        message: trimmed,
-        triggers: triggerList,
-        sequence: seq,
-        fingerprint: fingerprint || fingerprintTriggers(triggerList),
-    };
+    let seq = 0;
+    let snapshot = null;
 
     // Shift Updates live under daily_direction_floor on TV.
     // Do not create ticker/feed comms rows for Daily Direction amendments.
     const postedMsgId = null;
 
-    db.run(`
-        INSERT INTO shift_updates (
-            store_date, sequence_num, message, triggers_json,
-            posted_at, posted_by, posted_msg_id, snapshot_json, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-    storeDate,
-    seq,
-    trimmed,
-    JSON.stringify(triggerList),
-    postedAt,
-    actorName,
-    postedMsgId,
-    JSON.stringify(snapshot),
-    postedAt);
+    const write = () => {
+        seq = nextShiftUpdateSequence(db, storeDate);
+        snapshot = {
+            message: trimmed,
+            triggers: triggerList,
+            sequence: seq,
+            fingerprint: fingerprint || fingerprintTriggers(triggerList),
+        };
+        const updatedPostedSnapshot = updatePostedSnapshotMessage(row, trimmed, postedAt, actorName, seq);
+        const dismissFp = fingerprint || snapshot.fingerprint;
 
-    const updatedPostedSnapshot = updatePostedSnapshotMessage(row, trimmed, postedAt, actorName, seq);
-    db.run(`
-        UPDATE daily_direction SET
-            floor_message = ?,
-            floor_message_edited = ?,
-            posted_snapshot_json = ?,
-            shift_update_draft_json = '',
-            updated_at = ?,
-            updated_by = ?
-        WHERE store_date = ?
-    `,
-    trimmed,
-    1,
-    JSON.stringify(updatedPostedSnapshot),
-    postedAt,
-    actorName,
-    storeDate);
+        db.run(`
+            INSERT INTO shift_updates (
+                store_date, sequence_num, message, triggers_json,
+                posted_at, posted_by, posted_msg_id, snapshot_json, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+        storeDate,
+        seq,
+        trimmed,
+        JSON.stringify(triggerList),
+        postedAt,
+        actorName,
+        postedMsgId,
+        JSON.stringify(snapshot),
+        postedAt);
 
-    const dismissFp = fingerprint || snapshot.fingerprint;
-    db.run(
-        `UPDATE daily_direction SET
-            shift_update_draft_json = '',
-            amendment_dismissed_fingerprint = ?,
-            amendment_snoozed_until = NULL,
-            updated_at = ?,
-            updated_by = ?
-         WHERE store_date = ?`,
+        db.run(`
+            UPDATE daily_direction SET
+                floor_message = ?,
+                floor_message_edited = ?,
+                posted_snapshot_json = ?,
+                shift_update_draft_json = '',
+                amendment_dismissed_fingerprint = ?,
+                amendment_snoozed_until = NULL,
+                updated_at = ?,
+                updated_by = ?
+            WHERE store_date = ?
+        `,
+        trimmed,
+        1,
+        JSON.stringify(updatedPostedSnapshot),
         dismissFp,
         postedAt,
         actorName,
-        storeDate,
-    );
+        storeDate);
+    };
+    if (typeof db.transaction === 'function') db.transaction(write)();
+    else write();
 
     if (typeof deps.broadcastUpdate === 'function') {
         deps.broadcastUpdate({ table: 'shift_updates', action: 'posted' });
@@ -442,52 +444,58 @@ function updatePostedDailyDirection(db, deps, {
         : String(snap.manager_only_notes || row.manager_only_notes || '');
 
     const postedAt = nowIso();
-    const seq = nextShiftUpdateSequence(db, storeDate);
+    let seq = 0;
 
-    db.run(`
-        INSERT INTO shift_updates (
-            store_date, sequence_num, message, triggers_json,
-            posted_at, posted_by, posted_msg_id, snapshot_json, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-    storeDate,
-    seq,
-    trimmed,
-    JSON.stringify([]),
-    postedAt,
-    actorName,
-    null,
-    JSON.stringify({ message: trimmed, sequence: seq, status, must_wins: nextMustWins }),
-    postedAt);
+    const write = () => {
+        seq = nextShiftUpdateSequence(db, storeDate);
+        const updatedPostedSnapshot = updatePostedSnapshotMessage(row, trimmed, postedAt, actorName, seq, status, {
+            must_wins: nextMustWins,
+            walk_notes: nextWalkNotes,
+            manager_only_notes: nextManagerNotes,
+        });
 
-    const updatedPostedSnapshot = updatePostedSnapshotMessage(row, trimmed, postedAt, actorName, seq, status, {
-        must_wins: nextMustWins,
-        walk_notes: nextWalkNotes,
-        manager_only_notes: nextManagerNotes,
-    });
-    db.run(`
-        UPDATE daily_direction SET
-            floor_message = ?,
-            floor_message_edited = 1,
-            status_override = ?,
-            must_wins_json = ?,
-            walk_notes_json = ?,
-            manager_only_notes = ?,
-            posted_snapshot_json = ?,
-            shift_update_draft_json = '',
-            updated_at = ?,
-            updated_by = ?
-        WHERE store_date = ?
-    `,
-    trimmed,
-    status,
-    JSON.stringify(nextMustWins),
-    JSON.stringify(nextWalkNotes),
-    nextManagerNotes,
-    JSON.stringify(updatedPostedSnapshot),
-    postedAt,
-    actorName,
-    storeDate);
+        db.run(`
+            INSERT INTO shift_updates (
+                store_date, sequence_num, message, triggers_json,
+                posted_at, posted_by, posted_msg_id, snapshot_json, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+        storeDate,
+        seq,
+        trimmed,
+        JSON.stringify([]),
+        postedAt,
+        actorName,
+        null,
+        JSON.stringify({ message: trimmed, sequence: seq, status, must_wins: nextMustWins }),
+        postedAt);
+
+        db.run(`
+            UPDATE daily_direction SET
+                floor_message = ?,
+                floor_message_edited = 1,
+                status_override = ?,
+                must_wins_json = ?,
+                walk_notes_json = ?,
+                manager_only_notes = ?,
+                posted_snapshot_json = ?,
+                shift_update_draft_json = '',
+                updated_at = ?,
+                updated_by = ?
+            WHERE store_date = ?
+        `,
+        trimmed,
+        status,
+        JSON.stringify(nextMustWins),
+        JSON.stringify(nextWalkNotes),
+        nextManagerNotes,
+        JSON.stringify(updatedPostedSnapshot),
+        postedAt,
+        actorName,
+        storeDate);
+    };
+    if (typeof db.transaction === 'function') db.transaction(write)();
+    else write();
 
     if (typeof deps.broadcastUpdate === 'function') {
         deps.broadcastUpdate({ table: 'daily_direction', action: 'posted_update' });

@@ -19,5 +19,10 @@ if not exist "%WRAPPER%" (
 echo Stopping and uninstalling TGP-CommandCenter ...
 "%WRAPPER%" stop
 "%WRAPPER%" uninstall
+set "UNINSTALL_EXIT=%ERRORLEVEL%"
+if not "%UNINSTALL_EXIT%"=="0" (
+  echo ERROR: WinSW uninstall failed with exit code %UNINSTALL_EXIT%.
+  exit /b %UNINSTALL_EXIT%
+)
 echo Done.
 exit /b 0

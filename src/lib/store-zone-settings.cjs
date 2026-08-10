@@ -1,18 +1,19 @@
 'use strict';
 
+/** Role/aisle placeholders — stores customize via Settings → FIFO assignments. */
 const DEFAULT_FIFO_AISLE_ASSIGNMENTS = [
-    { staff: 'Lorna', aisles: ['Tills', 'A6'] },
-    { staff: 'Sam', aisles: ['Tills', 'A5'] },
-    { staff: 'Oxana', aisles: ['A3'] },
-    { staff: 'Abigail', aisles: ['A2'] },
-    { staff: 'Kevin', aisles: ['A1'] },
-    { staff: 'Dawn', aisles: ['Bakery'] },
-    { staff: 'Jaime', aisles: ['A6'] },
-    { staff: 'Izzy', aisles: ['A2'] },
-    { staff: 'Connor', aisles: ['A3'] },
-    { staff: 'Lenora', aisles: ['A4'] },
-    { staff: 'Gabi', aisles: ['A5'] },
-    { staff: 'Jessica', aisles: ['A4'] },
+    { staff: 'Clerk 1', aisles: ['Tills', 'A6'] },
+    { staff: 'Clerk 2', aisles: ['Tills', 'A5'] },
+    { staff: 'Clerk 3', aisles: ['A3'] },
+    { staff: 'Clerk 4', aisles: ['A2'] },
+    { staff: 'Clerk 5', aisles: ['A1'] },
+    { staff: 'Bakery', aisles: ['Bakery'] },
+    { staff: 'Clerk 6', aisles: ['A6'] },
+    { staff: 'Clerk 7', aisles: ['A2'] },
+    { staff: 'Clerk 8', aisles: ['A3'] },
+    { staff: 'Clerk 9', aisles: ['A4'] },
+    { staff: 'Clerk 10', aisles: ['A5'] },
+    { staff: 'Clerk 11', aisles: ['A4'] },
 ];
 
 const EVERYDAY_RHYTHM_TASKS = [
@@ -46,9 +47,9 @@ const DEFAULT_ZONE_SECTION_LABELS = {
         label: 'A5',
         sublabel: 'COFFEE',
         sections: [
-            { label: 'Coffee', owner: 'Ashley' },
-            { label: 'Monin/Torani', owner: 'Luke' },
-            { label: 'Wraps', owner: 'Chandler' },
+            { label: 'Coffee', owner: '' },
+            { label: 'Monin/Torani', owner: '' },
+            { label: 'Wraps', owner: '' },
         ],
     },
     'map-a6': { label: 'A6', sublabel: 'ETH/PET' },
@@ -128,10 +129,7 @@ function ensureStoreZoneDefaults(db) {
 
     ensureEverydayRhythmTasks(db);
 
-    // v3.2.1: native TV shell is the default display path (maintainable source in public/tv/)
-    db.run(
-        "UPDATE settings SET setting_value='1' WHERE setting_name='TV_Native_Shell' AND setting_value='0'",
-    );
+    // Do not force TV_Native_Shell='1' over an intentional '0'.
 }
 
 module.exports = {

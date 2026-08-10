@@ -22,14 +22,26 @@ function EditableCell({
             onChange={(ev) => setDraft(ev.target.value)}
             onFocus={() => setDraft(value === '' || value == null ? '' : (integer ? String(value) : String(value)))}
             onBlur={() => {
+                if (draft == null) return;
                 if (isInvalidAmount(draft)) {
                     alert('Not a number — cell not saved');
                     setDraft(null);
                     return;
                 }
+                const trimmed = String(draft).trim();
+                const originalBlank = value === '' || value == null;
+                const original = originalBlank
+                    ? null
+                    : (integer ? Math.round(Number(value)) : Number(value));
+                if (trimmed === '' && originalBlank) {
+                    setDraft(null);
+                    return;
+                }
                 const next = parseSheetAmount(draft);
+                const committed = integer ? Math.round(next) : next;
                 setDraft(null);
-                onCommit(integer ? Math.round(next) : next);
+                if (!originalBlank && Number(original) === Number(committed)) return;
+                onCommit(committed);
             }}
             onKeyDown={(ev) => {
                 if (ev.key === 'Enter') ev.currentTarget.blur();

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useAuth } from '../lib/auth.jsx';
+import { parsePermissionTokens } from '../lib/permissions.js';
 import { isManagerRole } from '../lib/roles.js';
 import { useSync } from '../providers/SyncProvider.jsx';
 
@@ -12,7 +13,7 @@ export function useFloorRole() {
         const me = staff.find((s) => s.name === user);
         const isManager = isManagerRole(me?.role);
         const isPremium = me?.role === 'Premium Clerk';
-        const perms = (me?.permissions || '').split(',').filter(Boolean);
+        const perms = parsePermissionTokens(me?.permissions);
 
         return {
             me,

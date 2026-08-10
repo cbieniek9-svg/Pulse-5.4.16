@@ -2,7 +2,8 @@
 /**
  * Ultimate dev simulator: smart carts + dumb aisle receivers → receiving hub.
  *
- *   node scripts/presence-store-simulator.cjs --url http://127.0.0.1:3001 --key KEY --ticks 5
+ *   set PRESENCE_GATEWAY_KEY=<key>
+ *   node scripts/presence-store-simulator.cjs --url http://127.0.0.1:3001 --ticks 5
  *
  * Requires Presence_Enabled=1 and demo carts seeded (or uses cart-001..008).
  */
@@ -12,7 +13,6 @@ const https = require('https');
 function parseArgs(argv) {
     const out = {
         url: 'http://127.0.0.1:3001',
-        key: '',
         ticks: 3,
         carts: 6,
         aisles: 4,
@@ -20,10 +20,13 @@ function parseArgs(argv) {
     for (let i = 2; i < argv.length; i += 1) {
         const a = argv[i];
         if (a === '--url') out.url = argv[++i];
-        else if (a === '--key') out.key = argv[++i];
         else if (a === '--ticks') out.ticks = Number(argv[++i]) || 3;
         else if (a === '--carts') out.carts = Number(argv[++i]) || 6;
         else if (a === '--aisles') out.aisles = Number(argv[++i]) || 4;
+        else if (a === '--key') {
+            console.error('Rejecting --key. Set PRESENCE_GATEWAY_KEY in the environment instead.');
+            process.exit(1);
+        }
     }
     return out;
 }
@@ -64,12 +67,13 @@ function pickAisle(i, maxAisles) {
 
 async function main() {
     const args = parseArgs(process.argv);
-    if (!args.key) {
-        console.error('Missing --key');
+    const key = String(process.env.PRESENCE_GATEWAY_KEY || '').trim();
+    if (!key) {
+        console.error('Missing PRESENCE_GATEWAY_KEY');
         process.exit(1);
     }
 
-    const headers = { 'X-Presence-Gateway-Key': args.key };
+    const headers = { 'X-Presence-Gateway-Key': key };
 
     for (let t = 0; t < args.ticks; t += 1) {
         const forwarded = [];

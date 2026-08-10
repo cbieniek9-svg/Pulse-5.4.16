@@ -35,7 +35,7 @@ export default function MaintenanceTab() {
             setData((d) => ({
                 ...d,
                 ...result,
-                network: result.network || syncData?.network || null,
+                network: result.network || null,
                 loading: false,
             }));
             if (!silent) showNotice('Maintenance health refreshed.', 'success');
@@ -43,7 +43,7 @@ export default function MaintenanceTab() {
             setData((d) => ({ ...d, loading: false }));
             if (!silent) showNotice(e.message || 'Maintenance refresh failed.', 'error');
         }
-    }, [token, syncData, showNotice]);
+    }, [token, showNotice]);
 
     useEffect(() => {
         load({ silent: true });

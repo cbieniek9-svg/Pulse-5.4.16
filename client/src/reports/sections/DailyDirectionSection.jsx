@@ -121,8 +121,8 @@ export function ActionInboxSection({ data }) {
     const meta = data.meta || {};
     const exportPull = (
         <div style={{ marginBottom: 10 }}>
-            <a className="btn" href={api.killDatesExportUrl('print')} target="_blank" rel="noopener">PRINT PULL LIST</a>
-            <a className="btn" style={{ marginLeft: 8 }} href={api.killDatesExportUrl('csv')}>CSV PULL + 7 DAY</a>
+            <button type="button" className="btn" onClick={() => runAction(() => api.printKillDates())}>PRINT PULL LIST</button>
+            <button type="button" className="btn" style={{ marginLeft: 8 }} onClick={() => runAction(() => api.downloadKillDatesCsv())}>CSV PULL + 7 DAY</button>
         </div>
     );
 

@@ -13,7 +13,10 @@ module.exports = {
     up(db) {
         try {
             db.exec("ALTER TABLE rhythm_tasks ADD COLUMN assign_bucket TEXT NOT NULL DEFAULT ''");
-        } catch (_) { /* column exists */ }
+        } catch (e) {
+            const msg = String(e.message || '').toLowerCase();
+            if (!msg.includes('duplicate column') && !msg.includes('already exists')) throw e;
+        }
 
         let raw = '';
         try {

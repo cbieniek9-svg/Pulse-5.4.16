@@ -31,13 +31,22 @@ async function downloadResponseBlob(token, url, filename, opts = {}) {
     }, 500);
 }
 
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
 async function openExportPopup(token, url, loadingTitle, errorTitle) {
     const win = window.open('', '_blank');
     if (!win) {
         alert('Popup blocked. Allow popups for this app and try again.');
         return null;
     }
-    win.document.write(`<!doctype html><title>${loadingTitle}</title><body style="font-family:Arial,sans-serif;margin:24px">Loading…</body>`);
+    const safeLoading = escapeHtml(loadingTitle);
+    win.document.write(`<!doctype html><title>${safeLoading}</title><body style="font-family:Arial,sans-serif;margin:24px">Loading…</body>`);
     win.document.close();
     try {
         const r = await fetch(resolveUrl(url), { headers: { 'x-session-token': token } });
@@ -49,8 +58,10 @@ async function openExportPopup(token, url, loadingTitle, errorTitle) {
         try { win.focus(); } catch (_) { /* ignore */ }
         return win;
     } catch (e) {
+        const safeTitle = escapeHtml(errorTitle);
+        const safeMsg = escapeHtml(e?.message || 'Export failed');
         win.document.open();
-        win.document.write(`<!doctype html><title>${errorTitle}</title><body style="font-family:Arial,sans-serif;margin:24px;color:#900"><h1>${errorTitle}</h1><p>${e.message}</p></body>`);
+        win.document.write(`<!doctype html><title>${safeTitle}</title><body style="font-family:Arial,sans-serif;margin:24px;color:#900"><h1>${safeTitle}</h1><p>${safeMsg}</p></body>`);
         win.document.close();
         alert(e.message);
         return null;
@@ -171,7 +182,15 @@ export function createReportsApi(token, reportMeta = {}) {
         },
 
         killDatesExportUrl(format) {
-            return resolveUrl(`/api/export/kill-dates?format=${format}&token=${encodeURIComponent(token || '')}`);
+            return resolveUrl(`/api/export/kill-dates?format=${encodeURIComponent(format || 'print')}`);
+        },
+
+        async printKillDates() {
+            await openExportPopup(token, this.killDatesExportUrl('print'), 'Expiry Pull List', 'Expiry Pull List Error');
+        },
+
+        async downloadKillDatesCsv() {
+            await downloadResponseBlob(token, this.killDatesExportUrl('csv'), 'Expiry_Pull_List.csv');
         },
 
         async saveReceivingLogCorrection({ expId, arrivedAt, departedAt, invoiceRef }) {

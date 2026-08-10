@@ -22,7 +22,8 @@ async function loadHtml5Qrcode() {
                 return;
             }
             const script = document.createElement('script');
-            script.src = '/public/js/vendor/html5-qrcode.min.js';
+            const base = String(import.meta.env.BASE_URL || '/').replace(/\/?$/, '/');
+            script.src = `${base}js/vendor/html5-qrcode.min.js`;
             script.dataset.countHtml5Qrcode = '1';
             script.onload = resolve;
             script.onerror = reject;
@@ -53,6 +54,8 @@ export default function useBarcodeCamera({ onDecode, onStatus, portalPath } = {}
     const lastAtRef = useRef(0);
     const cachedHttpsUrlRef = useRef('');
     const snapReaderRef = useRef(null);
+    const startOpRef = useRef(0);
+    const startLockRef = useRef(false);
 
     const [cameraOn, setCameraOn] = useState(false);
     const cameraOnRef = useRef(false);
@@ -149,6 +152,7 @@ export default function useBarcodeCamera({ onDecode, onStatus, portalPath } = {}
     }, [onDecode]);
 
     const stopCamera = useCallback(async () => {
+        startOpRef.current += 1;
         setShowTorchHint(false);
         setPanelVisible(false);
         if (html5QrCodeRef.current && cameraOnRef.current) {
@@ -160,25 +164,33 @@ export default function useBarcodeCamera({ onDecode, onStatus, portalPath } = {}
     }, []);
 
     const startCamera = useCallback(async () => {
-        await updateCameraHints();
-        if (!liveCameraAllowed()) {
-            setStatus(await cameraErrorMessage({ name: 'SecurityError' }), false);
-            const httpsUrl = await resolveHttpsPortalUrl();
-            if (httpsUrl) window.location.assign(httpsUrl);
-            return;
-        }
-
-        setPanelVisible(true);
-        setStatus('Requesting camera…', true);
-
+        // Serialize scanner.start on the shared instance — concurrent startups race tracks/state.
+        if (startLockRef.current) return;
+        startLockRef.current = true;
+        const opId = ++startOpRef.current;
         try {
+            await updateCameraHints();
+            if (opId !== startOpRef.current) return;
+            if (!liveCameraAllowed()) {
+                setStatus(await cameraErrorMessage({ name: 'SecurityError' }), false);
+                const httpsUrl = await resolveHttpsPortalUrl();
+                if (opId !== startOpRef.current) return;
+                if (httpsUrl) window.location.assign(httpsUrl);
+                return;
+            }
+
+            setPanelVisible(true);
+            setStatus('Requesting camera…', true);
+
             const preflight = await navigator.mediaDevices.getUserMedia({
                 audio: false,
                 video: { facingMode: { ideal: 'environment' } },
             });
             preflight.getTracks().forEach((t) => t.stop());
+            if (opId !== startOpRef.current) return;
 
             const { scanner, Html5Qrcode } = await ensureQrScanner();
+            if (opId !== startOpRef.current) return;
             if (cameraOnRef.current) {
                 try { await scanner.stop(); } catch (_) { /* ignore */ }
             }
@@ -203,21 +215,30 @@ export default function useBarcodeCamera({ onDecode, onStatus, portalPath } = {}
                 }
             } catch (_) { /* facingMode fallback */ }
 
+            if (opId !== startOpRef.current) return;
             await scanner.start(
                 cameraConfig,
                 config,
                 (text) => { handleDecode(text); },
                 () => {},
             );
+            if (opId !== startOpRef.current) {
+                try { await scanner.stop(); } catch (_) { /* ignore */ }
+                try { await scanner.clear(); } catch (_) { /* ignore */ }
+                return;
+            }
             cameraOnRef.current = true;
             setCameraOn(true);
             setShowTorchHint(true);
             setStatus('Camera ready — point at barcode', true);
         } catch (err) {
+            if (opId !== startOpRef.current) return;
             cameraOnRef.current = false;
             setCameraOn(false);
             setPanelVisible(false);
             setStatus(await cameraErrorMessage(err), false);
+        } finally {
+            startLockRef.current = false;
         }
     }, [cameraErrorMessage, ensureQrScanner, handleDecode, resolveHttpsPortalUrl, setStatus, updateCameraHints]);
 
@@ -290,6 +311,7 @@ export default function useBarcodeCamera({ onDecode, onStatus, portalPath } = {}
     }, [updateCameraHints]);
 
     useEffect(() => () => {
+        startOpRef.current += 1;
         if (html5QrCodeRef.current) {
             html5QrCodeRef.current.stop().catch(() => {});
             html5QrCodeRef.current.clear().catch(() => {});

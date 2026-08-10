@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const { getPulseInventoryDb } = require('./pulse-inventory-db.cjs');
 const { codeCandidates, normalizeCode } = require('./item-catalog.cjs');
+const { csvCell: csvEscape } = require('./csv-safe.cjs');
 
 const INVENTORY_COUNT_SETTING = 'Inventory_Count_Enabled';
 const SESSION_TYPES = new Set(['location', 'backstock', 'order']);
@@ -21,12 +22,6 @@ function isInventoryCountEnabled(settings) {
 function normalizeSessionType(raw) {
     const t = String(raw || 'location').trim().toLowerCase();
     return SESSION_TYPES.has(t) ? t : 'location';
-}
-
-function csvEscape(value) {
-    const s = String(value ?? '');
-    if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-    return s;
 }
 
 function newSessionId() {

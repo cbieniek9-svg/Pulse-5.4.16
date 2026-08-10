@@ -86,25 +86,31 @@ export default function MarkdownShrinkPanel({ token, showToast }) {
     // scan does not stay attached to the next one.
     const autoItemRef = useRef('');
     const resolvedSkuRef = useRef('');
+    const loadSeqRef = useRef(0);
 
     useEffect(() => { itemValueRef.current = item; }, [item]);
 
-    const resolveSku = useCallback(async (code) => {
+    const resolveSku = useCallback(async (code, { focusQty = false } = {}) => {
         const isNewCode = resolvedSkuRef.current !== code;
         resolvedSkuRef.current = code;
         const nameNow = itemValueRef.current;
         const typedByHand = nameNow.trim() !== '' && nameNow !== autoItemRef.current;
         const applyName = (name) => { autoItemRef.current = name; setItem(name); };
 
-        const found = await lookupItem(token, code);
-        setCatalogHit(found);
-        if (found?.description && (isNewCode || !nameNow.trim())) {
-            applyName(found.description);
-        } else if (isNewCode && !typedByHand && nameNow.trim()) {
-            applyName('');
+        try {
+            const found = await lookupItem(token, code);
+            setCatalogHit(found);
+            if (found?.description && (isNewCode || !nameNow.trim())) {
+                applyName(found.description);
+            } else if (isNewCode && !typedByHand && nameNow.trim()) {
+                applyName('');
+            }
+        } catch (e) {
+            setCatalogHit(null);
+            setScanStatus({ msg: e.message || 'Catalog lookup failed', ok: false });
         }
-        // After a scan, land on qty so the tablet soft keyboard can change the count.
-        requestAnimationFrame(() => qtyRef.current?.focus());
+        // After a camera/scan decode only — typed blur/Enter should not steal focus.
+        if (focusQty) requestAnimationFrame(() => qtyRef.current?.focus());
     }, [token]);
 
     const onDecode = useCallback(async (code) => {
@@ -114,7 +120,7 @@ export default function MarkdownShrinkPanel({ token, showToast }) {
         setCatalogHit(null);
         beepScanOk();
         setScanStatus({ msg: `Scanned ${clean}`, ok: true });
-        await resolveSku(clean);
+        await resolveSku(clean, { focusQty: true });
     }, [resolveSku]);
     const onScanStatus = useCallback((msg, ok) => setScanStatus({ msg, ok }), []);
     const camera = useBarcodeCamera({ onDecode, onStatus: onScanStatus, portalPath: '/markdown' });
@@ -130,6 +136,7 @@ export default function MarkdownShrinkPanel({ token, showToast }) {
 
     const load = useCallback(async (opts = {}) => {
         if (!token) return;
+        const seq = ++loadSeqRef.current;
         try {
             let sid = opts.sessionId != null ? opts.sessionId : activeSessionId;
             if (opts.sessionId == null) {
@@ -143,6 +150,7 @@ export default function MarkdownShrinkPanel({ token, showToast }) {
                 cache: 'no-store',
                 headers: { 'x-session-token': token },
             });
+            if (seq !== loadSeqRef.current) return;
             const list = data.sessions || [];
             const recent = data.recent_sessions || [];
             setSessions(list);
@@ -159,6 +167,7 @@ export default function MarkdownShrinkPanel({ token, showToast }) {
                             cache: 'no-store',
                             headers: { 'x-session-token': token },
                         });
+                        if (seq !== loadSeqRef.current) return;
                         if (boot.store_date) setTodayDate(boot.store_date);
                     } catch { /* ignore */ }
                 }
@@ -183,6 +192,7 @@ export default function MarkdownShrinkPanel({ token, showToast }) {
                     `/api/markdown/shrink?session_id=${encodeURIComponent(nextSid)}`,
                     { cache: 'no-store', headers: { 'x-session-token': token } },
                 );
+                if (seq !== loadSeqRef.current) return;
                 setSessions(again.sessions || list);
                 setRecentSessions(again.recent_sessions || recent);
                 if (again.store_date) setStoreDate(again.store_date);
@@ -198,6 +208,7 @@ export default function MarkdownShrinkPanel({ token, showToast }) {
             setDepartments(data.departments || []);
             setCounts(data.counts || null);
         } catch (e) {
+            if (seq !== loadSeqRef.current) return;
             showToast(e.message || 'Could not load shrink');
         }
     }, [token, showToast, activeSessionId, selectSession]);

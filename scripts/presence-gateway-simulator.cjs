@@ -2,7 +2,8 @@
 /**
  * Dev/test helper: POST synthetic BLE batches to a running Command Center.
  *
- *   node scripts/presence-gateway-simulator.cjs --url http://127.0.0.1:3000 --key YOUR_KEY --gateway GW-RECV
+ *   set PRESENCE_GATEWAY_KEY=<key>
+ *   node scripts/presence-gateway-simulator.cjs --url http://127.0.0.1:3000 --gateway GW-RECV
  */
 const http = require('http');
 const https = require('https');
@@ -10,16 +11,18 @@ const https = require('https');
 function parseArgs(argv) {
     const out = {
         url: 'http://127.0.0.1:3000',
-        key: '',
         gateway: 'GW-RECV',
         count: 2,
     };
     for (let i = 2; i < argv.length; i += 1) {
         const a = argv[i];
         if (a === '--url') out.url = argv[++i];
-        else if (a === '--key') out.key = argv[++i];
         else if (a === '--gateway') out.gateway = argv[++i];
         else if (a === '--count') out.count = Number(argv[++i]) || 2;
+        else if (a === '--key') {
+            console.error('Rejecting --key. Set PRESENCE_GATEWAY_KEY in the environment instead.');
+            process.exit(1);
+        }
     }
     return out;
 }
@@ -55,8 +58,9 @@ function postJson(baseUrl, path, body, headers) {
 
 async function main() {
     const args = parseArgs(process.argv);
-    if (!args.key) {
-        console.error('Missing --key (Presence_Gateway_Key from manager config)');
+    const key = String(process.env.PRESENCE_GATEWAY_KEY || '').trim();
+    if (!key) {
+        console.error('Missing PRESENCE_GATEWAY_KEY (Presence_Gateway_Key from manager config)');
         process.exit(1);
     }
 
@@ -72,7 +76,7 @@ async function main() {
         gateway_id: args.gateway,
         firmware: 'simulator/1.0',
         seen,
-    }, { 'X-Presence-Gateway-Key': args.key });
+    }, { 'X-Presence-Gateway-Key': key });
 
     console.log(res.status, res.body);
     if (res.status >= 400) process.exit(1);

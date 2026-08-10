@@ -41,6 +41,7 @@ async function extractMarkdownScanTextCloud(filename, contentBase64) {
             max_tokens: 4096,
         };
 
+        const timeoutMs = Number(process.env.TGP_OCR_TIMEOUT_MS) || 120000;
         const res = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -48,6 +49,7 @@ async function extractMarkdownScanTextCloud(filename, contentBase64) {
                 Authorization: `Bearer ${apiKey}`,
             },
             body: JSON.stringify(body),
+            signal: AbortSignal.timeout(timeoutMs),
         });
         if (!res.ok) {
             const detail = await res.text();

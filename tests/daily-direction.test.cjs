@@ -187,24 +187,36 @@ function mockDb(overrides = {}) {
                 }
             }
             if (sql.includes('UPDATE daily_direction SET') && sql.includes('floor_message = ?') && sql.includes('posted_snapshot_json')) {
-                const row = state.daily_direction.find((r) => r.store_date === params[5]);
+                // postShiftUpdate / updatePosted: floor, edited, snapshot, dismissFp?, at, by, store_date
+                const storeDate = params.length >= 7 ? params[6] : params[5];
+                const row = state.daily_direction.find((r) => r.store_date === storeDate);
                 if (row) {
                     row.floor_message = params[0];
                     row.floor_message_edited = params[1];
                     row.posted_snapshot_json = params[2];
                     row.shift_update_draft_json = '';
-                    row.updated_at = params[3];
-                    row.updated_by = params[4];
+                    if (params.length >= 7) {
+                        row.amendment_dismissed_fingerprint = params[3];
+                        row.updated_at = params[4];
+                        row.updated_by = params[5];
+                    } else {
+                        row.updated_at = params[3];
+                        row.updated_by = params[4];
+                    }
                 }
             }
             if (sql.includes('UPDATE daily_direction SET') && sql.includes('posted_at')) {
-                const row = state.daily_direction.find((r) => r.store_date === params[7]);
+                const storeDate = params[params.length - 1];
+                const row = state.daily_direction.find((r) => r.store_date === storeDate);
                 if (row) {
                     row.posted_at = params[0];
                     row.posted_by = params[1];
                     row.posted_msg_id = params[2];
                     row.posted_snapshot_json = params[3];
+                    row.updated_at = params[4];
+                    row.updated_by = params[5];
                 }
+                return { changes: row ? 1 : 0 };
             }
             if (sql.includes('UPDATE tasks SET status')) {
                 const taskId = params[2];
@@ -234,6 +246,7 @@ function mockDb(overrides = {}) {
             if (sql.includes('INSERT INTO comms_messages')) {
                 state.comms_messages.push({ msg_id: params[0], lane: params[1], body: params[2] });
             }
+            return { changes: 1 };
         },
         getSettings: () => ({ Message_Center_Enabled: '1', Zone_Ownership: '{"Zone 2":"Luke"}' }),
         _tasks: state.tasks,

@@ -69,9 +69,9 @@ function registerBetacsRoutes(server, ctx) {
             return fail(res, 403, 'CS module hub is not enabled.');
         }
         const rows = db.all(
-            "SELECT name, role FROM staff WHERE active = 1 AND app_access = 1 ORDER BY name",
+            'SELECT name FROM staff WHERE active = 1 AND app_access = 1 ORDER BY name',
         );
-        res.json({ names: rows.map((r) => ({ name: r.name, role: r.role || '' })) });
+        res.json({ names: rows.map((r) => ({ name: r.name })) });
     }));
 
     server.get('/api/cs/due-orders', wrap(async (req, res) => {

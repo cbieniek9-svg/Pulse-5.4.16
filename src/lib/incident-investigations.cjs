@@ -199,7 +199,6 @@ function assertDraftMutable(row) {
 }
 
 function appendAmendEvent(db, investigationId, action, actorName, serverTime, note = null) {
-    ensureIncidentInvestigationSchema(db);
     db.run(
         `INSERT INTO incident_investigation_amend_events (
             investigation_id, action, actor_name, created_at, note
@@ -213,7 +212,6 @@ function appendAmendEvent(db, investigationId, action, actorName, serverTime, no
 }
 
 function getAttachment(db, investigationId, attachmentId) {
-    ensureIncidentInvestigationSchema(db);
     return db.get(
         `SELECT * FROM incident_investigation_attachments
          WHERE id = ? AND investigation_id = ?`,
@@ -272,7 +270,6 @@ function deleteAttachment(db, investigationId, attachmentId) {
 }
 
 function getInvestigation(db, id) {
-    ensureIncidentInvestigationSchema(db);
     const row = db.get('SELECT * FROM incident_investigations WHERE id = ?', id);
     if (!row) return null;
     return {
@@ -286,7 +283,6 @@ function getInvestigation(db, id) {
 }
 
 function listInvestigations(db, opts = {}) {
-    ensureIncidentInvestigationSchema(db);
     const limit = Math.min(Math.max(Number(opts.limit) || 50, 1), 200);
     const status = String(opts.status || '').trim();
     const params = [];
@@ -311,19 +307,31 @@ function createInvestigation(db, {
     storeDateStamp,
     retailName,
 }) {
-    ensureIncidentInvestigationSchema(db);
     const id = `II-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const payload = defaultPayload();
     const signoffs = defaultSignoffs();
-    db.run(
-        `INSERT INTO incident_investigations (
-            id, incident_number, status, retail_name, person_types_json, witnesses_json,
-            payload_json, signoffs_json, created_at, created_by, updated_at, updated_by
-         ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-        id, nextIncidentNumber(db, storeDateStamp), 'draft', retailName || null,
-        '{}', '[]', serializeJson(payload, {}), serializeJson(signoffs, {}),
-        serverTime, actorName, serverTime, actorName,
-    );
+    const insertOnce = () => {
+        const incidentNumber = nextIncidentNumber(db, storeDateStamp);
+        db.run(
+            `INSERT INTO incident_investigations (
+                id, incident_number, status, retail_name, person_types_json, witnesses_json,
+                payload_json, signoffs_json, created_at, created_by, updated_at, updated_by
+             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+            id, incidentNumber, 'draft', retailName || null,
+            '{}', '[]', serializeJson(payload, {}), serializeJson(signoffs, {}),
+            serverTime, actorName, serverTime, actorName,
+        );
+    };
+    // Allocate number + insert atomically; retry once on UNIQUE race.
+    try {
+        if (typeof db.transaction === 'function') db.transaction(insertOnce)();
+        else insertOnce();
+    } catch (e) {
+        const msg = String(e.message || e);
+        if (!/UNIQUE|constraint/i.test(msg)) throw e;
+        if (typeof db.transaction === 'function') db.transaction(insertOnce)();
+        else insertOnce();
+    }
     return getInvestigation(db, id);
 }
 

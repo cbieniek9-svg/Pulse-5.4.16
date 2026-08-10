@@ -31,7 +31,13 @@ function listBackupFiles(backupsDir) {
         .filter(isSafeBackupFilename)
         .map((file) => {
             const fullPath = path.join(backupsDir, file);
-            const stat = fs.statSync(fullPath);
+            let stat;
+            try {
+                stat = fs.statSync(fullPath);
+            } catch (_) {
+                return null;
+            }
+            if (!stat.isFile()) return null;
             return {
                 file,
                 size: stat.size,
@@ -39,6 +45,7 @@ function listBackupFiles(backupsDir) {
                 readable: validateSqliteHeader(fullPath),
             };
         })
+        .filter(Boolean)
         .sort((a, b) => String(b.modified_at).localeCompare(String(a.modified_at)));
 }
 
@@ -130,13 +137,24 @@ function inspectBackupDatabase(filePath, opts = {}) {
         result.user_version = Number(firstPragmaValue(userVersionRow) || 0);
         result.table_count = tables.size;
         result.missing_tables = requiredTables.filter((name) => !tables.has(name));
-        result.ok = quickValues.every((v) => v.toLowerCase() === 'ok')
-            && (opts.skipIntegrityCheck || integrityValues.every((v) => v.toLowerCase() === 'ok'))
+        const quickOk = quickValues.length > 0 && quickValues.every((v) => v.toLowerCase() === 'ok');
+        const integrityOk = opts.skipIntegrityCheck
+            || (integrityValues.length > 0 && integrityValues.every((v) => v.toLowerCase() === 'ok'));
+        result.ok = quickOk
+            && integrityOk
             && result.missing_tables.length === 0;
         if (!result.ok) {
-            if (!quickValues.every((v) => v.toLowerCase() === 'ok')) result.error = `quick_check failed: ${quickValues.join('; ')}`;
-            else if (!opts.skipIntegrityCheck && !integrityValues.every((v) => v.toLowerCase() === 'ok')) result.error = `integrity_check failed: ${integrityValues.join('; ')}`;
-            else if (result.missing_tables.length) result.error = `missing required table(s): ${result.missing_tables.join(', ')}`;
+            if (!quickOk) {
+                result.error = quickValues.length
+                    ? `quick_check failed: ${quickValues.join('; ')}`
+                    : 'quick_check returned no rows';
+            } else if (!integrityOk) {
+                result.error = integrityValues.length
+                    ? `integrity_check failed: ${integrityValues.join('; ')}`
+                    : 'integrity_check returned no rows';
+            } else if (result.missing_tables.length) {
+                result.error = `missing required table(s): ${result.missing_tables.join(', ')}`;
+            }
         }
         return result;
     } catch (e) {

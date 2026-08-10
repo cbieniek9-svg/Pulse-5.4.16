@@ -5,6 +5,7 @@ const path = require('path');
 const selfsigned = require('selfsigned');
 const { getDataRoot } = require('../paths.cjs');
 const { listPrivateIpv4, isPrivateIpv4 } = require('./safe-network-interfaces.cjs');
+const { restrictWindowsFileAcl } = require('./windows-file-acl.cjs');
 
 function listLanIpv4(opts = {}) {
     return listPrivateIpv4(opts).addresses;
@@ -133,6 +134,7 @@ function ensureLocalHttpsCredentials(opts = {}) {
     });
 
     fs.writeFileSync(paths.key, pems.private, { encoding: 'utf8', mode: 0o600 });
+    restrictWindowsFileAcl(paths.key);
     fs.writeFileSync(paths.cert, pems.cert, { encoding: 'utf8' });
     fs.writeFileSync(paths.meta, JSON.stringify({
         createdAt: new Date().toISOString(),

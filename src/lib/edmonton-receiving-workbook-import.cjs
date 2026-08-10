@@ -798,8 +798,8 @@ function summarizeWorkbook(wb, opts = {}) {
     let salesEntries = sales.entries.filter((e) => e.amount !== 0);
     let synthesized = [];
     if (opts.fillSales === true && salesEntries.length === 0) {
+        // Estimates only — never assign into _salesEntries / persist as manager-entered sales.
         synthesized = synthesizeSalesFromPurchases(wb, periodStart);
-        salesEntries = synthesized;
     }
 
     return {
@@ -866,95 +866,115 @@ async function importWorkbookToDb(db, workbookPath, opts = {}) {
     const actor = opts.actor || 'workbook-import';
     const periodStart = summary.period_start;
 
-    if (opts.replacePeriod) clearPeriod(db, periodStart);
+    const groceryInventoryCell = (addr) => {
+        const n = cellNumber(wb.Sheets?.['Total Grocery']?.[addr]);
+        return n == null ? null : roundMoney(n);
+    };
 
-    upsertSetting(db, SETTING_PERIOD_START, periodStart);
-    if (summary.period_number) savePeriodNumber(db, summary.period_number);
+    const persistImport = () => {
+        if (opts.replacePeriod) clearPeriod(db, periodStart);
 
-    // N3 → freight_total as Daily Freight Allocation Total (authoritative day total).
-    // Not an invoice-estimate memo. Do not invent a period rate from N3.
-    // Deprecated B118 (if present) is kept on the summary only — never upserted as landing rate.
+        upsertSetting(db, SETTING_PERIOD_START, periodStart);
+        if (summary.period_number) savePeriodNumber(db, summary.period_number);
 
-    summary._dailySheets.forEach((day) => {
-        upsertDayMeta(db, day.storeDate, {
-            receiver_name: day.receiver,
-            freight_total: day.freight,
-            period_start: periodStart,
-        }, actor);
-        day.lines.forEach((line, idx) => {
-            saveLine(db, day.storeDate, { ...line, sort_order: idx + 1 }, actor);
-        });
-    });
+        // N3 → freight_total as Daily Freight Allocation Total (authoritative day total).
+        // Not an invoice-estimate memo. Do not invent a period rate from N3.
+        // Deprecated B118 (if present) is kept on the summary only — never upserted as landing rate.
 
-    summary._salesEntries.forEach((entry) => {
-        saveSalesAmount(db, periodStart, entry.weekNum, entry.categoryKey, entry.amount, actor);
-    });
-
-    summary._shrinkRows.forEach((row, idx) => {
-        saveImportedShrinkLine(db, row.store_date, { ...row, sort_order: idx + 1 }, actor);
-    });
-
-    saveMarginMeta(db, periodStart, {
-        ...summary._marginMeta,
-        opening_inventory: summary._marginMeta.opening_inventory ?? roundMoney(wb.Sheets['Total Grocery']?.B17?.v),
-        closing_inventory: summary._marginMeta.closing_inventory ?? roundMoney(wb.Sheets['Total Grocery']?.B19?.v),
-        ...(summary._countCycle?.applies_to_this_workbook ? { is_count_period: 1 } : {}),
-    }, actor);
-
-    summary._rebateLines.forEach((line, idx) => {
-        saveRebateLine(db, periodStart, { ...line, sort_order: idx + 1 }, actor);
-    });
-
-    summary._recountRows.forEach((row, idx) => {
-        saveRecount(db, periodStart, { ...row, sort_order: idx + 1 }, actor);
-    });
-
-    summary._deptMargins.forEach(({ department, meta }) => {
-        saveDeptMarginMeta(db, periodStart, department, meta, actor);
-    });
-
-    // Upsert draft allocation profile from imported % — do NOT auto-confirm unless asked.
-    const importedPct = summary._allocPctMap;
-    summary.freight_rate_applied = false;
-    summary.profile_applied = false;
-    summary.profile_confirmed = false;
-    if (importedPct) {
-        try {
-            upsertDraftProfile(db, periodStart, importedPct, actor);
-            summary.profile_applied = true;
-            summary.profile_needs_confirmation = true;
-            const confirmOpt = opts.confirm_profile === true || opts.confirmProfile === true;
-            if (confirmOpt && summary.alloc_profile_valid && !summary.alloc_profile_needs_manager_review) {
-                const reason = String(opts.confirm_reason || opts.confirmReason || 'Imported from workbook').trim()
-                    || 'Imported from workbook';
-                confirmProfile(db, periodStart, actor, reason);
-                summary.profile_confirmed = true;
-                summary.profile_needs_confirmation = false;
-                try {
-                    snapshotPeriodDayDeptFreight(db, periodStart);
-                } catch (_) { /* snapshot only after confirm */ }
-            }
-        } catch (e) {
-            summary.profile_apply_error = e.message || String(e);
-        }
-    } else {
-        summary.profile_needs_confirmation = true;
-    }
-
-    // Only the count-period workbook (Period Y of "Periods X–Y") owns the cycle record.
-    // Prior-period workbooks often still carry the same right-hand block as a template remnant.
-    if (summary._countCycle?.applies_to_this_workbook) {
-        try {
-            const { saveCountCycle } = require('./edmonton-receiving-count-cycle.cjs');
-            const cycle = summary._countCycle;
-            saveCountCycle(db, {
-                cycle_end_period_start: periodStart,
-                period_number_end: cycle.period_number_end,
-                counted_closing: cycle.counted_closing,
-                cycle_opening: cycle.cycle_opening,
-                notes: `Imported from Excel Periods ${cycle.period_number_start || '?'}–${cycle.period_number_end || '?'} block`,
+        summary._dailySheets.forEach((day) => {
+            upsertDayMeta(db, day.storeDate, {
+                receiver_name: day.receiver,
+                freight_total: day.freight,
+                period_start: periodStart,
             }, actor);
-        } catch (_) { /* count-cycle optional if migration pending */ }
+            day.lines.forEach((line, idx) => {
+                saveLine(db, day.storeDate, { ...line, sort_order: idx + 1 }, actor);
+            });
+        });
+
+        summary._salesEntries.forEach((entry) => {
+            saveSalesAmount(db, periodStart, entry.weekNum, entry.categoryKey, entry.amount, actor);
+        });
+
+        summary._shrinkRows.forEach((row, idx) => {
+            saveImportedShrinkLine(db, row.store_date, { ...row, sort_order: idx + 1 }, actor);
+        });
+
+        saveMarginMeta(db, periodStart, {
+            ...summary._marginMeta,
+            // Missing/non-numeric Total Grocery cells stay null; intentional zeros preserved.
+            opening_inventory: summary._marginMeta.opening_inventory ?? groceryInventoryCell('B17'),
+            closing_inventory: summary._marginMeta.closing_inventory ?? groceryInventoryCell('B19'),
+            ...(summary._countCycle?.applies_to_this_workbook ? { is_count_period: 1 } : {}),
+        }, actor);
+
+        summary._rebateLines.forEach((line, idx) => {
+            saveRebateLine(db, periodStart, { ...line, sort_order: idx + 1 }, actor);
+        });
+
+        summary._recountRows.forEach((row, idx) => {
+            saveRecount(db, periodStart, { ...row, sort_order: idx + 1 }, actor);
+        });
+
+        summary._deptMargins.forEach(({ department, meta }) => {
+            saveDeptMarginMeta(db, periodStart, department, meta, actor);
+        });
+
+        // Upsert draft allocation profile from imported % — do NOT auto-confirm unless asked.
+        const importedPct = summary._allocPctMap;
+        summary.freight_rate_applied = false;
+        summary.profile_applied = false;
+        summary.profile_confirmed = false;
+        if (importedPct) {
+            try {
+                upsertDraftProfile(db, periodStart, importedPct, actor);
+                summary.profile_applied = true;
+                summary.profile_needs_confirmation = true;
+                const confirmOpt = opts.confirm_profile === true || opts.confirmProfile === true;
+                if (confirmOpt && summary.alloc_profile_valid && !summary.alloc_profile_needs_manager_review) {
+                    const reason = String(opts.confirm_reason || opts.confirmReason || 'Imported from workbook').trim()
+                        || 'Imported from workbook';
+                    confirmProfile(db, periodStart, actor, reason);
+                    summary.profile_confirmed = true;
+                    summary.profile_needs_confirmation = false;
+                    try {
+                        snapshotPeriodDayDeptFreight(db, periodStart);
+                    } catch (_) { /* snapshot only after confirm */ }
+                }
+            } catch (e) {
+                summary.profile_apply_error = e.message || String(e);
+            }
+        } else {
+            summary.profile_needs_confirmation = true;
+        }
+
+        // Only the count-period workbook (Period Y of "Periods X–Y") owns the cycle record.
+        // Prior-period workbooks often still carry the same right-hand block as a template remnant.
+        if (summary._countCycle?.applies_to_this_workbook) {
+            try {
+                const { saveCountCycle } = require('./edmonton-receiving-count-cycle.cjs');
+                const cycle = summary._countCycle;
+                saveCountCycle(db, {
+                    cycle_end_period_start: periodStart,
+                    period_number_end: cycle.period_number_end,
+                    counted_closing: cycle.counted_closing,
+                    cycle_opening: cycle.cycle_opening,
+                    notes: `Imported from Excel Periods ${cycle.period_number_start || '?'}–${cycle.period_number_end || '?'} block`,
+                }, actor);
+            } catch (_) { /* count-cycle optional if migration pending */ }
+        }
+
+        // Import-path only: strip stray count-cycle rows from prior-period template remnants.
+        try {
+            const { repairStrayCountCycleImports } = require('./edmonton-receiving-count-cycle.cjs');
+            repairStrayCountCycleImports(db);
+        } catch (_) { /* optional */ }
+    };
+
+    if (typeof db.transaction === 'function') {
+        db.transaction(persistImport)();
+    } else {
+        persistImport();
     }
 
     delete summary._dailySheets;

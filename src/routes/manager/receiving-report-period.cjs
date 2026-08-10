@@ -49,7 +49,14 @@ function normalizeAllocPctBody(body = {}) {
     ALLOC_DEPT_KEYS.forEach((key) => {
         const raw = src?.[key] ?? src?.[`${key}_pct`];
         if (raw !== undefined && raw !== null && raw !== '') {
-            map[key] = Number(raw);
+            const n = Number(raw);
+            if (!Number.isFinite(n)) {
+                const err = new Error(`Invalid allocation percentage for ${key}`);
+                err.status = 400;
+                err.code = 'INVALID_ALLOC_PCT';
+                throw err;
+            }
+            map[key] = n;
         }
     });
     return map;
@@ -100,6 +107,10 @@ function registerReceivingReportPeriodRoutes(server, ctx) {
         if (!requireManagerOnly(req, res, session)) return;
         const b = req.body ?? {};
         const periodStart = String(b.period_start || '').trim();
+        if (!periodStart) {
+            fail(res, 400, 'period_start is required.');
+            return;
+        }
         try {
             guardPeriodEditable(periodStart);
             const method = setPeriodCostingMethod(db, periodStart, b, session.name);

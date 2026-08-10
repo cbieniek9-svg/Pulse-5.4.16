@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export const ORDER_FINISH_REASON_OPTIONS = [
     { value: '', label: 'Normal day — nothing to flag' },
@@ -47,8 +47,12 @@ export default function OrderFinishGateModal({ syncData, clockKind = 'dry', onCa
     const [reasonSel, setReasonSel] = useState('');
     const [reasonNote, setReasonNote] = useState('');
     const [error, setError] = useState('');
+    const seededKindRef = useRef(null);
 
     useEffect(() => {
+        // Seed once per open/clockKind — do not overwrite edits when syncData identity churns.
+        if (seededKindRef.current === clockKind) return;
+        seededKindRef.current = clockKind;
         setStaff(String(defaultOrderFinishStaff(syncData, clockKind)));
         setHardware(syncData?.settings?.Hardware_Arrived === '1');
     }, [syncData, clockKind]);

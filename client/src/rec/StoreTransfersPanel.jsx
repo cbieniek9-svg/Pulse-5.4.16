@@ -34,13 +34,15 @@ export default function StoreTransfersPanel({ token, storeDate, enabled }) {
         } catch (_) { /* ignore */ }
     }, [enabled, token, searchDate, storeDate]);
 
-    const search = useCallback(async () => {
+    const search = useCallback(async (overrides = {}) => {
         if (!enabled || !token) return;
+        const q = overrides.q !== undefined ? overrides.q : searchQ;
+        const date = overrides.date !== undefined ? overrides.date : searchDate;
         setSearching(true);
         try {
             const params = new URLSearchParams();
-            if (searchQ.trim()) params.set('q', searchQ.trim());
-            if (searchDate) params.set('date', searchDate);
+            if (String(q || '').trim()) params.set('q', String(q).trim());
+            if (date) params.set('date', date);
             const data = await fetchJson(`/api/receiving/store-transfers?${params}`, {
                 headers: { 'x-session-token': token },
             });
@@ -128,12 +130,23 @@ export default function StoreTransfersPanel({ token, storeDate, enabled }) {
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.error || 'Could not create transfer');
-            await downloadTransfer(data.transfer.transfer_id, data.transfer.file_name);
+            const transfer = data.transfer;
+            if (!transfer?.transfer_id) throw new Error('Transfer created but response was incomplete.');
+            try {
+                await downloadTransfer(transfer.transfer_id, transfer.file_name);
+            } catch (dlErr) {
+                setLines([emptyLine('xl-1')]);
+                setPallets('');
+                setWeight('');
+                await search();
+                alert(`Created ${transfer.invoice_no || transfer.transfer_id}, but download failed: ${dlErr.message}`);
+                return;
+            }
             setLines([emptyLine('xl-1')]);
             setPallets('');
             setWeight('');
             await search();
-            alert(`Created ${data.transfer.invoice_no} — workbook downloaded.`);
+            alert(`Created ${transfer.invoice_no} — workbook downloaded.`);
         } catch (e) {
             alert(e.message);
         } finally {
@@ -224,7 +237,12 @@ export default function StoreTransfersPanel({ token, storeDate, enabled }) {
                 </div>
                 <div className="xfer-actions">
                     <button type="button" className="btn btn-secondary" style={{ flex: 1 }} disabled={searching} onClick={search}>SEARCH</button>
-                    <button type="button" className="btn" style={{ flex: 1 }} onClick={() => { setSearchQ(''); setSearchDate(storeDate || ''); search(); }}>CLEAR</button>
+                    <button type="button" className="btn" style={{ flex: 1 }} onClick={() => {
+                        const clearedDate = storeDate || '';
+                        setSearchQ('');
+                        setSearchDate(clearedDate);
+                        search({ q: '', date: clearedDate });
+                    }}>CLEAR</button>
                 </div>
                 <div className="xfer-result">
                     {searching ? <p className="hint">Searching…</p> : null}

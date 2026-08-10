@@ -84,56 +84,61 @@ function deferRhythmTasks(db, { storeDate, rhythmIds, actorName, serverTime }) {
     );
     if (!templates.length) throw Object.assign(new Error('No matching rhythm templates'), { status: 404 });
 
-    const existing = getDeferredRhythmIds(db, storeDate);
-    setRhythmDeferrals(db, storeDate, [...existing, ...ids]);
-
     const now = serverTime || new Date().toISOString();
     const tzMod = sqliteTzOffsetModifier(readStoreTimezone(db));
-    let closed = 0;
-    templates.forEach((t) => {
-        const detail = String(t.detail || '').trim();
-        if (!detail) return;
-        const openRows = db.all(
-            `SELECT task_id FROM tasks
-             WHERE status='Open' AND priority='Routine'
-               AND date(time_submitted, ?) = date(?)
-               AND (
-                 (zone='General' AND task_detail=?)
-                 OR task_detail LIKE ?
-               )`,
-            tzMod,
-            storeDate,
-            detail,
-            `${detail} — %`,
-        );
-        openRows.forEach((row) => {
-            db.run(
-                `UPDATE tasks SET status='Closed', time_closed=?, closed_by=?
-                 WHERE task_id=? AND status='Open'`,
-                now,
-                actorName || 'Manager',
-                row.task_id,
-            );
-            closed += 1;
-        });
-    });
-
     const templateDetails = templates.map((t) => t.detail);
-    appendRhythmDeferLog(db, {
-        store_date: storeDate,
-        deferred_at: now,
-        deferred_by: actorName || '',
-        rhythm_ids: ids,
-        templates: templateDetails,
-        closed_board_tasks: closed,
-    });
 
-    return {
-        store_date: storeDate,
-        deferred_ids: getDeferredRhythmIds(db, storeDate),
-        templates: templateDetails,
-        closed_board_tasks: closed,
+    const apply = () => {
+        const existing = getDeferredRhythmIds(db, storeDate);
+        setRhythmDeferrals(db, storeDate, [...existing, ...ids]);
+
+        let closed = 0;
+        templates.forEach((t) => {
+            const detail = String(t.detail || '').trim();
+            if (!detail) return;
+            const openRows = db.all(
+                `SELECT task_id FROM tasks
+                 WHERE status='Open' AND priority='Routine'
+                   AND date(time_submitted, ?) = date(?)
+                   AND (
+                     (zone='General' AND task_detail=?)
+                     OR task_detail LIKE ?
+                   )`,
+                tzMod,
+                storeDate,
+                detail,
+                `${detail} — %`,
+            );
+            openRows.forEach((row) => {
+                db.run(
+                    `UPDATE tasks SET status='Closed', time_closed=?, closed_by=?
+                     WHERE task_id=? AND status='Open'`,
+                    now,
+                    actorName || 'Manager',
+                    row.task_id,
+                );
+                closed += 1;
+            });
+        });
+
+        appendRhythmDeferLog(db, {
+            store_date: storeDate,
+            deferred_at: now,
+            deferred_by: actorName || '',
+            rhythm_ids: ids,
+            templates: templateDetails,
+            closed_board_tasks: closed,
+        });
+
+        return {
+            store_date: storeDate,
+            deferred_ids: getDeferredRhythmIds(db, storeDate),
+            templates: templateDetails,
+            closed_board_tasks: closed,
+        };
     };
+
+    return typeof db.transaction === 'function' ? db.transaction(apply)() : apply();
 }
 
 /**

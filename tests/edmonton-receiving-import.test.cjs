@@ -147,7 +147,14 @@ test('importWorkbook loads Aug 2026 sample into an isolated database', async () 
         assert.equal(summary.period_start, '2026-07-19');
         assert.ok(summary.invoice_lines >= 100);
         assert.ok(summary.shrink_lines >= 4);
-        assert.ok(summary.sales_cells >= 10);
+        // fillSales may synthesize estimates for the summary, but those must not
+        // persist as manager-entered sales rows.
+        assert.ok(summary.sales_cells + summary.synthesized_sales >= 10);
+        const persistedSales = db.get(
+            'SELECT COUNT(*) AS n FROM receiving_report_sales WHERE period_start=?',
+            summary.period_start,
+        )?.n;
+        assert.equal(Number(persistedSales || 0), Number(summary.sales_cells || 0));
         assert.equal(summary.profile_applied, true);
         assert.equal(summary.profile_confirmed, false);
         assert.equal(summary.profile_needs_confirmation, true);

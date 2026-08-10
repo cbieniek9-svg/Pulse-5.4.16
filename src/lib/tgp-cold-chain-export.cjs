@@ -1,6 +1,7 @@
 'use strict';
 
 const { listColdChainForReport, enrichColdChainRows } = require('./receiving-pallets.cjs');
+const { csvCell } = require('./csv-safe.cjs');
 
 function escapeHtml(v) {
     return String(v ?? '')
@@ -73,7 +74,7 @@ function renderColdChainCsv(payload) {
             r.captured_by || '',
             r.captured_at || '',
             r.notes || '',
-        ].map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','));
+        ].map(csvCell).join(','));
     }
     return lines.join('\n');
 }

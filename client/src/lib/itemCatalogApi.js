@@ -8,30 +8,22 @@ function authHeaders(token) {
 export async function lookupItem(token, code) {
     const clean = String(code || '').trim();
     if (!clean || !token) return null;
-    try {
-        const res = await fetchJson(`/api/items/lookup?code=${encodeURIComponent(clean)}`, {
-            cache: 'no-store',
-            headers: authHeaders(token),
-        });
-        return res?.found ? res.item : null;
-    } catch (_) {
-        return null;
-    }
+    const res = await fetchJson(`/api/items/lookup?code=${encodeURIComponent(clean)}`, {
+        cache: 'no-store',
+        headers: authHeaders(token),
+    });
+    return res?.found ? res.item : null;
 }
 
 export async function searchItems(token, q, limit = 25) {
     const clean = String(q || '').trim();
     if (!clean || !token) return { rows: [], stats: null };
-    try {
-        const params = new URLSearchParams({ q: clean, limit: String(limit) });
-        const res = await fetchJson(`/api/items/search?${params}`, {
-            cache: 'no-store',
-            headers: authHeaders(token),
-        });
-        return { rows: res?.rows || [], stats: res?.stats || null };
-    } catch (_) {
-        return { rows: [], stats: null };
-    }
+    const params = new URLSearchParams({ q: clean, limit: String(limit) });
+    const res = await fetchJson(`/api/items/search?${params}`, {
+        cache: 'no-store',
+        headers: authHeaders(token),
+    });
+    return { rows: res?.rows || [], stats: res?.stats || null };
 }
 
 export async function getItemCatalogStats(token) {

@@ -8,10 +8,21 @@ const { inspectBackupDatabase } = require('./backup-health.cjs');
 
 const BACKUP_VERIFICATION_FAILED = 'BACKUP_VERIFICATION_FAILED';
 const BACKUP_PACKAGE_IO_FAILED = 'BACKUP_PACKAGE_IO_FAILED';
+const PACKAGE_ID_RE = /^[A-Za-z0-9._-]+$/;
 
 function hashFile(filePath) {
     const hash = crypto.createHash('sha256');
-    hash.update(fs.readFileSync(filePath));
+    const fd = fs.openSync(filePath, 'r');
+    try {
+        const buf = Buffer.alloc(64 * 1024);
+        for (;;) {
+            const bytesRead = fs.readSync(fd, buf, 0, buf.length, null);
+            if (bytesRead <= 0) break;
+            hash.update(buf.subarray(0, bytesRead));
+        }
+    } finally {
+        fs.closeSync(fd);
+    }
     return hash.digest('hex');
 }
 
@@ -28,7 +39,8 @@ function walkFiles(rootDir) {
             else if (entry.isFile()) out.push(full);
         }
     }
-    return out.sort((a, b) => a.localeCompare(b));
+    // Locale-independent: code-unit order (not localeCompare).
+    return out.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 }
 
 function hashTree(rootDir) {
@@ -58,11 +70,94 @@ function copyDirRecursive(src, dest) {
     }
 }
 
+async function copyInventoryDbOnline(inventorySrc, invDest) {
+    let Database;
+    try {
+        Database = require('better-sqlite3');
+    } catch (_) {
+        throw new Error('better-sqlite3 unavailable');
+    }
+    const src = new Database(inventorySrc, { readonly: true, fileMustExist: true });
+    try {
+        if (typeof src.backup !== 'function') {
+            throw new Error('database backup() is unavailable');
+        }
+        fs.mkdirSync(path.dirname(invDest), { recursive: true });
+        await src.backup(invDest);
+    } finally {
+        src.close();
+    }
+}
+
+function pushDirArtifact(artifacts, role, relPath, srcDir, destDir) {
+    if (!fs.existsSync(srcDir) || !fs.statSync(srcDir).isDirectory()) return;
+    copyDirRecursive(srcDir, destDir);
+    artifacts.push({
+        role,
+        path: relPath,
+        size: directoryByteSize(destDir),
+        hash: hashTree(destDir),
+    });
+}
+
+function pushInventoryArtifact(artifacts, invDest) {
+    artifacts.push({
+        role: 'inventory_db',
+        path: 'pulse_inventory.db',
+        size: fs.statSync(invDest).size,
+        hash: hashFile(invDest),
+    });
+}
+
 /**
  * Copy optional package sidecars into packageDir and return artifact descriptors.
  * Ops DB is handled by the caller (online backup or sync VACUUM INTO path).
+ * Inventory prefers better-sqlite3 backup(); falls back to copyFileSync.
  */
-function assemblePackageSidecars({ dataRoot, packageDir, copyFileSync: copyFileSyncOpt } = {}) {
+async function assemblePackageSidecars({
+    dataRoot,
+    packageDir,
+    copyFileSync: copyFileSyncOpt,
+    copyInventoryDbOnline: copyInventoryDbOnlineOpt,
+} = {}) {
+    if (!dataRoot || !packageDir) {
+        throw new Error('dataRoot and packageDir are required');
+    }
+    const copyFileSync = copyFileSyncOpt || ((src, dest) => fs.copyFileSync(src, dest));
+    const copyInventory = copyInventoryDbOnlineOpt || copyInventoryDbOnline;
+    const artifacts = [];
+
+    const inventorySrc = path.join(dataRoot, 'data', 'pulse_inventory.db');
+    if (fs.existsSync(inventorySrc) && fs.statSync(inventorySrc).isFile()) {
+        const invDest = path.join(packageDir, 'pulse_inventory.db');
+        try {
+            await copyInventory(inventorySrc, invDest);
+        } catch (_) {
+            copyFileSync(inventorySrc, invDest);
+        }
+        pushInventoryArtifact(artifacts, invDest);
+    }
+
+    pushDirArtifact(
+        artifacts,
+        'incident_attachments',
+        'incident_investigations',
+        path.join(dataRoot, 'data', 'incident_investigations'),
+        path.join(packageDir, 'incident_investigations'),
+    );
+    pushDirArtifact(
+        artifacts,
+        'store_transfers',
+        'store-transfers',
+        path.join(dataRoot, 'store-transfers'),
+        path.join(packageDir, 'store-transfers'),
+    );
+
+    return artifacts;
+}
+
+/** Sync sidecars for migration boot (inventory via copyFileSync only). */
+function assemblePackageSidecarsSync({ dataRoot, packageDir, copyFileSync: copyFileSyncOpt } = {}) {
     if (!dataRoot || !packageDir) {
         throw new Error('dataRoot and packageDir are required');
     }
@@ -73,37 +168,23 @@ function assemblePackageSidecars({ dataRoot, packageDir, copyFileSync: copyFileS
     if (fs.existsSync(inventorySrc) && fs.statSync(inventorySrc).isFile()) {
         const invDest = path.join(packageDir, 'pulse_inventory.db');
         copyFileSync(inventorySrc, invDest);
-        artifacts.push({
-            role: 'inventory_db',
-            path: 'pulse_inventory.db',
-            size: fs.statSync(invDest).size,
-            hash: hashFile(invDest),
-        });
+        pushInventoryArtifact(artifacts, invDest);
     }
 
-    const attachmentsSrc = path.join(dataRoot, 'data', 'incident_investigations');
-    if (fs.existsSync(attachmentsSrc) && fs.statSync(attachmentsSrc).isDirectory()) {
-        const attDest = path.join(packageDir, 'incident_investigations');
-        copyDirRecursive(attachmentsSrc, attDest);
-        artifacts.push({
-            role: 'incident_attachments',
-            path: 'incident_investigations',
-            size: directoryByteSize(attDest),
-            hash: hashTree(attDest),
-        });
-    }
-
-    const transfersSrc = path.join(dataRoot, 'store-transfers');
-    if (fs.existsSync(transfersSrc) && fs.statSync(transfersSrc).isDirectory()) {
-        const xferDest = path.join(packageDir, 'store-transfers');
-        copyDirRecursive(transfersSrc, xferDest);
-        artifacts.push({
-            role: 'store_transfers',
-            path: 'store-transfers',
-            size: directoryByteSize(xferDest),
-            hash: hashTree(xferDest),
-        });
-    }
+    pushDirArtifact(
+        artifacts,
+        'incident_attachments',
+        'incident_investigations',
+        path.join(dataRoot, 'data', 'incident_investigations'),
+        path.join(packageDir, 'incident_investigations'),
+    );
+    pushDirArtifact(
+        artifacts,
+        'store_transfers',
+        'store-transfers',
+        path.join(dataRoot, 'store-transfers'),
+        path.join(packageDir, 'store-transfers'),
+    );
 
     return artifacts;
 }
@@ -199,7 +280,21 @@ function promoteDailyAlias(backupsDir, opsDbPath, stage, labelDate, deps = {}) {
     }
 }
 
-function failResult({ packageId, directory, opsDbPath, labelDate, error, code = BACKUP_VERIFICATION_FAILED }) {
+function cleanupPackageDir(directory, backupsDir) {
+    try {
+        if (!directory || !fs.existsSync(directory)) return;
+        if (backupsDir) {
+            const root = path.resolve(backupsDir);
+            const target = path.resolve(directory);
+            const rel = path.relative(root, target);
+            if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) return;
+        }
+        fs.rmSync(directory, { recursive: true, force: true });
+    } catch (_) { /* ignore */ }
+}
+
+function failResult({ packageId, directory, opsDbPath, labelDate, error, code = BACKUP_VERIFICATION_FAILED, backupsDir = null }) {
+    cleanupPackageDir(directory, backupsDir);
     return {
         ok: false,
         packageId: packageId || null,
@@ -221,6 +316,7 @@ async function createBackupPackage({
     packageId,
     now,
     copyFileSync: copyFileSyncOpt,
+    copyInventoryDbOnline: copyInventoryDbOnlineOpt,
     promoteDailyAlias: promoteOpt,
 } = {}) {
     if (!dataRoot) {
@@ -232,9 +328,31 @@ async function createBackupPackage({
 
     const when = now instanceof Date ? now : new Date();
     const date = labelDate || formatLabelDate(when);
-    const id = packageId || `pkg_${stage}_${date}_${formatHms(when)}`;
+    const id = String(packageId || `pkg_${stage}_${date}_${formatHms(when)}`);
+    // PACKAGE_ID_RE allows '.' / '..'; reject those explicitly and keep the package under backupsDir.
+    if (!PACKAGE_ID_RE.test(id) || id === '.' || id === '..') {
+        return failResult({
+            packageId: id,
+            labelDate: date,
+            error: 'invalid package id',
+            code: BACKUP_PACKAGE_IO_FAILED,
+        });
+    }
     const backupsDir = path.join(dataRoot, 'backups');
     const directory = path.join(backupsDir, id);
+    const backupsRootResolved = path.resolve(backupsDir);
+    const directoryResolved = path.resolve(directory);
+    if (
+        directoryResolved !== backupsRootResolved
+        && !directoryResolved.startsWith(backupsRootResolved + path.sep)
+    ) {
+        return failResult({
+            packageId: id,
+            labelDate: date,
+            error: 'invalid package id',
+            code: BACKUP_PACKAGE_IO_FAILED,
+        });
+    }
     const opsDbPath = path.join(directory, 'tgp_ops.db');
     const copyFileSync = copyFileSyncOpt || ((src, dest) => fs.copyFileSync(src, dest));
     const promote = promoteOpt || promoteDailyAlias;
@@ -248,6 +366,7 @@ async function createBackupPackage({
             labelDate: date,
             error: e.message || String(e),
             code: BACKUP_PACKAGE_IO_FAILED,
+            backupsDir,
         });
     }
 
@@ -260,6 +379,7 @@ async function createBackupPackage({
             opsDbPath,
             labelDate: date,
             error: e.message || String(e),
+            backupsDir,
         });
     }
 
@@ -271,6 +391,7 @@ async function createBackupPackage({
             opsDbPath,
             labelDate: date,
             error: verification.error || 'ops database verification failed',
+            backupsDir,
         });
     }
 
@@ -281,10 +402,11 @@ async function createBackupPackage({
             size: fs.statSync(opsDbPath).size,
             hash: hashFile(opsDbPath),
         }];
-        artifacts.push(...assemblePackageSidecars({
+        artifacts.push(...await assemblePackageSidecars({
             dataRoot,
             packageDir: directory,
             copyFileSync,
+            copyInventoryDbOnline: copyInventoryDbOnlineOpt,
         }));
 
         const manifest = {
@@ -305,7 +427,12 @@ async function createBackupPackage({
         };
 
         fs.writeFileSync(path.join(directory, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
-        promote(backupsDir, opsDbPath, stage, date);
+
+        // Package is complete once manifest is written. Alias promote is best-effort
+        // so a promote failure must not flip a verified package to ok:false.
+        try {
+            promote(backupsDir, opsDbPath, stage, date);
+        } catch (_) { /* ignore promote errors */ }
 
         return {
             ok: true,
@@ -325,6 +452,7 @@ async function createBackupPackage({
             labelDate: date,
             error: e.message || String(e),
             code: BACKUP_PACKAGE_IO_FAILED,
+            backupsDir,
         });
     }
 }
@@ -346,6 +474,8 @@ module.exports = {
     copyDirRecursive,
     directoryByteSize,
     assemblePackageSidecars,
+    assemblePackageSidecarsSync,
+    copyInventoryDbOnline,
     verifyOpsDatabaseCopy,
     copyOpsDbOnline,
     createBackupPackage,

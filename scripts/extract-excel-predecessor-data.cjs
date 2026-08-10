@@ -243,6 +243,25 @@ function writeJson(name, data) {
     console.log('  wrote', p);
 }
 
+function requireSheets(wb, names) {
+    const missing = names.filter((n) => !sheetByName(wb, n));
+    if (missing.length) {
+        throw new Error(`Missing required worksheet(s): ${missing.join(', ')}`);
+    }
+}
+
+function assertNonEmpty(label, value) {
+    if (Array.isArray(value)) {
+        if (!value.length) throw new Error(`${label} is empty`);
+        return;
+    }
+    if (value && typeof value === 'object') {
+        if (!Object.keys(value).length) throw new Error(`${label} is empty`);
+        return;
+    }
+    if (value == null || value === '') throw new Error(`${label} is empty`);
+}
+
 async function main() {
     if (!fs.existsSync(XLSM)) {
         console.error('Missing archive xlsm:', XLSM);
@@ -250,12 +269,35 @@ async function main() {
     }
     console.log('Reading', XLSM);
     const wb = await readSpreadsheetFile(XLSM);
+    requireSheets(wb, [
+        'Task_Library',
+        'Time_Budget',
+        'Vendors',
+        'Store_Walk',
+        'Perishables_Walk',
+        'Settings',
+    ]);
     const od2 = ensureOd2Extracted();
 
-    writeJson('task-estimate-baselines.json', extractTaskLibrary(wb));
-    writeJson('vendor-directory.json', extractVendors(wb));
-    writeJson('audit-walk-templates.json', extractStoreWalk(wb));
-    writeJson('labor-minimum-baseline.json', await extractLaborMinimum(wb, od2));
+    // Stage first — never overwrite seed JSON until every extraction is valid.
+    const taskLibrary = extractTaskLibrary(wb);
+    assertNonEmpty('task baselines', taskLibrary.baselines);
+    assertNonEmpty('time_budget', taskLibrary.time_budget);
+
+    const vendors = extractVendors(wb);
+    assertNonEmpty('vendor contacts', vendors.contacts);
+
+    const walks = extractStoreWalk(wb);
+    assertNonEmpty('store_walk sections', walks.store_walk?.sections);
+    assertNonEmpty('perishables_walk sections', walks.perishables_walk?.sections);
+
+    const labor = await extractLaborMinimum(wb, od2);
+    assertNonEmpty('labor by_weekday', labor.by_weekday);
+
+    writeJson('task-estimate-baselines.json', taskLibrary);
+    writeJson('vendor-directory.json', vendors);
+    writeJson('audit-walk-templates.json', walks);
+    writeJson('labor-minimum-baseline.json', labor);
     console.log('\nDone. Commit store-templates/default/*.json after review.');
 }
 

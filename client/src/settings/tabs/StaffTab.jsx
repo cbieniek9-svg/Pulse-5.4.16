@@ -11,6 +11,7 @@ import {
     importStaffSchedule, previewStaffSchedule, removeStaffNameAlias, saveSettingsBatch,
     saveStaffNameAlias, updateStaffShiftRole,
 } from '../lib/settingsApi.js';
+import { hasPermission, parsePermissionTokens } from '../../lib/permissions.js';
 
 function ScheduleHealthStrip({ health, syncData, onQuickAlias }) {
     if (!health) {
@@ -136,7 +137,7 @@ export default function StaffTab() {
             showNotice('Please enter a staff name.', 'error');
             return;
         }
-        const pin = await appPrompt(`Set an initial PIN for ${n} (min 4 digits):`, '1234');
+        const pin = await appPrompt(`Set an initial PIN for ${n} (min 4 digits):`, '');
         if (!pin || !/^\d{4,}$/.test(pin)) {
             if (pin !== null) showNotice('PIN must be at least 4 digits.', 'error');
             return;
@@ -203,8 +204,9 @@ export default function StaffTab() {
     const togglePerm = async (id, perm, val) => {
         const s = syncData?.staff?.find((x) => x.id === id);
         if (!s) return;
-        let perms = (s.permissions || '').split(',').filter((x) => x && x !== perm);
-        if (val) perms.push(perm);
+        const needle = String(perm || '').trim().toLowerCase();
+        let perms = parsePermissionTokens(s.permissions).filter((x) => x !== needle);
+        if (val) perms.push(needle);
         try {
             await action('staff', 'update', { permissions: perms.join(',') }, 'id', id);
             await refresh();
@@ -257,6 +259,14 @@ export default function StaffTab() {
         if (!rules.length) {
             showNotice('At least one role rule is required.', 'error');
             return;
+        }
+        for (const rule of rules) {
+            try {
+                RegExp(String(rule.match), 'i');
+            } catch (e) {
+                showNotice(`Invalid role-rule regex "${rule.label || rule.match}": ${e.message}`, 'error');
+                return;
+            }
         }
         try {
             await action('settings', 'update', { setting_value: JSON.stringify(rules) }, 'setting_name', 'Schedule_Role_Buckets');
@@ -551,8 +561,7 @@ export default function StaffTab() {
             <p className="mgr-hint"><strong>Tasks</strong> = mobile board. <strong>Safe</strong> = <Link to="/safe" style={{ color: '#9c0' }}>/safe</Link>. <strong>Inventory</strong> = <Link to="/count" style={{ color: '#9c0' }}>/count</Link>.</p>
             <div id="staff-list">
                 {staffList.map((s) => {
-                    const p = (s.permissions || '').split(',');
-                    const has = (x) => p.includes(x);
+                    const has = (x) => hasPermission(s.permissions, x);
                     return (
                         <div key={s.id} className="mgr-card" style={{ borderLeft: `4px solid ${s.app_access ? '#0f8' : '#555'}` }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>

@@ -51,10 +51,14 @@ function createStoreSchedulers(opts) {
     function runMidnightRollover() {
         log?.('[SCHED] Store midnight — refresh expiry/pull windows…');
         if (!db || typeof broadcastUpdate !== 'function' || typeof getStoreDateStamp !== 'function') return;
-        const today = getStoreDateStamp();
-        const pullEvents = ensureKillDatePullTasks(db, today);
-        broadcastPullTaskEvents(db, pullEvents, broadcastUpdate);
-        broadcastUpdate();
+        try {
+            const today = getStoreDateStamp();
+            const pullEvents = ensureKillDatePullTasks(db, today);
+            broadcastPullTaskEvents(db, pullEvents, broadcastUpdate);
+            broadcastUpdate();
+        } catch (err) {
+            log?.(`[SCHED] Midnight rollover failed: ${err && err.message}`);
+        }
     }
 
     function start() {

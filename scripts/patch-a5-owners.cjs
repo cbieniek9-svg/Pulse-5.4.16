@@ -11,18 +11,50 @@ if (!fs.existsSync(dbPath)) {
     process.exit(1);
 }
 
+const OWNER_BY_LABEL = {
+    Coffee: 'Ashley',
+    'Monin/Torani': 'Luke',
+    Wraps: 'Chandler',
+};
+
 const db = new Database(dbPath);
-const row = db.prepare("SELECT setting_value FROM settings WHERE setting_name = 'Zone_Section_Labels'").get();
-const labels = JSON.parse(row.setting_value);
-labels['map-a5'] = labels['map-a5'] || { label: 'A5', sublabel: 'COFFEE', sections: [] };
-labels['map-a5'].sections = [
-    { label: 'Coffee', owner: 'Ashley' },
-    { label: 'Monin/Torani', owner: 'Luke' },
-    { label: 'Wraps', owner: 'Chandler' },
-];
-db.prepare('UPDATE settings SET setting_value = ? WHERE setting_name = ?').run(
-    JSON.stringify(labels),
-    'Zone_Section_Labels',
-);
-db.close();
+try {
+    const apply = db.transaction(() => {
+        const row = db.prepare("SELECT setting_value FROM settings WHERE setting_name = 'Zone_Section_Labels'").get();
+        let labels;
+        if (!row || row.setting_value == null || row.setting_value === '') {
+            labels = {};
+        } else {
+            labels = JSON.parse(row.setting_value);
+        }
+        labels['map-a5'] = labels['map-a5'] || { label: 'A5', sublabel: 'COFFEE', sections: [] };
+        const sections = Array.isArray(labels['map-a5'].sections) ? labels['map-a5'].sections : [];
+        const byLabel = new Map(sections.map((s) => [String(s.label || ''), s]));
+        for (const [label, owner] of Object.entries(OWNER_BY_LABEL)) {
+            const existing = byLabel.get(label);
+            if (existing) {
+                existing.owner = owner;
+            } else {
+                sections.push({ label, owner });
+            }
+        }
+        labels['map-a5'].sections = sections;
+
+        const payload = JSON.stringify(labels);
+        if (!row) {
+            db.prepare('INSERT INTO settings (setting_name, setting_value) VALUES (?, ?)').run(
+                'Zone_Section_Labels',
+                payload,
+            );
+        } else {
+            db.prepare('UPDATE settings SET setting_value = ? WHERE setting_name = ?').run(
+                payload,
+                'Zone_Section_Labels',
+            );
+        }
+    });
+    apply.immediate();
+} finally {
+    db.close();
+}
 console.log('Patched A5 owners in', dbPath);

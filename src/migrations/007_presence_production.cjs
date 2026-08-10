@@ -5,8 +5,14 @@ const { DEFAULT_GATEWAYS } = require('../lib/presence-config.cjs');
 module.exports = {
     name: 'presence_production',
     up(db) {
-        try { db.exec('ALTER TABLE beacon_events ADD COLUMN gateway_id TEXT DEFAULT \'\''); } catch (_) { /* exists */ }
-        try { db.exec('ALTER TABLE order_presence_snapshots ADD COLUMN staff_names TEXT'); } catch (_) { /* exists */ }
+        const addCol = (sql) => {
+            try { db.exec(sql); } catch (e) {
+                const msg = String(e.message || '').toLowerCase();
+                if (!msg.includes('duplicate column') && !msg.includes('already exists')) throw e;
+            }
+        };
+        addCol('ALTER TABLE beacon_events ADD COLUMN gateway_id TEXT DEFAULT \'\'');
+        addCol('ALTER TABLE order_presence_snapshots ADD COLUMN staff_names TEXT');
 
         db.exec(`
             CREATE INDEX IF NOT EXISTS idx_beacon_events_gateway_time

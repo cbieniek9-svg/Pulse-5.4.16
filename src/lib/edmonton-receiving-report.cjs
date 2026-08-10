@@ -715,7 +715,10 @@ function buildLineWarningsForDay(db, storeDate, lines) {
                 });
             }
         }
-        if (warnings.length) warningsByIndex[idx] = warnings;
+        if (warnings.length) {
+            const key = line.line_id || `idx-${idx}`;
+            warningsByIndex[key] = warnings;
+        }
     });
     return warningsByIndex;
 }

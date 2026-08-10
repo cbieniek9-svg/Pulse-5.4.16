@@ -3,12 +3,18 @@
 module.exports = {
     name: 'presence_ultimate_assets',
     up(db) {
-        try { db.exec('ALTER TABLE beacon_events ADD COLUMN asset_type TEXT'); } catch (_) { /* exists */ }
-        try { db.exec('ALTER TABLE beacon_events ADD COLUMN asset_label TEXT'); } catch (_) { /* exists */ }
-        try { db.exec('ALTER TABLE presence_staff_zones ADD COLUMN asset_type TEXT'); } catch (_) { /* exists */ }
-        try { db.exec('ALTER TABLE presence_staff_zones ADD COLUMN asset_label TEXT'); } catch (_) { /* exists */ }
-        try { db.exec('ALTER TABLE order_presence_snapshots ADD COLUMN asset_mode TEXT'); } catch (_) { /* exists */ }
-        try { db.exec('ALTER TABLE order_presence_snapshots ADD COLUMN asset_details TEXT'); } catch (_) { /* exists */ }
+        const addCol = (sql) => {
+            try { db.exec(sql); } catch (e) {
+                const msg = String(e.message || '').toLowerCase();
+                if (!msg.includes('duplicate column') && !msg.includes('already exists')) throw e;
+            }
+        };
+        addCol('ALTER TABLE beacon_events ADD COLUMN asset_type TEXT');
+        addCol('ALTER TABLE beacon_events ADD COLUMN asset_label TEXT');
+        addCol('ALTER TABLE presence_staff_zones ADD COLUMN asset_type TEXT');
+        addCol('ALTER TABLE presence_staff_zones ADD COLUMN asset_label TEXT');
+        addCol('ALTER TABLE order_presence_snapshots ADD COLUMN asset_mode TEXT');
+        addCol('ALTER TABLE order_presence_snapshots ADD COLUMN asset_details TEXT');
 
         db.exec(`
             CREATE TABLE IF NOT EXISTS presence_assets (

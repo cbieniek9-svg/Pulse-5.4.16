@@ -9,6 +9,11 @@ import {
     isTempInRange,
 } from './recUtils.js';
 
+function firstDeptId(departments) {
+    const first = (departments || [])[0];
+    return first?.id || 'grocery';
+}
+
 function emptyDraft(department = 'grocery') {
     return {
         plate: '',
@@ -28,11 +33,21 @@ export default function PalletPanel({
     storeDate,
     token,
     onChanged,
+    askConfirm,
+    setActionError,
     /** When true, allow edit/delete after time out (historical correction). */
     allowCorrection = false,
 }) {
-    const [draft, setDraft] = useState(() => emptyDraft());
+    const defaultDept = firstDeptId(departments);
+    const [draft, setDraft] = useState(() => emptyDraft(defaultDept));
     const [busy, setBusy] = useState(false);
+    const [localError, setLocalError] = useState('');
+
+    const reportError = (msg) => {
+        const text = msg || '';
+        if (typeof setActionError === 'function') setActionError(text);
+        else setLocalError(text);
+    };
 
     const updateDraft = (patch) => setDraft((d) => ({ ...d, ...patch }));
     const timedOut = !!(entry?.departed_at);
@@ -43,7 +58,7 @@ export default function PalletPanel({
         updateDraft({
             editingId: p.pallet_id,
             plate: p.license_plate || '',
-            department: p.department || 'produce',
+            department: p.department || defaultDept,
             temp: p.temp_c != null ? String(p.temp_c) : '',
             temp2: p.temp_spot_2 != null ? String(p.temp_spot_2) : '',
             temp3: p.temp_spot_3 != null ? String(p.temp_spot_3) : '',
@@ -51,35 +66,35 @@ export default function PalletPanel({
         });
     };
 
-    const cancelEdit = () => setDraft(emptyDraft(draft.department));
+    const cancelEdit = () => setDraft(emptyDraft(draft.department || defaultDept));
 
     const buildTempPayload = () => {
         const plate = formatLicensePlatesInput(draft.plate.trim());
         const department = draft.department;
         if (!plate) {
-            alert('Enter license plate.');
+            reportError('Enter license plate.');
             return null;
         }
         if (!department) {
-            alert('Select department.');
+            reportError('Select department.');
             return null;
         }
         const needsTemp = deptRequiresTemp(departments, department);
         let t1 = null;
         if (needsTemp) {
             if (draft.temp === '') {
-                alert('Enter temperature (°C).');
+                reportError('Enter temperature (°C).');
                 return null;
             }
             t1 = Number(draft.temp);
             if (!Number.isFinite(t1)) {
-                alert('Enter a valid temperature (°C).');
+                reportError('Enter a valid temperature (°C).');
                 return null;
             }
         } else if (draft.temp !== '') {
             t1 = Number(draft.temp);
             if (!Number.isFinite(t1)) {
-                alert('Enter a valid temperature (°C) or leave blank.');
+                reportError('Enter a valid temperature (°C) or leave blank.');
                 return null;
             }
         }
@@ -92,7 +107,7 @@ export default function PalletPanel({
             const haveExtras = Number.isFinite(t2) && Number.isFinite(t3) && draft.temp2 !== '' && draft.temp3 !== '';
             if (!haveExtras) {
                 updateDraft({ plate, showSpots: true });
-                alert('Out of range — take temps from 2 other spots on this pallet, then press ADD/SAVE again.');
+                reportError('Out of range — take temps from 2 other spots on this pallet, then press ADD/SAVE again.');
                 return null;
             }
             tempSpots = [t1, t2, t3];
@@ -107,11 +122,15 @@ export default function PalletPanel({
     };
 
     const savePallet = async () => {
-        if (!canCorrect) return alert('This truck is timed out — use correction mode from the day log date picker.');
+        if (!canCorrect) {
+            reportError('This truck is timed out — use correction mode from the day log date picker.');
+            return;
+        }
         const body = buildTempPayload();
         if (!body) return;
 
         setBusy(true);
+        reportError('');
         try {
             const editing = !!draft.editingId;
             const url = editing
@@ -126,7 +145,7 @@ export default function PalletPanel({
             if (!res.ok) {
                 if (data.code === 'NEED_MULTI_SPOT' || data.needs_more_spots) {
                     updateDraft({ showSpots: true });
-                    alert(data.error || 'Out of range — take 2 more spot temps, then SAVE again.');
+                    reportError(data.error || 'Out of range — take 2 more spot temps, then SAVE again.');
                     return;
                 }
                 throw new Error(data.error || (editing ? 'Could not update pallet' : 'Could not add pallet'));
@@ -134,16 +153,26 @@ export default function PalletPanel({
             setDraft(emptyDraft(body.department));
             await onChanged?.();
         } catch (e) {
-            alert(e.message);
+            reportError(e.message);
         } finally {
             setBusy(false);
         }
     };
 
     const removePallet = async (palletId) => {
-        if (!window.confirm('Remove this pallet line?')) return;
-        if (!canCorrect) return alert('Cannot remove after time out without correction mode.');
+        if (typeof askConfirm === 'function') {
+            const ok = await askConfirm('Remove this pallet line?');
+            if (!ok) return;
+        } else {
+            reportError('Confirm is required to remove a pallet line.');
+            return;
+        }
+        if (!canCorrect) {
+            reportError('Cannot remove after time out without correction mode.');
+            return;
+        }
         setBusy(true);
+        reportError('');
         try {
             const qs = new URLSearchParams({ exp_id: expId });
             if (timedOut && allowCorrection) qs.set('correction', '1');
@@ -156,7 +185,7 @@ export default function PalletPanel({
             if (draft.editingId === palletId) cancelEdit();
             await onChanged?.();
         } catch (e) {
-            alert(e.message);
+            reportError(e.message);
         } finally {
             setBusy(false);
         }
@@ -164,6 +193,7 @@ export default function PalletPanel({
 
     const pallets = entry.pallets || [];
     const editing = !!draft.editingId;
+    const panelError = typeof setActionError === 'function' ? '' : localError;
 
     return (
         <div className="pallet-box">
@@ -174,6 +204,9 @@ export default function PalletPanel({
                 Date {storeDate} · Perishables / chilled Produce 1–4°C · Frozen −18°C or below · Dry Grocery &amp; Produce (Ambient) — temp optional
                 (bananas, onions, potatoes, tomatoes → Produce Ambient)
             </p>
+            {panelError ? (
+                <div className="hint" style={{ color: '#f44', margin: '0 0 8px' }}>{panelError}</div>
+            ) : null}
             {!pallets.length ? (
                 <div className="hint">No pallets logged yet — required before TGP time out.</div>
             ) : (

@@ -17,20 +17,31 @@ Push-Location $here
 try {
   Log "stop: $(& $wrapper stop 2>&1)"
   Log "uninstall: $(& $wrapper uninstall 2>&1)"
-  Log "install: $(& $wrapper install 2>&1) exit=$LASTEXITCODE"
-  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-  Log "start: $(& $wrapper start 2>&1) exit=$LASTEXITCODE"
+  $installOut = & $wrapper install 2>&1
+  $installExit = $LASTEXITCODE
+  Log "install: $installOut exit=$installExit"
+  if ($installExit -ne 0) { exit $installExit }
+
+  $startOut = & $wrapper start 2>&1
+  $startExit = $LASTEXITCODE
+  Log "start: $startOut exit=$startExit"
   Log "status: $(& $wrapper status 2>&1)"
   Log "sc: $(sc.exe query TGP-CommandCenter 2>&1 | Out-String)"
+
+  $readyOk = $false
   try {
     $r = Invoke-WebRequest -UseBasicParsing http://127.0.0.1:3001/api/ready -TimeoutSec 15
     Log "ready: $($r.Content)"
+    $readyOk = $true
   } catch {
     Log "ready fail: $($_.Exception.Message)"
     if (Test-Path (Join-Path $logDir "*")) {
       Get-ChildItem $logDir | ForEach-Object { Log "--- $($_.Name) ---"; Get-Content $_.FullName -Tail 30 | ForEach-Object { Log $_ } }
     }
   }
+
+  if ($startExit -ne 0) { exit $startExit }
+  if (-not $readyOk) { exit 1 }
 } finally {
   Pop-Location
 }

@@ -1,12 +1,6 @@
 'use strict';
 
-function csvCell(value) {
-    const s = String(value ?? '');
-    const escaped = s.replace(/"/g, '""');
-    return /[",\n\r=+\-@]/.test(escaped.charAt(0)) || /[",\n\r]/.test(escaped)
-        ? `"${escaped}"`
-        : escaped;
-}
+const { csvCell } = require('./csv-safe.cjs');
 
 function normalizeStoreDate(value) {
     const s = String(value || '').trim();

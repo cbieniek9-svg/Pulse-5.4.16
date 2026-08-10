@@ -106,7 +106,7 @@ test('export keeps history but lines are locked until reopen', (t) => {
     assert.equal(count, 1);
     assert.equal(session.status, 'exported');
     assert.match(csv, /^UPC,QTY,UOM,ITEM,UNIT_COST,UNIT_RETAIL,DEPARTMENT,LOCATION,SESSION_TYPE,SESSION_ID\n/);
-    assert.match(csv, /999,3,unit,,,,,A1,location,/);
+    assert.match(csv, /"999","3","unit","","","","","A1","location",/);
 
     const detail = getSessionDetail(s.id);
     assert.equal(detail.lines.length, 1);
@@ -138,10 +138,11 @@ test('deleteLine removes a scan row', (t) => {
     assert.equal(getSessionDetail(s.id).lines.length, 0);
 });
 
-test('csvEscape quotes commas and quotes', () => {
+test('csvEscape quotes commas and quotes and guards formula injection', () => {
     assert.equal(csvEscape('a,b'), '"a,b"');
     assert.equal(csvEscape('say "hi"'), '"say ""hi"""');
-    assert.equal(csvEscape('plain'), 'plain');
+    assert.equal(csvEscape('plain'), '"plain"');
+    assert.equal(csvEscape('=1+1'), '"\'=1+1"');
 });
 
 test('backstock sessions are typed and can run concurrent with location counts', (t) => {

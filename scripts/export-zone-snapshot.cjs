@@ -8,7 +8,12 @@ const Database = require('better-sqlite3');
 const OUT = path.join(__dirname, '..', '..', 'Doc', 'standards-pdf', 'zone-snapshot.json');
 
 function findDbPath(argvPath) {
-    if (argvPath && fs.existsSync(argvPath)) return argvPath;
+    if (argvPath) {
+        if (!fs.existsSync(argvPath)) {
+            throw new Error(`Explicit DB path not found: ${argvPath}`);
+        }
+        return argvPath;
+    }
     const candidates = [
         process.env.TGP_OPS_DB,
         process.env.TGP_DATA_DIR && path.join(process.env.TGP_DATA_DIR, 'tgp_ops.db'),
@@ -29,7 +34,13 @@ function readSetting(db, name) {
 
 function main() {
     const argPath = process.argv[2];
-    const dbPath = findDbPath(argPath);
+    let dbPath;
+    try {
+        dbPath = findDbPath(argPath);
+    } catch (e) {
+        console.error(e.message || e);
+        process.exit(1);
+    }
     if (!dbPath) {
         console.error('No tgp_ops.db found. Usage:');
         console.error('  node scripts/export-zone-snapshot.cjs [path/to/tgp_ops.db]');

@@ -1,13 +1,28 @@
 'use strict';
-process.env.TGP_DATA_DIR = process.env.TGP_DATA_DIR || require('path').join(__dirname, '..', 'data', 'forensic-audit');
+
+const path = require('path');
+const workbookPath = process.argv[2];
+if (!workbookPath) {
+    console.error('Usage: node scripts/forensic-purchase-check.cjs <workbook.xlsx>');
+    process.exit(1);
+}
+
+if (!process.env.TGP_DATA_DIR) {
+    process.env.TGP_DATA_DIR = path.join(__dirname, '..', 'data', 'forensic-audit');
+}
+
 const { db } = require('../src/db.cjs');
 const { parseWorkbookFile } = require('../src/lib/edmonton-receiving-workbook-import.cjs');
 const { buildReceivingTotalsPayload } = require('../src/lib/edmonton-receiving-analytics.cjs');
 
 async function main() {
     const periodStart = '2026-06-21';
-    const wb = await parseWorkbookFile('e:\\9. Edmonton Wholesale Market Receiving Report 2026Jul18.xlsx');
-    const tg = wb.Sheets['Total Grocery'];
+    const wb = await parseWorkbookFile(path.resolve(workbookPath));
+    const tg = wb.Sheets && wb.Sheets['Total Grocery'];
+    if (!tg) {
+        console.error('Workbook missing required sheet: Total Grocery');
+        process.exit(1);
+    }
 
     const pulse = buildReceivingTotalsPayload(db, periodStart);
     const lineSum = db.get(

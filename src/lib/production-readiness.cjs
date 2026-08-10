@@ -116,7 +116,12 @@ function buildProductionReadinessReport({
     now = new Date(),
     deployFidelity = null,
 } = {}) {
-    const settings = db?.getSettings ? db.getSettings() : {};
+    let settings = {};
+    try {
+        settings = db?.getSettings ? (db.getSettings() || {}) : {};
+    } catch (_) {
+        settings = {};
+    }
     const checks = [];
 
     if (!health) {

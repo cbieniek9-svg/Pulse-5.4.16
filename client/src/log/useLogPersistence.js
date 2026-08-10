@@ -52,6 +52,9 @@ export function useLogPersistence({ token, storeDate }) {
 
     const headerTimerRef = useRef(null);
     const periodRefreshTimerRef = useRef(null);
+    const pasteTimerRef = useRef(null);
+    const pasteOpRef = useRef(0);
+    const pasteInFlightRef = useRef(false);
     const gridRowsRef = useRef(gridRows);
     gridRowsRef.current = gridRows;
     const gridMetaRef = useRef(gridMeta);
@@ -363,6 +366,8 @@ export function useLogPersistence({ token, storeDate }) {
 
     const handlePasteRows = useCallback(async (startIdx, patches) => {
         if (!patches?.length || periodReadOnlyRef.current) return;
+        // Single-flight: do not overlap an in-progress paste persist.
+        if (pasteInFlightRef.current) return;
 
         const pageSize = gridMetaRef.current?.pageSize || GRID_PAGE_SIZE;
         const page = gridMetaRef.current?.page || 0;
@@ -396,17 +401,35 @@ export function useLogPersistence({ token, storeDate }) {
         allDayLinesRef.current = nextAll;
         applyPage(nextAll, page);
 
-        setTimeout(async () => {
-            for (let offset = 0; offset < patches.length; offset += 1) {
-                const abs = absStart + offset;
-                const targetPage = Math.floor(abs / pageSize);
-                const idxOnPage = abs % pageSize;
-                if (gridMetaRef.current?.page !== targetPage) {
-                    applyPage(allDayLinesRef.current, targetPage);
+        // Invalidate any prior scheduled paste before starting this save.
+        if (pasteTimerRef.current) clearTimeout(pasteTimerRef.current);
+        const opId = ++pasteOpRef.current;
+        pasteTimerRef.current = setTimeout(async () => {
+            pasteTimerRef.current = null;
+            if (opId !== pasteOpRef.current) return;
+            pasteInFlightRef.current = true;
+            try {
+                let aborted = false;
+                for (let offset = 0; offset < patches.length; offset += 1) {
+                    if (opId !== pasteOpRef.current) return;
+                    const abs = absStart + offset;
+                    const targetPage = Math.floor(abs / pageSize);
+                    const idxOnPage = abs % pageSize;
+                    if (gridMetaRef.current?.page !== targetPage) {
+                        applyPage(allDayLinesRef.current, targetPage);
+                    }
+                    const ok = await persistRow(idxOnPage);
+                    if (ok === false) {
+                        aborted = true;
+                        break;
+                    }
                 }
-                await persistRow(idxOnPage);
+                if (!aborted && opId === pasteOpRef.current) {
+                    applyPage(allDayLinesRef.current, page);
+                }
+            } finally {
+                if (opId === pasteOpRef.current) pasteInFlightRef.current = false;
             }
-            applyPage(allDayLinesRef.current, page);
         }, 0);
     }, [persistRow, applyPage]);
 
@@ -470,6 +493,10 @@ export function useLogPersistence({ token, storeDate }) {
 
     useEffect(() => () => {
         if (periodRefreshTimerRef.current) clearTimeout(periodRefreshTimerRef.current);
+        if (pasteTimerRef.current) clearTimeout(pasteTimerRef.current);
+        pasteOpRef.current += 1;
+        pasteInFlightRef.current = false;
+        if (headerTimerRef.current) clearTimeout(headerTimerRef.current);
     }, []);
 
     return {

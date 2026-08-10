@@ -5,25 +5,22 @@ const path = require('path');
 const os = require('os');
 const { execFileSync } = require('child_process');
 const map = require('../src/lib/incident-investigation-pdf-map.cjs');
-
-const W = 1700; const H = 2200; const PDF_W = 612; const PDF_H = 792;
-function pdfToPix(x, y) {
-    return { x: Math.round((x * W) / PDF_W), y: Math.round(((PDF_H - y) * H) / PDF_H) };
-}
+const { jpegSize, pdfToPix } = require('./lib/calib-crop.cjs');
 
 const calib = path.join(__dirname, '..', '_calib');
 for (let page = 0; page < 5; page += 1) {
+    const src = path.join(calib, `page-${page}.jpg`).replace(/\\/g, '/');
+    const { width: W, height: H } = jpegSize(src);
     const marks = [];
     for (const field of map.checks.filter((c) => c.page === page)) {
-        const p = pdfToPix(field.x, field.y);
+        const p = pdfToPix(W, H, field.x, field.y);
         marks.push(`C,${p.x},${p.y}`);
     }
     for (const field of map.texts.filter((t) => t.page === page)) {
-        const p = pdfToPix(field.x, field.y);
+        const p = pdfToPix(W, H, field.x, field.y);
         marks.push(`T,${p.x},${p.y}`);
     }
     const marksFile = path.join(calib, `mapmarks-${page}.txt`).replace(/\\/g, '/');
-    const src = path.join(calib, `page-${page}.jpg`).replace(/\\/g, '/');
     const dst = path.join(calib, `map-overlay-${page}.jpg`).replace(/\\/g, '/');
     fs.writeFileSync(marksFile, marks.join('\n'));
     const ps = path.join(os.tmpdir(), `tgp-mapov-${page}.ps1`);

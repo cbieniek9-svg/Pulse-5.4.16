@@ -32,7 +32,7 @@ import LogDayIntegrityControls from './LogDayIntegrityControls.jsx';
 import { useLogPersistence } from './useLogPersistence.js';
 import { useLogPeriodWorkflow } from './useLogPeriodWorkflow.js';
 import { emptyLine, rowHasData } from './logUtils.js';
-import { dayLabel } from './logPeriodUtils.js';
+import { dayLabel, toLocalDateStamp } from './logPeriodUtils.js';
 import {
     DEPT_TAB_MAP,
     LOG_NAV_GROUPS,
@@ -166,7 +166,7 @@ export default function LogApp() {
     );
 
     useEffect(() => {
-        if (!storeDate) setStoreDate(new Date().toISOString().slice(0, 10));
+        if (!storeDate) setStoreDate(toLocalDateStamp(new Date()));
     }, [storeDate]);
 
     useEffect(() => {

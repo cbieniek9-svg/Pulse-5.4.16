@@ -241,21 +241,29 @@ function buildDeptMarginPayload(db, periodStart, department) {
     const totalShrink = roundMoney(weeks.reduce((sum, w) => sum + w.shrink_dollars, 0));
     const totalShrinkPct = totalSales ? roundPct(totalShrink / totalSales) : 0;
 
-    const opening = roundMoney(meta.opening_inventory || 0);
-    const closing = roundMoney(meta.closing_inventory || 0);
-    const adjustment = roundMoney(meta.inventory_adjustment || 0);
-    const goodsAvailable = roundMoney(opening + purchases);
-    const cogs = roundMoney(opening + purchases - closing + adjustment);
-    const grossProfit = roundMoney(totalSales - cogs);
-    const grossMarginPct = totalSales ? roundPct(grossProfit / totalSales) : 0;
+    const opening = meta.opening_inventory == null ? null : roundMoney(meta.opening_inventory);
+    const closing = meta.closing_inventory == null ? null : roundMoney(meta.closing_inventory);
+    const adjustment = meta.inventory_adjustment == null ? null : roundMoney(meta.inventory_adjustment);
+    const inventoryComplete = opening != null && closing != null;
+    const openVal = opening || 0;
+    const closeVal = closing || 0;
+    const adjVal = adjustment || 0;
+    const goodsAvailable = inventoryComplete ? roundMoney(openVal + purchases) : null;
+    const cogs = inventoryComplete ? roundMoney(openVal + purchases - closeVal + adjVal) : null;
+    const grossProfit = cogs == null ? null : roundMoney(totalSales - cogs);
+    const grossMarginPct = (cogs == null || !totalSales) ? null : roundPct(grossProfit / totalSales);
 
-    const smsMarginPct = roundPct(meta.sms_margin_pct || 0);
-    const smsGp = roundMoney(totalSales * smsMarginPct);
-    const gpDiff = roundMoney(grossProfit - smsGp);
-    const gpDiffPct = roundPct(grossMarginPct - smsMarginPct);
+    const smsMarginPct = meta.sms_margin_pct == null ? null : roundPct(meta.sms_margin_pct);
+    const smsGp = smsMarginPct == null ? null : roundMoney(totalSales * smsMarginPct);
+    const gpDiff = (grossProfit == null || smsGp == null) ? null : roundMoney(grossProfit - smsGp);
+    const gpDiffPct = (grossMarginPct == null || smsMarginPct == null)
+        ? null
+        : roundPct(grossMarginPct - smsMarginPct);
 
-    const shrinkAdjustedGp = roundMoney(grossProfit + totalShrink);
-    const shrinkAdjustedMarginPct = totalSales ? roundPct(shrinkAdjustedGp / totalSales) : 0;
+    const shrinkAdjustedGp = grossProfit == null ? null : roundMoney(grossProfit + totalShrink);
+    const shrinkAdjustedMarginPct = (shrinkAdjustedGp == null || !totalSales)
+        ? null
+        : roundPct(shrinkAdjustedGp / totalSales);
 
     const salesDuringCount = roundMoney(meta.sales_during_count || 0);
     const salesDuringHalf = roundMoney(salesDuringCount / 2);
@@ -306,8 +314,11 @@ function buildDeptMarginPayload(db, periodStart, department) {
             sales_during_count: salesDuringCount,
             sales_during_half: salesDuringHalf,
             inventory_current: closing,
-            inventory_last: roundMoney(meta.last_inventory || 0),
-            inventory_diff: roundMoney(closing - Number(meta.last_inventory || 0)),
+            inventory_last: meta.last_inventory == null ? null : roundMoney(meta.last_inventory),
+            inventory_diff: (closing == null || meta.last_inventory == null)
+                ? null
+                : roundMoney(closing - Number(meta.last_inventory || 0)),
+            inventory_complete: inventoryComplete,
         },
         has_shrink: shrinkBuckets.length > 0,
         has_count_day: ['meat', 'produce', 'centre_store'].includes(dept),

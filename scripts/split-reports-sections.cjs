@@ -2,16 +2,29 @@
 
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 
 const root = path.join(__dirname, '..', 'public', 'js', 'reports', 'sections');
-const orders = fs.readFileSync(path.join(root, 'orders.js'), 'utf8');
-const handoff = fs.readFileSync(path.join(root, 'handoff.js'), 'utf8');
+const ordersPath = path.join(root, 'orders.js');
+const handoffPath = path.join(root, 'handoff.js');
+const orders = fs.readFileSync(ordersPath, 'utf8');
+const handoff = fs.readFileSync(handoffPath, 'utf8');
 
 function sliceByFunction(src, startName, endName) {
     const s = src.indexOf(`function ${startName}`);
-    const e = endName ? src.indexOf(`function ${endName}`, s + 1) : src.length;
-    if (s < 0) throw new Error(`Missing ${startName}`);
-    return src.slice(s, e < 0 ? src.length : e).trim();
+    if (s < 0) throw new Error(`Missing start anchor: ${startName}`);
+    if (!endName) return src.slice(s).trim();
+    const e = src.indexOf(`function ${endName}`, s + 1);
+    if (e < 0) throw new Error(`Missing end anchor: ${endName}`);
+    return src.slice(s, e).trim();
+}
+
+function assertJs(label, code) {
+    try {
+        new vm.Script(code, { filename: label });
+    } catch (e) {
+        throw new Error(`Invalid JS for ${label}: ${e.message}`);
+    }
 }
 
 const orderHistory = [
@@ -23,7 +36,9 @@ const rosterSuggestions = [
     sliceByFunction(orders, 'rosterSuggestionConfidenceLabel', 'buildFinishHealthSection'),
 ].join('\n\n');
 
-const learnMetrics = orders.slice(orders.indexOf('function buildFinishHealthSection')).trim();
+const learnStart = orders.indexOf('function buildFinishHealthSection');
+if (learnStart < 0) throw new Error('Missing start anchor: buildFinishHealthSection');
+const learnMetrics = orders.slice(learnStart).trim();
 
 const deliveriesFn = `function buildDeliveriesSection(d, rangeLabel, deliveries) {
   return \`<div class="section" id="sec-deliveries">
@@ -70,17 +85,33 @@ const deliveriesFn = `function buildDeliveriesSection(d, rangeLabel, deliveries)
 }`;
 
 const handoffStart = handoff.indexOf('function buildHandoffPanel');
-const handoffBeforeDeliveries = handoff.slice(handoffStart, handoff.indexOf('html += `<div class="section" id="sec-deliveries">')).trim();
-const handoffEnd = handoff.slice(handoff.indexOf('html += \'</div>\';', handoff.indexOf('sec-deliveries'))).trim();
+if (handoffStart < 0) throw new Error('Missing start anchor: buildHandoffPanel');
+const deliveriesAnchor = handoff.indexOf('html += `<div class="section" id="sec-deliveries">');
+if (deliveriesAnchor < 0) throw new Error('Missing handoff deliveries anchor: sec-deliveries');
+const handoffBeforeDeliveries = handoff.slice(handoffStart, deliveriesAnchor).trim();
+const handoffEndAnchor = handoff.indexOf('html += \'</div>\';', deliveriesAnchor);
+if (handoffEndAnchor < 0) throw new Error('Missing handoff end anchor after sec-deliveries');
+const handoffEnd = handoff.slice(handoffEndAnchor).trim();
 
 const newHandoff = `${handoff.slice(0, handoffStart).trim()}\n\n${handoffBeforeDeliveries}\n\n  html += buildDeliveriesSection(d, rangeLabel, deliveries);\n\n${handoffEnd}`;
 
-fs.writeFileSync(path.join(root, 'order-history.js'), `${orderHistory}\n`);
-fs.writeFileSync(path.join(root, 'roster-suggestions.js'), `${rosterSuggestions}\n`);
-fs.writeFileSync(path.join(root, 'learn-metrics.js'), `${learnMetrics}\n`);
-fs.writeFileSync(path.join(root, 'deliveries.js'), `${deliveriesFn}\n`);
-fs.writeFileSync(path.join(root, 'handoff.js'), `${newHandoff}\n`);
-fs.unlinkSync(path.join(root, 'orders.js'));
+const outputs = {
+    'order-history.js': `${orderHistory}\n`,
+    'roster-suggestions.js': `${rosterSuggestions}\n`,
+    'learn-metrics.js': `${learnMetrics}\n`,
+    'deliveries.js': `${deliveriesFn}\n`,
+    'handoff.js': `${newHandoff}\n`,
+};
+
+for (const [name, code] of Object.entries(outputs)) {
+    assertJs(name, code);
+}
+
+for (const [name, code] of Object.entries(outputs)) {
+    fs.writeFileSync(path.join(root, name), code);
+}
+
+fs.unlinkSync(ordersPath);
 
 console.log('Split orders.js -> order-history, roster-suggestions, learn-metrics');
 console.log('Extracted deliveries.js and updated handoff.js');

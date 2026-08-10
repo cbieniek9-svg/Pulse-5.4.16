@@ -3,8 +3,9 @@
 function addColumn(db, sql) {
     try {
         db.exec(sql);
-    } catch (_) {
-        /* column may already exist */
+    } catch (e) {
+        const msg = String(e.message || '').toLowerCase();
+        if (!msg.includes('duplicate column') && !msg.includes('already exists')) throw e;
     }
 }
 

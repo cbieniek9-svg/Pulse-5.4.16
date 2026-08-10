@@ -65,7 +65,7 @@ function registerReportsRoutes(server, ctx) {
 
 
     server.get('/api/reports/trends.csv', wrap(async (req, res) => {
-        const session = requireSession(req, res);
+        const session = requireSession(req, res, true);
         if (!session) return;
 
         const days = Math.max(7, Math.min(3650, Number(req.query.days || 365)));

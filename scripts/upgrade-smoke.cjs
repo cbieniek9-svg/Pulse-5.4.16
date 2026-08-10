@@ -76,7 +76,16 @@ async function runUpgradeSmoke(opts = {}) {
     const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tgp-upgrade-smoke-'));
     result.data_dir = dataDir;
     result.db_path = path.join(dataDir, 'tgp_ops.db');
-    fs.copyFileSync(sourceDb, result.db_path);
+
+    // Online backup is safer than copyFileSync against a live WAL DB.
+    const Database = require('better-sqlite3');
+    const src = new Database(sourceDb, { readonly: true, fileMustExist: true });
+    try {
+        try { src.pragma('wal_checkpoint(PASSIVE)'); } catch (_) { /* best effort */ }
+        await src.backup(result.db_path);
+    } finally {
+        src.close();
+    }
 
     process.env.TGP_DATA_DIR = dataDir;
     process.env.TGP_TEST_MODE = '1';

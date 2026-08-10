@@ -237,10 +237,17 @@ function assembleReportsPayload({
     const TZ_RE = new RegExp(`\\b(date|datetime)\\(\\s*(${TZ_DATE_COLS})\\s*\\)`, 'gi');
     const localizeUtcDates = (sql) => (tzMod ? sql.replace(TZ_RE, (_m, fn, col) => `${fn}(${col}, '${tzMod}')`) : sql);
 
-    const safeCount = (sql, ...p) => { try { return targetDb.get(localizeUtcDates(sql), ...p)?.c ?? 0; } catch (_) { return 0; } };
-    const safeSum = (sql, ...p) => { try { return parseFloat(targetDb.get(localizeUtcDates(sql), ...p)?.t ?? 0).toFixed(2); } catch (_) { return '0.00'; } };
-    const safeAll = (sql, ...p) => { try { return targetDb.all(localizeUtcDates(sql), ...p); } catch (_) { return []; } };
-    const safeGet = (sql, ...p) => { try { return targetDb.get(localizeUtcDates(sql), ...p) || {}; } catch (_) { return {}; } };
+    const safeBuild = (localize = localizeUtcDates) => ({
+        safeCount: (sql, ...p) => { try { return targetDb.get(localize(sql), ...p)?.c ?? 0; } catch (_) { return 0; } },
+        safeSum: (sql, ...p) => { try { return parseFloat(targetDb.get(localize(sql), ...p)?.t ?? 0).toFixed(2); } catch (_) { return '0.00'; } },
+        safeAll: (sql, ...p) => { try { return targetDb.all(localize(sql), ...p); } catch (_) { return []; } },
+        safeGet: (sql, ...p) => { try { return targetDb.get(localize(sql), ...p) || {}; } catch (_) { return {}; } },
+    });
+    const { safeCount, safeSum, safeAll, safeGet } = safeBuild();
+    const tasksCompletedSql = `SELECT COUNT(*) as c FROM tasks
+        WHERE (status='Closed' OR status='Archived')
+          AND ${HUMAN_CLOSED_TASK_FILTER}
+          AND date(time_closed) BETWEEN ? AND ?`;
     const settings = (() => { try { return targetDb.getSettings(); } catch (_) { return {}; } })();
     const { getStoreDateStamp: reportStoreDateStamp } = createStoreTimeAccessors(() => settings);
     const counts = safeGet('SELECT * FROM counts WHERE id = 1');
@@ -397,7 +404,7 @@ function assembleReportsPayload({
 
     const shiftSummary = liveCtx.isLiveToday
         ? {
-            tasks_completed: safeCount("SELECT COUNT(*) as c FROM tasks WHERE status='Closed' AND date(time_closed) BETWEEN ? AND ?", reportStart, reportEnd),
+            tasks_completed: safeCount(tasksCompletedSql, reportStart, reportEnd),
             tasks_open: safeCount("SELECT COUNT(*) as c FROM tasks WHERE status='Open'"),
             oos_logged: safeCount("SELECT COUNT(*) as c FROM oos WHERE date(time_logged) BETWEEN ? AND ?", reportStart, reportEnd),
             oos_cleared: safeCount("SELECT COUNT(*) as c FROM oos WHERE status='Closed' AND date(time_closed) BETWEEN ? AND ?", reportStart, reportEnd),
@@ -422,7 +429,7 @@ function assembleReportsPayload({
             kill_dates_due: safeCount("SELECT COUNT(*) as c FROM kill_dates WHERE status='Active' AND kill_date<=?", reportEnd),
         }
         : {
-            tasks_completed: safeCount("SELECT COUNT(*) as c FROM tasks WHERE status='Closed' AND date(time_closed) BETWEEN ? AND ?", reportStart, reportEnd),
+            tasks_completed: safeCount(tasksCompletedSql, reportStart, reportEnd),
             tasks_open: null,
             oos_logged: safeCount("SELECT COUNT(*) as c FROM oos WHERE date(time_logged) BETWEEN ? AND ?", reportStart, reportEnd),
             oos_cleared: safeCount("SELECT COUNT(*) as c FROM oos WHERE status='Closed' AND date(time_closed) BETWEEN ? AND ?", reportStart, reportEnd),

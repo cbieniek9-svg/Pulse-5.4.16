@@ -146,7 +146,7 @@ export async function getActiveScans(token, sessionId) {
 }
 
 export async function updateLine(token, lineId, { upc, quantity, uom }) {
-    return fetchJson(`/api/inventory/lines/${lineId}`, {
+    return fetchJson(`/api/inventory/lines/${encodeURIComponent(lineId)}`, {
         method: 'PATCH',
         headers: authHeaders(token, true),
         body: JSON.stringify({ upc, quantity, uom }),
@@ -154,7 +154,7 @@ export async function updateLine(token, lineId, { upc, quantity, uom }) {
 }
 
 export async function deleteLine(token, lineId) {
-    return fetchJson(`/api/inventory/lines/${lineId}`, {
+    return fetchJson(`/api/inventory/lines/${encodeURIComponent(lineId)}`, {
         method: 'DELETE',
         headers: authHeaders(token),
     });

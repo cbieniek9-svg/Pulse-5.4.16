@@ -199,7 +199,7 @@ foreach ($line in Get-Content '${mf.replace(/\\/g, '/')}') {
   $x = ($px / $Wpdf) * $W
   $y = (($Hpdf - $py - $sz) / $Hpdf) * $H   # GDI draws from top; approximate cap height
   $fontSz = ($sz / $Hpdf) * $H * 0.95
-  $font = New-Object System.Drawing.Font 'Arial', $fontSz, ([System.Drawing.FontStyle]::Bold)
+  $font = New-Object System.Drawing.Font 'Arial', $fontSz, ([System.Drawing.FontStyle]::Bold), ([System.Drawing.GraphicsUnit]::Pixel)
   if ($kind -eq 'X') { $g.DrawString('X', $font, $brush, [float]$x, [float]$y) }
   else { $g.DrawString('Sample', $font, $brush, [float]$x, [float]$y) }
   $font.Dispose()
@@ -211,8 +211,8 @@ $g.Dispose(); $bmp.Save('${dst}', [System.Drawing.Imaging.ImageFormat]::Jpeg); $
         }
     }
 
-    // Crop helpers from verify-gdi or verify-page
-    const base = fs.existsSync(path.join(calib, 'verify-gdi-0.jpg')) ? 'verify-gdi' : 'verify-page';
+    // Crop from this run's raster output (not a stale verify-gdi-0.jpg from a prior attempt).
+    const base = rasterized ? 'verify-page' : 'verify-gdi';
     const crops = [
         [0, 'vfill-p0-head.jpg', 40, 500, 560, 720],
         [0, 'vfill-p0-inc.jpg', 50, 300, 540, 430],

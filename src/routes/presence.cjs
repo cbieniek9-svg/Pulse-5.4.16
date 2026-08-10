@@ -7,17 +7,21 @@ const {
     SETTING_GATEWAY_KEY,
     ASSET_MODES,
     TEMPLATE_AISLE_GATEWAYS,
+    DEFAULT_GATEWAYS,
+    parseJson,
+    normalizeGateway,
 } = require('../lib/presence-config.cjs');
 const { ingestGatewayBatch, buildPresenceBoard } = require('../lib/presence-engine.cjs');
 const { buildPresenceReportSummary } = require('../lib/presence-reports.cjs');
 const { listAssets, upsertAsset, deleteAsset, seedCartsFromMap } = require('../lib/presence-assets.cjs');
 
+const MAX_FORWARDED_CHUNKS = 64;
+const SETTING_GATEWAY_MAP = 'Presence_Gateway_Map';
+
 function extractGatewayKey(req) {
-    const header = req.header('x-presence-gateway-key') || req.header('X-Presence-Gateway-Key');
-    if (header) return String(header).trim();
-    const body = req.body?.gateway_key;
-    if (body) return String(body).trim();
-    return '';
+    // Express header lookup is case-insensitive; never accept gateway_key from the body.
+    const header = req.header('x-presence-gateway-key');
+    return header ? String(header).trim() : '';
 }
 
 function requireGatewayKey(req, res, config) {
@@ -49,6 +53,9 @@ function registerPresenceRoutes(server, ctx) {
         const results = [];
         try {
             if (Array.isArray(b.forwarded) && b.forwarded.length) {
+                if (b.forwarded.length > MAX_FORWARDED_CHUNKS) {
+                    return fail(res, 400, `Too many forwarded chunks (max ${MAX_FORWARDED_CHUNKS}).`);
+                }
                 const hubId = b.gateway_id || config.hubs?.[0]?.id || 'GW-RECV';
                 b.forwarded.forEach((chunk) => {
                     results.push(ingestGatewayBatch(db, {
@@ -184,8 +191,12 @@ function registerPresenceRoutes(server, ctx) {
     server.post('/api/presence/seed-demo-carts', wrap(async (req, res) => {
         const session = requireSession(req, res, true);
         if (!session) return;
+        if (req.body?.confirm !== true) {
+            return fail(res, 400, 'Confirmation required to seed demo carts.', 'CONFIRM_REQUIRED');
+        }
+        const config = loadPresenceConfig(db);
         const count = Math.min(24, Math.max(1, Number(req.body?.count) || 8));
-        const carts = {};
+        const carts = { ...(config.cart_map || {}) };
         for (let i = 1; i <= count; i += 1) {
             const id = `cart-${String(i).padStart(3, '0')}`;
             carts[id] = `Cart ${i}`;
@@ -199,9 +210,13 @@ function registerPresenceRoutes(server, ctx) {
     server.post('/api/presence/enable-aisle-template', wrap(async (req, res) => {
         const session = requireSession(req, res, true);
         if (!session) return;
-        const config = loadPresenceConfig(db);
+        const settings = db.getSettings ? db.getSettings() : {};
+        const rawGateways = parseJson(settings[SETTING_GATEWAY_MAP], null);
+        const stored = (Array.isArray(rawGateways) ? rawGateways : DEFAULT_GATEWAYS)
+            .map(normalizeGateway)
+            .filter(Boolean);
         const enabled = TEMPLATE_AISLE_GATEWAYS.map((g) => ({ ...g, enabled: true }));
-        const merged = config.gateways
+        const merged = stored
             .filter((g) => !g.id.startsWith('AISLE-'))
             .concat(enabled);
         savePresenceSettings(db, { gateways: merged, allow_discovery: true });

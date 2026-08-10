@@ -22,6 +22,7 @@ app.get('/api/stream', (req, res) => {
 });
 
 (async () => {
+    const failures = [];
     const { chromium } = require('playwright');
     const server = app.listen(0);
     const port = server.address().port;
@@ -30,11 +31,26 @@ app.get('/api/stream', (req, res) => {
         const page = await browser.newPage();
         const errors = [];
         page.on('pageerror', (e) => errors.push(e.message));
+        page.on('console', (m) => {
+            if (m.type() === 'error') errors.push(`console: ${m.text()}`);
+        });
         await page.goto(`http://127.0.0.1:${port}${urlPath}`, { waitUntil: 'load', timeout: 15000 });
         await page.waitForTimeout(5000);
         const text = await page.locator('#root').innerText().catch(() => '');
         console.log(urlPath, '->', page.url(), 'rootLen', text.length, 'errors', errors);
+        if (errors.length) failures.push(`${urlPath}: ${errors.join('; ')}`);
+        if (!String(text || '').includes('HELLO TASK')) {
+            failures.push(`${urlPath}: #root missing seeded HELLO TASK`);
+        }
     }
     await browser.close();
     server.close();
-})();
+    if (failures.length) {
+        console.error('FAIL', failures.length, 'issue(s)');
+        failures.forEach((f) => console.error(' ', f));
+        process.exit(1);
+    }
+})().catch((err) => {
+    console.error(err);
+    process.exit(1);
+});

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSync } from '../../../providers/SyncProvider.jsx';
 import { useFloorUi } from '../../shared/NoticeProvider.jsx';
 
@@ -13,6 +13,14 @@ export default function PresencePanel() {
     const [beaconId, setBeaconId] = useState('');
     const [label, setLabel] = useState('');
     const [assetType, setAssetType] = useState('cart');
+
+    useEffect(() => {
+        setChecked(!!enabled);
+    }, [enabled]);
+
+    useEffect(() => {
+        setMode(settings.Presence_Asset_Mode || board?.asset_mode || 'staff');
+    }, [settings.Presence_Asset_Mode, board?.asset_mode]);
 
     const toggle = async (on) => {
         setChecked(on);

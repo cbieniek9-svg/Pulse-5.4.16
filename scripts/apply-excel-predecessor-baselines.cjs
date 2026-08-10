@@ -22,7 +22,10 @@ const db = {
 };
 
 console.log('Applying Excel archive seed to', dbPath);
-migration.up(db);
+const apply = dbConn.transaction(() => {
+    migration.up(db);
+});
+apply();
 const count = db.get('SELECT COUNT(*) as n FROM vendor_contacts')?.n || 0;
 console.log('vendor_contacts rows:', count);
 console.log('Done.');

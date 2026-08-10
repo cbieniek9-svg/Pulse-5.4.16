@@ -70,7 +70,8 @@ export default function FinancialLogGate({ children }) {
                     </>
                 ) : (
                     <p>
-                        Shadow access is assigned to <strong>{access.allowlist.join(', ')}</strong>.
+                        Shadow access is assigned to{' '}
+                        <strong>{(access.allowlist || []).join(', ') || 'another manager'}</strong>.
                         Contact that manager or turn off shadow mode in settings when ready for rollout.
                     </p>
                 )}

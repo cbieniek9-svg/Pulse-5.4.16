@@ -1,44 +1,7 @@
 import { useState } from 'react';
 import { saveDeptMargin } from './logApi.js';
-import { formatMoney, formatPct, formatShortDate, isInvalidAmount, parseSheetAmount } from './logAnalyticsUtils.js';
-
-function MarginField({ label, value, pct, onSave, disabled }) {
-    const [draft, setDraft] = useState(null);
-    const display = draft != null
-        ? draft
-        : (pct ? (value != null ? `${(Number(value) * 100).toFixed(4)}` : '') : formatMoney(value));
-
-    return (
-        <label className="margin-field">
-            <span>{label}</span>
-            <input
-                value={display}
-                disabled={disabled}
-                onChange={(ev) => setDraft(ev.target.value)}
-                onFocus={() => setDraft(pct ? String((Number(value || 0) * 100)) : String(value ?? ''))}
-                onBlur={() => {
-                    if (isInvalidAmount(draft)) {
-                        alert(`Not a number: ${label} — not saved`);
-                        setDraft(null);
-                        return;
-                    }
-                    const raw = parseSheetAmount(draft);
-                    setDraft(null);
-                    onSave(pct ? raw / 100 : raw);
-                }}
-            />
-        </label>
-    );
-}
-
-function ReadRow({ label, value, pct, strong }) {
-    return (
-        <div className={`margin-read-row${strong ? ' strong' : ''}`}>
-            <span>{label}</span>
-            <span>{pct ? formatPct(value) : formatMoney(value)}</span>
-        </div>
-    );
-}
+import { formatMoney, formatPct, formatShortDate } from './logAnalyticsUtils.js';
+import { MarginField, ReadRow } from './logMarginFields.jsx';
 
 export default function LogDeptMarginSheet({
     token,

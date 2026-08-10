@@ -299,6 +299,10 @@ test('post-verify I/O failure returns structured failResult', async (t) => {
             stage: 'manual',
             actor: 'TEST',
             labelDate: '2026-08-11',
+            // Force inventory online-backup fallback so the injectable copyFileSync path runs.
+            copyInventoryDbOnline: async () => {
+                throw new Error('force inventory copyFileSync fallback');
+            },
             copyFileSync: () => {
                 throw new Error('ENOSPC simulated');
             },

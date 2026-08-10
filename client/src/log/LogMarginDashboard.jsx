@@ -1,44 +1,7 @@
 import { useState } from 'react';
 import { saveMarginDashboard } from './logApi.js';
-import { formatMoney, formatPct, formatShortDate, isInvalidAmount, parseSheetAmount } from './logAnalyticsUtils.js';
-
-function MarginField({ label, value, pct, onSave, disabled }) {
-    const [draft, setDraft] = useState(null);
-    const display = draft != null
-        ? draft
-        : (pct ? (value != null ? `${(Number(value) * 100).toFixed(4)}` : '') : formatMoney(value));
-
-    return (
-        <label className="margin-field">
-            <span>{label}</span>
-            <input
-                value={display}
-                disabled={disabled}
-                onChange={(ev) => setDraft(ev.target.value)}
-                onFocus={() => setDraft(pct ? String((Number(value || 0) * 100)) : String(value ?? ''))}
-                onBlur={() => {
-                    if (isInvalidAmount(draft)) {
-                        alert(`Not a number: ${label} — not saved`);
-                        setDraft(null);
-                        return;
-                    }
-                    const raw = parseSheetAmount(draft);
-                    setDraft(null);
-                    onSave(pct ? raw / 100 : raw);
-                }}
-            />
-        </label>
-    );
-}
-
-function ReadRow({ label, value, pct, strong }) {
-    return (
-        <div className={`margin-read-row${strong ? ' strong' : ''}`}>
-            <span>{label}</span>
-            <span>{pct ? formatPct(value) : formatMoney(value)}</span>
-        </div>
-    );
-}
+import { formatMoney, formatPct, formatShortDate } from './logAnalyticsUtils.js';
+import { MarginField, ReadRow } from './logMarginFields.jsx';
 
 export default function LogMarginDashboard({
     token,
@@ -121,7 +84,14 @@ export default function LogMarginDashboard({
                         <MarginField
                             label="Period #"
                             value={meta.period_number}
-                            onSave={(v) => saveMeta({ period_number: Math.round(v) })}
+                            onSave={(v) => {
+                                const n = Math.round(Number(v));
+                                if (!Number.isFinite(n) || n <= 0) {
+                                    alert('Period # must be a finite number greater than 0.');
+                                    return;
+                                }
+                                saveMeta({ period_number: n });
+                            }}
                             disabled={readOnly || busy || saving}
                         />
                         <MarginField

@@ -1623,7 +1623,8 @@ function buildPeriodCloseReadiness(db, anchorDate) {
         return pass;
     };
 
-    const today = normalizeStoreDate(new Date().toISOString().slice(0, 10));
+    const { getStoreDateStamp } = createStoreTimeAccessors(() => db.getSettings());
+    const today = normalizeStoreDate(getStoreDateStamp());
     let finalDayComplete = today > periodEnd;
     const finalDay = db.get('SELECT * FROM receiving_report_day WHERE store_date=?', periodEnd);
     if (finalDay) {

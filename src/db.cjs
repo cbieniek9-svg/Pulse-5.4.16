@@ -191,33 +191,8 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_manager_audit_action ON manager_audit_log(action, created_at DESC);
 `);
 
-// Compatibility guard for existing store databases that were created before
-// trusted device token columns existed. CREATE TABLE IF NOT EXISTS does not
-// add missing columns, and creating token indexes before these ALTERs causes
-// "no such column: device_token_hash" during boot.
-function ensureTrustedDeviceTokenColumns() {
-  const columns = new Set(db.all("PRAGMA table_info(trusted_devices)").map((row) => row.name));
-  const addColumn = (name, sql) => {
-    if (!columns.has(name)) {
-      db.run(sql);
-      columns.add(name);
-    }
-  };
-
-  addColumn('device_token_hash', 'ALTER TABLE trusted_devices ADD COLUMN device_token_hash TEXT');
-  addColumn('token_created_at', 'ALTER TABLE trusted_devices ADD COLUMN token_created_at TEXT');
-  addColumn('last_seen_at', 'ALTER TABLE trusted_devices ADD COLUMN last_seen_at TEXT');
-
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_trusted_devices_token
-      ON trusted_devices(device_token_hash)
-      WHERE device_token_hash IS NOT NULL;
-    CREATE INDEX IF NOT EXISTS idx_trusted_devices_status_seen
-      ON trusted_devices(status, last_seen_at DESC);
-  `);
-}
-
-ensureTrustedDeviceTokenColumns();
+// Trusted device token columns + indexes are owned by migration 017
+// (trusted_device_token_pairing). Do not re-ALTER at startup.
 
 // Idempotent schema — numbered migrations in src/migrations/
 const { runMigrations, getPendingMigrations } = require('./migrations/runner.cjs');

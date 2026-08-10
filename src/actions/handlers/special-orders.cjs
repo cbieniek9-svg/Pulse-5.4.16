@@ -45,9 +45,10 @@ function createSpecialOrdersHandlers({ db, broadcastUpdate, getStoreDateStamp, a
             }
             if (isBetacsRow(row)) {
                 const settings = db.getSettings();
-                const dataKeys = Object.keys(ctx.workingData).filter(
-                    (k) => !['closed_by', 'time_closed', 'ordered_at', 'ready_at', 'notes_updated_at', 'notes_updated_by'].includes(k),
-                );
+                for (const key of ['closed_by', 'time_closed', 'ordered_at', 'ready_at', 'notes_updated_at', 'notes_updated_by']) {
+                    delete ctx.workingData[key];
+                }
+                const dataKeys = Object.keys(ctx.workingData);
                 const onlyNotes = dataKeys.length === 1 && dataKeys[0] === 'notes';
                 const onlyStatus = dataKeys.length === 1 && dataKeys[0] === 'status';
                 const statusAndNotes = dataKeys.length === 2

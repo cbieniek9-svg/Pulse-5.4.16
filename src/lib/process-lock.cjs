@@ -27,7 +27,9 @@ function pidAlive(pid) {
     try {
         process.kill(pid, 0);
         return true;
-    } catch (_) {
+    } catch (e) {
+        // EPERM means the PID exists but we lack permission to signal it — still alive.
+        if (e && e.code === 'EPERM') return true;
         return false;
     }
 }

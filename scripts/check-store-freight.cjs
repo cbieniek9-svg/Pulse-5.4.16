@@ -1,14 +1,36 @@
 'use strict';
-process.env.TGP_DATA_DIR = process.env.TGP_DATA_DIR || 'E:\\Live\\TGPV5\\TGP_V5';
-const { db } = require('../src/db.cjs');
+
+/**
+ * Compare store DB freight/purchases vs an Excel workbook Total Grocery sheet.
+ *
+ * Usage:
+ *   set TGP_DATA_DIR=<folder with tgp_ops.db>
+ *   npx electron scripts/check-store-freight.cjs "path/to/workbook.xlsx"
+ */
+
+const path = require('path');
+const { parseWorkbookFile } = require('../src/lib/edmonton-receiving-workbook-import.cjs');
 const { buildReceivingTotalsPayload } = require('../src/lib/edmonton-receiving-analytics.cjs');
 const { buildCountCyclePayload } = require('../src/lib/edmonton-receiving-count-cycle.cjs');
 
-const { parseWorkbookFile } = require('../src/lib/edmonton-receiving-workbook-import.cjs');
-
 async function main() {
-    const wb = await parseWorkbookFile('e:\\9. Edmonton Wholesale Market Receiving Report 2026Jul18.xlsx');
+    const workbookPath = process.argv[2];
+    if (!workbookPath) {
+        console.error('Usage: check-store-freight.cjs <workbook.xlsx>');
+        console.error('Requires TGP_DATA_DIR pointing at a folder that contains tgp_ops.db.');
+        process.exit(1);
+    }
+    if (!process.env.TGP_DATA_DIR) {
+        console.error('TGP_DATA_DIR must be set (no live-path fallback).');
+        process.exit(1);
+    }
+
+    const { db } = require('../src/db.cjs');
+    const wb = await parseWorkbookFile(path.resolve(workbookPath));
     const tg = wb.Sheets['Total Grocery'];
+    if (!tg) {
+        throw new Error('Total Grocery sheet missing');
+    }
 
     function freightAlloc(total) {
         return Math.round((total * 0.478 + total * 0.142) * 100) / 100;

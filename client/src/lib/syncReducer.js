@@ -109,6 +109,10 @@ export function applyDelta(state, delta) {
 
         if (action === 'insert' && data) {
             if (Array.isArray(state[key])) {
+                if (id_col && data[id_col] != null) {
+                    const exists = state[key].some((x) => String(x[id_col]) === String(data[id_col]));
+                    if (exists) return { state, needsSync: false };
+                }
                 return {
                     state: { ...state, [key]: [...state[key], data] },
                     needsSync: false,
@@ -123,7 +127,8 @@ export function applyDelta(state, delta) {
 
             const idx = arr.findIndex((x) => String(x[id_col]) === String(id_val));
             if (idx >= 0) {
-                const terminalTask = key === 'tasks' && data?.status === 'Closed';
+                const terminalTask = key === 'tasks'
+                    && (data?.status === 'Closed' || data?.status === 'Complete');
                 const terminalKill = key === 'kill_dates' && data?.status && data.status !== 'Active';
 
                 if (terminalTask) {

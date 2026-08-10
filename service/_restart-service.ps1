@@ -27,6 +27,11 @@ Log "electron-as-node $abi"
 Push-Location $app
 try {
   & cmd /c "set ELECTRON_RUN_AS_NODE=1&& `"$electron`" -e `"require('better-sqlite3'); console.log('sqlite ok ABI', process.versions.modules)`"" 2>&1 | ForEach-Object { Log $_ }
+  $sqliteExit = $LASTEXITCODE
+  if ($sqliteExit -ne 0) {
+    Log "ERROR: sqlite check failed (exit $sqliteExit)"
+    exit 1
+  }
 } finally { Pop-Location }
 
 # refresh xml for THIS folder (never keep a previous machine's absolute paths)
@@ -68,5 +73,6 @@ try {
   } catch {
     Log "ready fail: $($_.Exception.Message)"
     Get-Content (Join-Path $here "logs\TGP-CommandCenter.err.log") -Tail 20 -ErrorAction SilentlyContinue | ForEach-Object { Log $_ }
+    exit 1
   }
 } finally { Pop-Location }

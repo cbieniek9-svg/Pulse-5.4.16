@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchJson, formatApiError } from '../../lib/api.js';
 import { createReportsApi } from '../lib/reportsApi.js';
 
 const REFRESH_SECONDS = 300;
+const EMPTY_META = Object.freeze({});
 
 function loadBackups(token, activeBackup, setBackups, setBackupError) {
     fetchJson('/api/backups', { headers: { 'x-session-token': token } })
@@ -27,6 +28,13 @@ export default function useReportsData(token) {
     const [error, setError] = useState('');
     const [countdown, setCountdown] = useState(REFRESH_SECONDS);
 
+    const viewStartRef = useRef(viewStart);
+    const viewEndRef = useRef(viewEnd);
+    const reportModeRef = useRef(reportMode);
+    viewStartRef.current = viewStart;
+    viewEndRef.current = viewEnd;
+    reportModeRef.current = reportMode;
+
     const setReportMode = useCallback((mode) => {
         setReportModeState(mode);
         sessionStorage.setItem('tgp_report_mode', mode);
@@ -37,16 +45,19 @@ export default function useReportsData(token) {
         setLoading(true);
         setError('');
         setCountdown(REFRESH_SECONDS);
+        const start = viewStartRef.current;
+        const end = viewEndRef.current;
+        const mode = reportModeRef.current;
         try {
             const q = [];
             if (activeBackup) q.push(`backup=${encodeURIComponent(activeBackup)}`);
             if (
-                viewStart && viewEnd
-                && /^\d{4}-\d{2}-\d{2}$/.test(viewStart)
-                && /^\d{4}-\d{2}-\d{2}$/.test(viewEnd)
+                start && end
+                && /^\d{4}-\d{2}-\d{2}$/.test(start)
+                && /^\d{4}-\d{2}-\d{2}$/.test(end)
             ) {
-                q.push(`start=${encodeURIComponent(viewStart)}`);
-                q.push(`end=${encodeURIComponent(viewEnd)}`);
+                q.push(`start=${encodeURIComponent(start)}`);
+                q.push(`end=${encodeURIComponent(end)}`);
             }
             const url = `/api/reports${q.length ? `?${q.join('&')}` : ''}`;
             const d = await fetchJson(url, { headers: { 'x-session-token': token } });
@@ -54,7 +65,7 @@ export default function useReportsData(token) {
             if (d.meta?.reportEnd) setViewEnd(d.meta.reportEnd);
             if (
                 d.meta?.isLiveToday === false
-                && reportMode === 'today'
+                && mode === 'today'
                 && !sessionStorage.getItem('tgp_report_mode')
             ) {
                 setReportMode('handoff');
@@ -67,12 +78,17 @@ export default function useReportsData(token) {
         } finally {
             setLoading(false);
         }
-    }, [token, activeBackup, viewStart, viewEnd, reportMode, setReportMode]);
+    }, [token, activeBackup, setReportMode]);
 
     const applyViewDate = useCallback((nextStart, nextEnd) => {
-        setViewStart(nextStart?.trim() || '');
-        setViewEnd(nextEnd?.trim() || '');
-    }, []);
+        const start = nextStart?.trim() || '';
+        const end = nextEnd?.trim() || '';
+        viewStartRef.current = start;
+        viewEndRef.current = end;
+        setViewStart(start);
+        setViewEnd(end);
+        loadReports();
+    }, [loadReports]);
 
     useEffect(() => {
         loadReports();
@@ -92,7 +108,7 @@ export default function useReportsData(token) {
         return () => clearInterval(id);
     }, [loadReports]);
 
-    const reportMeta = reportData?.meta || {};
+    const reportMeta = reportData?.meta || EMPTY_META;
     const api = useMemo(
         () => createReportsApi(token, reportMeta),
         [token, reportMeta],

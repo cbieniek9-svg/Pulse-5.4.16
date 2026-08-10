@@ -57,10 +57,18 @@ function getValue(source, dottedKey) {
     }, source);
 }
 
+/** StandardFonts are WinAnsi — strip characters outside Latin-1 printable range. */
+function toWinAnsiSafe(text) {
+    return String(text || '')
+        .replace(/[^\u0009\u000A\u000D\u0020-\u007E\u00A0-\u00FF]/g, '?')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 function textValue(value) {
     if (value == null) return '';
     if (typeof value === 'object') return '';
-    return String(value).replace(/\s+/g, ' ').trim();
+    return toWinAnsiSafe(String(value));
 }
 
 function ynLabel(value) {

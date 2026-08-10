@@ -2,6 +2,7 @@
 
 const { lookupItem, resolveDepartment } = require('./item-catalog.cjs');
 const { readSpreadsheetBuffer, sheetToObjects } = require('./spreadsheet-read.cjs');
+const { csvCell: csvEscape } = require('./csv-safe.cjs');
 
 const SHRINK_STATUSES = new Set(['Open', 'Closed', 'Voided']);
 const UNASSIGNED_DEPT = 'Unassigned';
@@ -152,12 +153,6 @@ function enrichShrinkRows(db, rows) {
             department_count: departments.filter((d) => d.department !== UNASSIGNED_DEPT).length,
         },
     };
-}
-
-function csvEscape(value) {
-    const s = value == null ? '' : String(value);
-    if (/[",\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-    return s;
 }
 
 function formatMoney(n) {
@@ -489,7 +484,11 @@ function analyzeFloorShrink(db, opts = {}) {
         .slice(0, topLimit);
 
     const recent_lines = [...rows]
-        .reverse()
+        .sort((a, b) => {
+            const dateCmp = String(b.store_date || '').localeCompare(String(a.store_date || ''));
+            if (dateCmp) return dateCmp;
+            return String(b.time_logged || '').localeCompare(String(a.time_logged || ''));
+        })
         .slice(0, recentLimit)
         .map((r) => ({
             id: r.id,

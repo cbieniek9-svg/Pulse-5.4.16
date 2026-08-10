@@ -135,7 +135,7 @@ $b.Dispose();$src.Dispose()
 
 const person = findBestBoxes(0, 40, 535, 540, 570, { sizes: [14, 15, 16, 17, 18], step: 1, topN: 12 });
 const incident = findBestBoxes(0, 55, 310, 520, 420, { sizes: [13, 14, 15, 16], step: 1, topN: 30 });
-const process = findBestBoxes(1, 360, 590, 520, 670, { sizes: [14, 15, 16, 17], step: 1, topN: 20 });
+const processBoxes = findBestBoxes(1, 360, 590, 520, 670, { sizes: [14, 15, 16, 17], step: 1, topN: 20 });
 const acts = findBestBoxes(1, 55, 90, 110, 400, { sizes: [13, 14, 15, 16], step: 1, topN: 25 });
 const conds = findBestBoxes(1, 300, 90, 360, 400, { sizes: [13, 14, 15, 16], step: 1, topN: 25 });
 const events = findBestBoxes(1, 90, 430, 490, 535, { sizes: [13, 14, 15, 16], step: 1, topN: 25 });
@@ -143,12 +143,12 @@ const ca = findBestBoxes(3, 50, 450, 400, 660, { sizes: [13, 14, 15, 16], step: 
 const docs = findBestBoxes(4, 80, 430, 530, 600, { sizes: [13, 14, 15, 16], step: 1, topN: 40 });
 const ampm = findBestBoxes(0, 485, 510, 545, 640, { sizes: [10, 11, 12, 13, 14], step: 1, topN: 12 });
 
-const out = { person, incident, process, acts, conds, events, ca, docs, ampm };
+const out = { person, incident, process: processBoxes, acts, conds, events, ca, docs, ampm };
 fs.writeFileSync(path.join(calib, 'measure-boxes.json'), JSON.stringify(out, null, 2));
 
 markBoxes(0, person, 'meas-person.jpg');
 markBoxes(0, incident, 'meas-incident.jpg');
-markBoxes(1, process, 'meas-process.jpg');
+markBoxes(1, processBoxes, 'meas-process.jpg');
 markBoxes(1, acts, 'meas-acts.jpg');
 markBoxes(1, conds, 'meas-conds.jpg');
 markBoxes(3, ca, 'meas-ca.jpg');
@@ -163,7 +163,7 @@ cropPdf(1, 'meas-acts-crop.jpg', 50, 90, 360, 420);
 console.log('PERSON', person.map((b) => `${b.x},${b.y} s${b.size} sc${b.score}`).join(' | '));
 console.log('AMPM', ampm.map((b) => `${b.x},${b.y} s${b.size}`).join(' | '));
 console.log('INC', incident.slice(0, 20).map((b) => `${b.x},${b.y}`).join(' | '));
-console.log('PROC', process.map((b) => `${b.x},${b.y}`).join(' | '));
+console.log('PROC', processBoxes.map((b) => `${b.x},${b.y}`).join(' | '));
 console.log('ACTS n', acts.length, acts[0], acts[acts.length - 1]);
 console.log('CONDS n', conds.length, conds[0]);
 console.log('CA n', ca.length, ca.slice(0, 6));

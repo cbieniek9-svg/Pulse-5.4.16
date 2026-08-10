@@ -12,6 +12,8 @@ const {
 } = require('../../lib/safety-inspections.cjs');
 const { getStoreMeta } = require('../../constants/store-meta.cjs');
 const { canAccessSafeInspections, isManagerRole, listStaffForSync, parsePermissions } = require('../../lib/staff-permissions.cjs');
+const { isPrivateIpv4 } = require('../../lib/safe-network-interfaces.cjs');
+const { requestIp, findAuthorizedTrustedDevice } = require('../../lib/trusted-device-tokens.cjs');
 
 function listSafeLoginStaff(db) {
     return listStaffForSync(db)
@@ -33,7 +35,20 @@ function registerSafetyInspectionRoutes(server, ctx) {
         return session;
     };
 
+    // Pre-login staff picker: must stay ungated by session, but restrict to
+    // loopback/private LAN or an authorized trusted device (not the open internet).
+    const allowSafeLoginOptions = (req, res) => {
+        const raw = String(requestIp(req) || '').replace(/^::ffff:/i, '').toLowerCase();
+        const loopback = raw === '127.0.0.1' || raw === '::1' || raw === 'localhost';
+        if (loopback || isPrivateIpv4(raw)) return true;
+        const device = findAuthorizedTrustedDevice(db, req);
+        if (device.authorized) return true;
+        fail(res, 403, 'Safe login options are limited to the store LAN or a trusted device.');
+        return false;
+    };
+
     server.get('/api/safe/login-options', wrap(async (req, res) => {
+        if (!allowSafeLoginOptions(req, res)) return;
         res.json({ success: true, staff: listSafeLoginStaff(db) });
     }));
 

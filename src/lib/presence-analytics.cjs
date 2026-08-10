@@ -61,10 +61,11 @@ function buildUnmappedSightings(db, config, { sinceMinutes = 30, limit = 10 } = 
         .filter((r) => !r.registered && r.asset_type === 'unknown');
 }
 
-function buildStaleReceivingCarts(liveAssets, config, { staleMinutes = 45 } = {}) {
+/** Prefer persisted presence_staff_zones rows — refreshed live_assets bump updated_at. */
+function buildStaleReceivingCarts(zoneRows, config, { staleMinutes = 45 } = {}) {
     if (config.asset_mode === 'staff') return [];
     const cutoff = Date.now() - staleMinutes * 60000;
-    return (liveAssets || [])
+    return (zoneRows || [])
         .filter((a) => a.asset_type === 'cart' && a.zone_key === 'Receiving')
         .filter((a) => a.updated_at && Date.parse(a.updated_at) < cutoff)
         .map((a) => ({

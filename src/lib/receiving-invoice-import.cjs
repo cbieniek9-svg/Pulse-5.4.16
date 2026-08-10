@@ -206,48 +206,52 @@ function commitReceivingImport(db, storeDate, payload = {}, actorName = '') {
     const importId = crypto.randomUUID();
     const now = new Date().toISOString();
 
-    let savedLine = null;
-    if (invoiceRaw && (invoiceRaw.invoice_number || invoiceRaw.supplier_name || shrinkRows.length)) {
-        const normalized = normalizeLineInput({
-            ...invoiceRaw,
-            line_kind: invoiceRaw.line_kind || (Number(invoiceRaw.total_invoice) < 0 ? 'write_off' : 'invoice'),
+    const commit = () => {
+        let savedLine = null;
+        if (invoiceRaw && (invoiceRaw.invoice_number || invoiceRaw.supplier_name || shrinkRows.length)) {
+            const normalized = normalizeLineInput({
+                ...invoiceRaw,
+                line_kind: invoiceRaw.line_kind || (Number(invoiceRaw.total_invoice) < 0 ? 'write_off' : 'invoice'),
+            });
+            savedLine = saveLine(db, date, normalized, actorName);
+        }
+
+        const savedShrink = [];
+        shrinkRows.forEach((row) => {
+            savedShrink.push(saveShrinkLine(db, date, {
+                ...row,
+                line_id: savedLine?.line_id || row.line_id || '',
+                source_doc: 'pdf_import',
+                source_filename: filename,
+                invoice_number: row.invoice_number || savedLine?.invoice_number || invoiceRaw.invoice_number || '',
+                supplier_name: row.supplier_name || savedLine?.supplier_name || invoiceRaw.supplier_name || '',
+            }, actorName));
         });
-        savedLine = saveLine(db, date, normalized, actorName);
-    }
 
-    const savedShrink = [];
-    shrinkRows.forEach((row) => {
-        savedShrink.push(saveShrinkLine(db, date, {
-            ...row,
-            line_id: savedLine?.line_id || row.line_id || '',
-            source_doc: 'pdf_import',
-            source_filename: filename,
-            invoice_number: row.invoice_number || savedLine?.invoice_number || invoiceRaw.invoice_number || '',
-            supplier_name: row.supplier_name || savedLine?.supplier_name || invoiceRaw.supplier_name || '',
-        }, actorName));
-    });
+        db.run(
+            `INSERT INTO receiving_invoice_imports
+                (import_id, store_date, filename, doc_type, line_id, shrink_count, ocr_chars, created_at, created_by)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            importId,
+            date,
+            filename,
+            String(payload.doc_type || 'auto'),
+            savedLine?.line_id || '',
+            savedShrink.length,
+            Number(payload.ocr_chars || 0),
+            now,
+            actorName || '',
+        );
 
-    db.run(
-        `INSERT INTO receiving_invoice_imports
-            (import_id, store_date, filename, doc_type, line_id, shrink_count, ocr_chars, created_at, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        importId,
-        date,
-        filename,
-        String(payload.doc_type || 'auto'),
-        savedLine?.line_id || '',
-        savedShrink.length,
-        Number(payload.ocr_chars || 0),
-        now,
-        actorName || '',
-    );
-
-    return {
-        import_id: importId,
-        line: savedLine,
-        shrink_lines: savedShrink,
-        shrink_summary: buildShrinkSummary(savedShrink),
+        return {
+            import_id: importId,
+            line: savedLine,
+            shrink_lines: savedShrink,
+            shrink_summary: buildShrinkSummary(savedShrink),
+        };
     };
+
+    return typeof db.transaction === 'function' ? db.transaction(commit)() : commit();
 }
 
 module.exports = {

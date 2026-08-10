@@ -272,35 +272,54 @@ function registerOpsRoutes(server, ctx) {
         }
         const metrics = computeArchivedOrderMetrics(totalPieces, actualOrderMinutes, resolvedStaffCount);
         const now = new Date().toISOString();
-        db.run(
-            `UPDATE shift_order_history
-             SET order_start=?, order_end=?, total_pieces=?, staff_count=?, standard_hours=?, actual_order_minutes=?, actual_pieces_per_hour=?,
-                 break_deduction_hours_per_person=?, adjusted_labor_hours=?, adjusted_per_person_pph=?,
-                 raw_clock_minutes=?, spans_calendar_day=?, staff_roster=?
-             WHERE store_date=?`,
-            orderStart, orderEnd, totalPieces, resolvedStaffCount, Number(standardHours.toFixed(2)), actualOrderMinutes, metrics.team_pph,
-            metrics.break_deduction_hours_per_person, metrics.adjusted_labor_hours, metrics.adjusted_per_person_pph,
-            rawClockMinutes, spansCalendarDay, rosterJson,
-            storeDate
-        );
+        let exceptionReason = null;
         if ('exception_reason' in b) {
             if (b.exception_reason != null && typeof b.exception_reason !== 'string') {
                 return fail(res, 400, 'exception_reason must be a string.');
             }
-            const reason = b.exception_reason == null ? '' : b.exception_reason.trim().slice(0, 200);
-            db.run('UPDATE shift_order_history SET exception_reason=? WHERE store_date=?', reason, storeDate);
+            exceptionReason = b.exception_reason == null ? '' : b.exception_reason.trim().slice(0, 200);
         }
-        db.upsertAudit(crypto.randomUUID(), now, session.name, 'correct_order_history', 'shift_order_history', JSON.stringify({
-            store_date: storeDate,
-            order_start: orderStart,
-            order_end: orderEnd,
-            total_pieces: totalPieces,
-            staff_count: resolvedStaffCount,
-            staff_roster: parseStaffRoster(rosterJson),
-            actual_order_minutes: actualOrderMinutes,
-            raw_clock_minutes: rawClockMinutes,
-            spans_calendar_day: spansCalendarDay,
-        }));
+        const write = () => {
+            if (exceptionReason != null) {
+                db.run(
+                    `UPDATE shift_order_history
+                     SET order_start=?, order_end=?, total_pieces=?, staff_count=?, standard_hours=?, actual_order_minutes=?, actual_pieces_per_hour=?,
+                         break_deduction_hours_per_person=?, adjusted_labor_hours=?, adjusted_per_person_pph=?,
+                         raw_clock_minutes=?, spans_calendar_day=?, staff_roster=?, exception_reason=?
+                     WHERE store_date=?`,
+                    orderStart, orderEnd, totalPieces, resolvedStaffCount, Number(standardHours.toFixed(2)), actualOrderMinutes, metrics.team_pph,
+                    metrics.break_deduction_hours_per_person, metrics.adjusted_labor_hours, metrics.adjusted_per_person_pph,
+                    rawClockMinutes, spansCalendarDay, rosterJson, exceptionReason,
+                    storeDate,
+                );
+            } else {
+                db.run(
+                    `UPDATE shift_order_history
+                     SET order_start=?, order_end=?, total_pieces=?, staff_count=?, standard_hours=?, actual_order_minutes=?, actual_pieces_per_hour=?,
+                         break_deduction_hours_per_person=?, adjusted_labor_hours=?, adjusted_per_person_pph=?,
+                         raw_clock_minutes=?, spans_calendar_day=?, staff_roster=?
+                     WHERE store_date=?`,
+                    orderStart, orderEnd, totalPieces, resolvedStaffCount, Number(standardHours.toFixed(2)), actualOrderMinutes, metrics.team_pph,
+                    metrics.break_deduction_hours_per_person, metrics.adjusted_labor_hours, metrics.adjusted_per_person_pph,
+                    rawClockMinutes, spansCalendarDay, rosterJson,
+                    storeDate,
+                );
+            }
+            db.upsertAudit(crypto.randomUUID(), now, session.name, 'correct_order_history', 'shift_order_history', JSON.stringify({
+                store_date: storeDate,
+                order_start: orderStart,
+                order_end: orderEnd,
+                total_pieces: totalPieces,
+                staff_count: resolvedStaffCount,
+                staff_roster: parseStaffRoster(rosterJson),
+                actual_order_minutes: actualOrderMinutes,
+                raw_clock_minutes: rawClockMinutes,
+                spans_calendar_day: spansCalendarDay,
+                exception_reason: exceptionReason,
+            }));
+        };
+        if (typeof db.transaction === 'function') db.transaction(write)();
+        else write();
         broadcastUpdate();
         res.json({
             success: true,

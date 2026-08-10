@@ -81,11 +81,6 @@ function registerCoreRoutes(server, ctx) {
         // Exact match first, then case-insensitive (typed manager unlock often varies casing).
         const user = db.get('SELECT * FROM staff WHERE name=?', name)
             || db.get('SELECT * FROM staff WHERE LOWER(TRIM(name)) = LOWER(?)', name);
-        if (user && (Number(user.active) !== 1 || Number(user.app_access) !== 1)) {
-            await bcrypt.compare(pin, DUMMY_BCRYPT_HASH);
-            auth.recordLoginAttempt(name, false);
-            return fail(res, 403, 'Account access is revoked.', 'ACCOUNT_ACCESS_REVOKED');
-        }
         if (!user) {
             await bcrypt.compare(pin, DUMMY_BCRYPT_HASH);
             auth.recordLoginAttempt(name, false);
@@ -98,6 +93,7 @@ function registerCoreRoutes(server, ctx) {
             return fail(res, 403, 'Invalid credentials.', 'INVALID_CREDENTIALS');
         }
 
+        // Account status only after successful PIN verification (avoid pre-PIN enumeration).
         let currentUser = db.get('SELECT * FROM staff WHERE id=?', user.id);
         if (currentUser && (
             Number(currentUser.active) !== 1

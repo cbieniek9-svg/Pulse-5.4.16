@@ -26,6 +26,8 @@ async function main() {
 
     let freightG = 0;
     let freightD = 0;
+    let sumDiffG = 0;
+    let sumDiffD = 0;
     let mismatches = 0;
     for (let row = 2; row <= 36; row += 1) {
         const date = cellDate(rt[`A${row}`]?.v);
@@ -39,6 +41,8 @@ async function main() {
         freightD += allocD;
         const diffG = rtG - parsed.g;
         const diffD = rtD - parsed.d;
+        sumDiffG += diffG;
+        sumDiffD += diffD;
         if (Math.abs(diffG) > 0.02 || Math.abs(diffD) > 0.02) {
             mismatches += 1;
             if (mismatches <= 5) {
@@ -54,7 +58,8 @@ async function main() {
     }
 
     console.log('--- totals ---');
-    console.log('sum RT-line grocery diff', 568334.26 - 566079.61);
+    console.log('sum RT-line grocery diff', Math.round(sumDiffG * 100) / 100);
+    console.log('sum RT-line dairy diff', Math.round(sumDiffD * 100) / 100);
     console.log('sum freight alloc g,d', freightG, freightD, 'total', freightG + freightD);
     console.log('mismatch days', mismatches);
 }

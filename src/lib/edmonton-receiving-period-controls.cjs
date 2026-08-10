@@ -209,7 +209,8 @@ function approvePeriod(db, periodStart, actor = '') {
         && Number(current.submitted_by_staff_id) === Number(identity.staff_id);
     const sameName = String(current.submitted_by || '').trim().toLowerCase()
         === identity.name.toLowerCase();
-    if (sameStaff || (!current.submitted_by_staff_id && sameName)) {
+    // Separation of duties: reject when either staff id or display name matches submitter.
+    if (sameStaff || sameName) {
         const err = new Error('A different manager must approve the submitted period.');
         err.status = 403;
         err.code = 'SEPARATION_OF_DUTIES_REQUIRED';

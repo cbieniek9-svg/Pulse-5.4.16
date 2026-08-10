@@ -5,6 +5,7 @@ const { ensureTrainingStaff } = require('../../lib/training-staff.cjs');
 const { normalizeStoreTimezone } = require('../../lib/store-timezone.cjs');
 const { canBeActiveShiftLead } = require('../../lib/shift-lead.cjs');
 const { logInfo } = require('../../lib/app-log.cjs');
+const { JSON_SETTINGS } = require('../../lib/settings-batch.cjs');
 
 /**
  * settings action handlers for POST /api/action.
@@ -13,7 +14,7 @@ const { logInfo } = require('../../lib/app-log.cjs');
 function createSettingsHandlers({ db, broadcastUpdate, getStoreDateStamp, actionHandlers, archiveCompletedOrderClock }) {
     return {
         settings_update(ctx) {
-            if (ctx.id_val && ['Zone_Mapping', 'Zone_Ownership', 'Zone_Names', 'Zone_Section_Labels'].includes(ctx.id_val)) {
+            if (ctx.id_val && JSON_SETTINGS.has(ctx.id_val)) {
                 try {
                     JSON.parse(ctx.workingData.setting_value);
                 } catch {

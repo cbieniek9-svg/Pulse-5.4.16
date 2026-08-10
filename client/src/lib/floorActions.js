@@ -391,7 +391,8 @@ export function createFloorActions({ token, user, sync, postActionFn, showNotice
             await sync(true);
         },
         presenceSeedDemo: async () => {
-            await postJson('/api/presence/seed-demo-carts', { token, count: 8 }, token);
+            if (!(await appConfirm('Seed demo carts into the presence map? Existing cart labels are kept; demo carts are merged in.'))) return;
+            await postJson('/api/presence/seed-demo-carts', { token, count: 8, confirm: true }, token);
             await sync(true);
         },
         presenceEnableAisle: async () => {

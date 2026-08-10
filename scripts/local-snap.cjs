@@ -13,23 +13,22 @@ const jpeg = require('jpeg-js');
 const { PDFDocument, StandardFonts } = require('pdf-lib');
 const { buildInvestigationPdf, extractEmbeddedJpegs, pageImageNeeds180 } = require('../src/lib/incident-investigation-pdf.cjs');
 const map = require('../src/lib/incident-investigation-pdf-map.cjs');
+const { PDF_W, PDF_H, pdfToPix, pixToPdf } = require('./lib/calib-crop.cjs');
 
 const root = path.join(__dirname, '..');
 const calib = path.join(root, '_calib');
-const Wpdf = 612;
-const Hpdf = 792;
 
 function load(page) {
     return jpeg.decode(fs.readFileSync(path.join(calib, `page-${page}.jpg`)), { useTArray: true });
 }
 function toPix(W, H, x, y) {
-    return { x: Math.round((x * W) / Wpdf), y: Math.round(((Hpdf - y) * H) / Hpdf) };
+    return pdfToPix(W, H, x, y);
 }
 function toPdf(W, H, x, y) {
-    return {
-        x: Math.round((x * Wpdf) / W * 10) / 10,
-        y: Math.round((Hpdf - (y * Hpdf) / H) * 10) / 10,
-    };
+    return pixToPdf(W, H, x, y);
+}
+function pxEdgeToPdfSize(W, sizePx) {
+    return Math.round((sizePx * PDF_W) / W * 10) / 10;
 }
 
 function scoreAt(gray, W, H, x, y, size) {
@@ -67,7 +66,7 @@ function localBest(page, pdfX, pdfY, { radius = 10, sizes = [13, 14, 15, 16, 17]
     const gray = new Uint8Array(W * H);
     for (let i = 0; i < W * H; i += 1) gray[i] = data[i * 4];
     const c = toPix(W, H, pdfX, pdfY);
-    const r = Math.round((radius * W) / Wpdf);
+    const r = Math.round((radius * W) / PDF_W);
     let best = null;
     for (const size of sizes) {
         for (let y = c.y - r; y <= c.y + r; y += 1) {
@@ -75,7 +74,12 @@ function localBest(page, pdfX, pdfY, { radius = 10, sizes = [13, 14, 15, 16, 17]
                 const s = scoreAt(gray, W, H, x - Math.floor(size / 2), y - Math.floor(size / 2), size);
                 if (s <= 0) continue;
                 if (!best || s > best.score) {
-                    best = { score: s, size, ...toPdf(W, H, x, y) };
+                    best = {
+                        score: s,
+                        sizePx: size,
+                        size: pxEdgeToPdfSize(W, size),
+                        ...toPdf(W, H, x, y),
+                    };
                 }
             }
         }
@@ -90,8 +94,8 @@ function snapText(page, field) {
         return data[(y * W + x) * 4];
     };
     const start = toPix(W, H, field.x, field.y);
-    const x1 = Math.min(W - 1, start.x + Math.round(((field.maxWidth || 100) * W) / Wpdf));
-    const yEnd = Math.min(H - 1, start.y + Math.round((14 * H) / Hpdf));
+    const x1 = Math.min(W - 1, start.x + Math.round(((field.maxWidth || 100) * W) / PDF_W));
+    const yEnd = Math.min(H - 1, start.y + Math.round((14 * H) / PDF_H));
     let bestY = null; let best = 0;
     for (let y = start.y; y <= yEnd; y += 1) {
         let dark = 0; let n = 0;
@@ -128,6 +132,7 @@ const checkResults = map.checks.map((field) => {
         y: best.y,
         score: +best.score.toFixed(3),
         size: best.size,
+        sizePx: best.sizePx,
         dx: +(best.x - field.x).toFixed(1),
         dy: +(best.y - field.y).toFixed(1),
     };
@@ -141,7 +146,7 @@ const textResults = map.texts.map((field) => {
 fs.writeFileSync(path.join(calib, 'local-snap.json'), JSON.stringify({
     checks: checkResults.map((c) => ({
         key: c.key, page: c.page, equals: c.equals, ok: c.ok,
-        from: [c.oldX ?? c.x, c.oldY ?? c.y], to: [c.x, c.y], dx: c.dx, dy: c.dy, score: c.score, size: c.size,
+        from: [c.oldX ?? c.x, c.oldY ?? c.y], to: [c.x, c.y], dx: c.dx, dy: c.dy, score: c.score, size: c.size, sizePx: c.sizePx,
     })),
     texts: textResults.filter((t) => t.ok).map((t) => ({ key: t.key, page: t.page, from: t.oldY, to: t.y, dy: t.dy })),
 }, null, 2));
@@ -207,13 +212,14 @@ async function overlayGlyph(page, checks, texts) {
     const { width: W, height: H } = load(page);
     const marks = [];
     for (const field of checks.filter((c) => c.page === page)) {
-        const size = field.size || 12;
-        const gw = bold.widthOfTextAtSize('X', size);
+        const sizePt = field.size || 12;
+        const cross = field.sizePx ? Math.max(4, Math.round(field.sizePx / 2)) : 7;
+        const gw = bold.widthOfTextAtSize('X', sizePt);
         const pdfX = field.x - (gw / 2) + 0.5;
-        const pdfY = field.y - (size * 0.22);
+        const pdfY = field.y - (sizePt * 0.22);
         const p = toPix(W, H, pdfX, pdfY);
         const c = toPix(W, H, field.x, field.y);
-        marks.push(`X,${p.x},${p.y}`);
+        marks.push(`X,${p.x},${p.y},${cross}`);
         marks.push(`C,${c.x},${c.y}`);
     }
     for (const field of texts.filter((t) => t.page === page)) {
@@ -234,7 +240,7 @@ $penG = New-Object System.Drawing.Pen ([System.Drawing.Color]::Lime), 1
 $brush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::DeepSkyBlue)
 foreach ($line in Get-Content '${mf}') {
   $p=$line.Split(','); $x=[int]$p[1]; $y=[int]$p[2]
-  if ($p[0] -eq 'X') { $g.DrawLine($penR,$x-7,$y-7,$x+7,$y+7); $g.DrawLine($penR,$x-7,$y+7,$x+7,$y-7) }
+  if ($p[0] -eq 'X') { $cross=[int]$p[3]; $g.DrawLine($penR,$x-$cross,$y-$cross,$x+$cross,$y+$cross); $g.DrawLine($penR,$x-$cross,$y+$cross,$x+$cross,$y-$cross) }
   elseif ($p[0] -eq 'C') { $g.DrawEllipse($penG,$x-3,$y-3,6,6) }
   else { $g.FillEllipse($brush,$x-3,$y-3,6,6) }
 }

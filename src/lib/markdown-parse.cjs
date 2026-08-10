@@ -281,10 +281,8 @@ function extractRetailMarkdownDates(line, refYear) {
             if (codeMatch) {
                 const mon = monthFromCode(codeMatch[1], refYear);
                 if (mon) add(y, mon, +codeMatch[2]);
-            } else {
-                const dayMatch = cleaned.match(/\b(\d{1,2})\s*[-–~]+\s*(?:20|2[o0])/i);
-                if (dayMatch) add(y, refYear, +dayMatch[1]);
             }
+            // No month known — skip rather than passing year as month.
         }
     }
 
@@ -318,14 +316,8 @@ function extractRetailMarkdownDates(line, refYear) {
         }
     }
 
-    // date/dune/dane + digits: Glrus dune 2676  /  dure. 24
-    re = /\b(?:date|dune|dane|dae|dur[e]?)\b\.?\s*(\d{1,2})?(?:\s*[,.\s]+\s*)?(\d{2,4})\b/gi;
-    while ((m = re.exec(cleaned)) !== null) {
-        const y = normalizeOcrYear(m[2] || m[1], refYear);
-        const day = m[1] && m[2] ? +m[1] : null;
-        if (y && day) add(y, refYear, day);
-        else if (y && !m[2]) add(y, refYear, 1);
-    }
+    // date/dune/dane + digits without a resolvable month — skip (add expects y,m,d).
+    // Covered elsewhere when a month token is present on the same line.
 
     // Lone mangled year at end after month-day tokens: ... 04 - 2024
     re = /\b(\d{1,2})\s*[-–~]+\s*(20\d{2}|2[o0]\d{2})\b/g;
@@ -646,12 +638,12 @@ function splitColumns(line) {
     return line.split(/\s{2,}/).map((c) => c.trim()).filter(Boolean);
 }
 
-const RETAIL_DATE_TAIL = /(?:\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Jue)[a-z]*\.?\s+\d{1,2}[\s,.\d]*|\b[A-Za-z]{2,4}\s*[-–~.]+\s*[O0o&Il%!/\d]{0,3}\s*[-–~.]+\s*(?:20|2[o0])[\d(]{0,4}|\[\s*[^\]]*\]\s*[-–~]+\s*(?:20|2[o0])[\d]{0,4}|\b\d{1,2}\s*[-–~]+\s*(?:20|2[o0])[\d]{0,4})/gi;
+const RETAIL_DATE_TAIL_SRC = '(?:\\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Jue)[a-z]*\\.?\\s+\\d{1,2}[\\s,.\\d]*|\\b[A-Za-z]{2,4}\\s*[-–~.]+\\s*[O0o&Il%!/\\d]{0,3}\\s*[-–~.]+\\s*(?:20|2[o0])[\\d(]{0,4}|\\[\\s*[^\\]]*\\]\\s*[-–~]+\\s*(?:20|2[o0])[\\d]{0,4}|\\b\\d{1,2}\\s*[-–~]+\\s*(?:20|2[o0])[\\d]{0,4})';
 
 function cleanItemDescription(text, killDate, itemCode = '') {
     let item = fixOcrDigits(String(text || ''));
     item = item.replace(DATE_LABEL, ' ').replace(DATE_OCR_WORD, ' ');
-    item = item.replace(RETAIL_DATE_TAIL, ' ');
+    item = item.replace(new RegExp(RETAIL_DATE_TAIL_SRC, 'gi'), ' ');
     item = item.replace(/\b(20\d{2})[-/. ](\d{1,2})[-/. ](\d{1,2})\b/g, ' ');
     item = item.replace(/\b(\d{1,2})[-/. ](\d{1,2})[-/. ](20\d{2}|\d{2,4})\b/g, ' ');
     item = item.replace(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}[\s,.\d]*/gi, ' ');
@@ -709,7 +701,8 @@ function isVendorHeaderContinued(line) {
 
 /** @param {string} line */
 function lineHasRetailDateTail(line) {
-    return RETAIL_DATE_TAIL.test(String(line || ''));
+    // Fresh non-global RegExp — module-level /g lastIndex would flip-flop across calls.
+    return new RegExp(RETAIL_DATE_TAIL_SRC, 'i').test(String(line || ''));
 }
 
 /** @param {string[]} rawLines */

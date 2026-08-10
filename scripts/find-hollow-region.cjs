@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { execFileSync } = require('child_process');
+const { jpegSize, cropPdfRect } = require('./lib/calib-crop.cjs');
 
 const pageIndex = Number(process.argv[2] || 0);
 const pdfX1 = Number(process.argv[3]);
@@ -13,17 +14,10 @@ const pdfX2 = Number(process.argv[5]);
 const pdfY2 = Number(process.argv[6]);
 const label = process.argv[7] || 'region';
 
-const W = 1700; const H = 2200; const PDF_W = 612; const PDF_H = 792;
-function pixX(x) { return Math.round((x * W) / PDF_W); }
-function pixY(y) { return Math.round(((PDF_H - y) * H) / PDF_H); }
-
-const left = Math.min(pixX(pdfX1), pixX(pdfX2));
-const right = Math.max(pixX(pdfX1), pixX(pdfX2));
-const top = Math.min(pixY(pdfY1), pixY(pdfY2));
-const bottom = Math.max(pixY(pdfY1), pixY(pdfY2));
-
 const calib = path.join(__dirname, '..', '_calib');
 const src = path.join(calib, `page-${pageIndex}.jpg`).replace(/\\/g, '/');
+const { width: W, height: H } = jpegSize(src);
+const { left, right, top, bottom } = cropPdfRect(W, H, pdfX1, pdfY1, pdfX2, pdfY2);
 const out = path.join(calib, `hollow-${label}.txt`).replace(/\\/g, '/');
 const ps = path.join(os.tmpdir(), `tgp-hollow-reg-${label}.ps1`);
 
@@ -63,8 +57,8 @@ for ($size = 12; $size -le 18; $size++) {
       if (($inner * 1.0 / $innerN) -lt 0.6) { continue }
       $cx = $x + [int]($size/2.0)
       $cy = $y + [int]($size/2.0)
-      $pdfX = [math]::Round($cx * ${PDF_W} / ${W}, 1)
-      $pdfY = [math]::Round(${PDF_H} - ($cy * ${PDF_H} / ${H}), 1)
+      $pdfX = [math]::Round($cx * 612.0 / $w, 1)
+      $pdfY = [math]::Round(792 - ($cy * 792.0 / $h), 1)
       $found.Add("$pdfX,$pdfY,size=$size")
     }
   }

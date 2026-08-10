@@ -43,6 +43,7 @@ export default function RecApp() {
      * Every prompt on this screen is drawn in-page so a click can never no-op.
      */
     const askConfirm = useCallback((message) => new Promise((resolve) => {
+        confirmResolve.current?.(false);
         confirmResolve.current = resolve;
         setConfirmAsk({ message });
     }), []);
@@ -51,6 +52,7 @@ export default function RecApp() {
         confirmResolve.current?.(ok);
         confirmResolve.current = null;
         setConfirmAsk(null);
+        if (!ok) setBusyId('');
     }, []);
 
     const storeTransfersEnabled = !!(data?.features?.storeTransfers || data?.settings?.Store_Transfers_Enabled === '1');
@@ -162,6 +164,7 @@ export default function RecApp() {
     };
 
     const cancelTimeOut = () => {
+        setBusyId('');
         setOutFor('');
         setOutInvoice('');
         setOutStorage(false);
@@ -349,7 +352,7 @@ export default function RecApp() {
                                 </div>
                                 <TimeEditPanel entry={e} token={token} showDeparted={false} showInvoice={false} onSaved={sync} />
                                 {tgp ? (
-                                    <PalletPanel expId={e.exp_id} entry={e} departments={departments} storeDate={data?.storeDate} token={token} onChanged={sync} />
+                                    <PalletPanel expId={e.exp_id} entry={e} departments={departments} storeDate={data?.storeDate} token={token} onChanged={sync} askConfirm={askConfirm} setActionError={setActionError} />
                                 ) : null}
                                 <label className="chk">
                                     <input
@@ -462,6 +465,8 @@ export default function RecApp() {
                                             storeDate={maintDate || data?.storeDate}
                                             token={token}
                                             onChanged={refreshLog}
+                                            askConfirm={askConfirm}
+                                            setActionError={setActionError}
                                             allowCorrection
                                         />
                                     ) : null}

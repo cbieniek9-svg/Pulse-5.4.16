@@ -4,7 +4,7 @@ const { HUMAN_CLOSED_TASK_FILTER } = require('./rhythm-task-expand.cjs');
 const { computeArchivedOrderMetrics } = require('./shift-metrics.cjs');
 const { getStoreMeta } = require('../constants/store-meta.cjs');
 const { normalizeStoreTimezone } = require('./store-timezone.cjs');
-const { sqliteTzOffsetModifier } = require('./store-time.cjs');
+const { createStoreTimeAccessors, sqliteTzOffsetModifier } = require('./store-time.cjs');
 
 const SNAPSHOT_TABLE_SQL = `
 CREATE TABLE IF NOT EXISTS daily_report_snapshots (
@@ -320,7 +320,17 @@ function buildDailyReportSnapshot(db, opts = {}) {
 
 function loadOrBuildSnapshot(db, storeDate, opts = {}) {
     const existing = normalizeSnapshot(getSnapshot(db, storeDate));
-    if (existing && opts.preferRaw !== true) return existing;
+    let currentStoreDate = opts.currentStoreDate || '';
+    if (!currentStoreDate) {
+        try {
+            const settings = resolveSnapshotSettings(db, opts);
+            currentStoreDate = createStoreTimeAccessors(() => settings).getStoreDateStamp();
+        } catch (_) {
+            currentStoreDate = '';
+        }
+    }
+    const forceRebuild = !!(currentStoreDate && storeDate === currentStoreDate);
+    if (existing && opts.preferRaw !== true && !forceRebuild) return existing;
     try {
         return normalizeSnapshot(buildDailyReportSnapshot(db, {
             storeDate,

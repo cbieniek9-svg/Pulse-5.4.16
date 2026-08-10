@@ -28,7 +28,7 @@ function normalizeAisleLocation(raw) {
         const label = `A${parseInt(m[1], 10)}`;
         return { zone: ZONE_CANONICAL.includes(label) ? label : 'General', aisle: label };
     }
-    if (lower.includes('till')) return { zone: 'Tills', aisle: 'Tills' };
+    if (lower.includes('till')) return { zone: 'General', aisle: 'Tills' };
     const direct = ZONE_CANONICAL.find((z) => z.toLowerCase() === lower);
     if (direct) return { zone: direct, aisle: direct };
     return { zone: 'General', aisle: text.slice(0, 40) };

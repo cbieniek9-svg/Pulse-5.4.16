@@ -162,7 +162,11 @@ function registerReceivingReportDayRoutes(server, ctx) {
         const b = req.body ?? {};
         try {
             const periodStart = String(b.period_start || b.periodStart || '').trim();
-            if (periodStart) guardPeriodEditable(periodStart);
+            if (!periodStart) {
+                fail(res, 400, 'period_start is required.');
+                return;
+            }
+            guardPeriodEditable(periodStart);
             const ack = saveDuplicateInvoiceExceptionAck(db, {
                 periodStart,
                 exceptionKey: b.exception_key || b.exceptionKey,

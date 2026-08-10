@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { getDataRoot } = require('../paths.cjs');
+const { restrictWindowsFileAcl } = require('./windows-file-acl.cjs');
 
 const PIN_FILE_NAME = 'pc-admin-pin.txt';
 const LEGACY_DEFAULT_PIN = '1234';
@@ -124,6 +125,7 @@ function resolvePcAdminPin(opts = {}) {
             flag: 'wx',
             mode: 0o600,
         });
+        if (io === fs) restrictWindowsFileAcl(pinPath);
         console.warn(`[SECURITY] PC_ADMIN PIN written to ${pinPath}. Store this file securely. Set PC_ADMIN_PIN to override.`);
         return {
             pin,

@@ -331,7 +331,9 @@ export default function DevicesTab() {
 
     const presentCredential = (result) => {
         const presentation = buildCredentialPresentation(result, network);
-        if (!presentation) return Promise.resolve(false);
+        if (!presentation) {
+            return Promise.reject(new Error('Unable to build a pairing credential for this device.'));
+        }
         if (credentialResolver.current) {
             return Promise.reject(new Error('Finish the current credential dialog first.'));
         }

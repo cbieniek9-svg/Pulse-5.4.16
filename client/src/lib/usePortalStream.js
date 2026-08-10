@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { resolveUrl } from '../lib/api.js';
 
 /**
@@ -20,21 +20,30 @@ export function usePortalStream({ token, tables = [], onEvent, onOpen }) {
         let reconnectTimer = null;
         let closed = false;
         let reconnectCount = 0;
+        let abortController = null;
 
         async function open() {
             if (closed) return;
             if (es) { es.close(); es = null; }
             if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+            if (abortController) {
+                abortController.abort();
+                abortController = null;
+            }
 
             try {
                 let url = resolveUrl('/api/stream');
+                abortController = new AbortController();
                 const r = await fetch(resolveUrl('/api/stream-token'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token }),
+                    signal: abortController.signal,
                 });
+                if (closed) return;
                 if (!r.ok) throw new Error('stream-token failed');
                 const { streamToken } = await r.json();
+                if (closed) return;
                 url += `?st=${encodeURIComponent(streamToken)}`;
 
                 es = new EventSource(url);
@@ -60,8 +69,8 @@ export function usePortalStream({ token, tables = [], onEvent, onOpen }) {
                     const delay = Math.min(30_000, 2 ** reconnectCount * 1000);
                     reconnectTimer = setTimeout(open, delay);
                 };
-            } catch (_) {
-                if (closed) return;
+            } catch (err) {
+                if (closed || err?.name === 'AbortError') return;
                 reconnectCount += 1;
                 reconnectTimer = setTimeout(open, Math.min(30_000, 2 ** reconnectCount * 1000));
             }
@@ -70,6 +79,8 @@ export function usePortalStream({ token, tables = [], onEvent, onOpen }) {
         open();
         return () => {
             closed = true;
+            abortController?.abort();
+            abortController = null;
             es?.close();
             if (reconnectTimer) clearTimeout(reconnectTimer);
         };

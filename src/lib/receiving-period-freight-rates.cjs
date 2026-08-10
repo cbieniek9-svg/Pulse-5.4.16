@@ -22,23 +22,15 @@ function normalizeDepartment(value) {
 }
 
 function columns(db, table) {
-    try {
-        return new Set((db.all(`PRAGMA table_info(${table})`) || []).map((row) => row.name));
-    } catch (_) {
-        return new Set();
-    }
+    return new Set((db.all(`PRAGMA table_info(${table})`) || []).map((row) => row.name));
 }
 
 function tableExists(db, table) {
-    try {
-        const row = db.get(
-            `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
-            table,
-        );
-        return !!row;
-    } catch (_) {
-        return columns(db, table).size > 0;
-    }
+    const row = db.get(
+        `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
+        table,
+    );
+    return !!row;
 }
 
 function addColumn(db, table, name, ddl) {
@@ -109,7 +101,18 @@ function upsertPeriodFreightRate(db, payload = {}) {
     ensurePeriodFreightRatesSchema(db);
     const start = normalizePeriodStart(payload.period_start || payload.periodStart);
     const dept = normalizeDepartment(payload.department);
-    const rate = Number(payload.rate_percent ?? payload.ratePercent);
+    const rawRate = payload.rate_percent ?? payload.ratePercent;
+    if (
+        rawRate === null
+        || rawRate === undefined
+        || (typeof rawRate === 'string' && rawRate.trim() === '')
+    ) {
+        const err = new Error('rate_percent must be a finite number.');
+        err.status = 400;
+        err.code = 'INVALID_FREIGHT_RATE';
+        throw err;
+    }
+    const rate = Number(typeof rawRate === 'string' ? rawRate.trim() : rawRate);
     if (!Number.isFinite(rate)) {
         const err = new Error('rate_percent must be a finite number.');
         err.status = 400;

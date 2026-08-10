@@ -357,17 +357,23 @@ function saveInspectionRun(db, runId, patch, actorName, serverTime = new Date().
         }
 
         if (Array.isArray(patch.signatures)) {
-            db.run('DELETE FROM safety_inspection_signatures WHERE run_id = ?', runId);
             for (const sig of patch.signatures) {
                 const roleType = String(sig.role_type || '').trim();
                 const slotNum = Number(sig.slot_num);
                 if (!['mgmt', 'non_mgmt'].includes(roleType) || ![1, 2].includes(slotNum)) continue;
                 const printName = String(sig.print_name || '').trim().slice(0, 120);
                 if (!printName) continue;
+                const sigId = String(sig.sig_id || `${runId}_${roleType}_${slotNum}`);
                 db.run(
                     `INSERT INTO safety_inspection_signatures (sig_id, run_id, role_type, slot_num, print_name, signed_at)
-                     VALUES (?,?,?,?,?,?)`,
-                    `${runId}_${roleType}_${slotNum}`,
+                     VALUES (?,?,?,?,?,?)
+                     ON CONFLICT(sig_id) DO UPDATE SET
+                        run_id = excluded.run_id,
+                        role_type = excluded.role_type,
+                        slot_num = excluded.slot_num,
+                        print_name = excluded.print_name,
+                        signed_at = excluded.signed_at`,
+                    sigId,
                     runId,
                     roleType,
                     slotNum,

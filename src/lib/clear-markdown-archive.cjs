@@ -10,7 +10,7 @@ function clearMarkdownArchive(db) {
     let removedKillDates = 0;
     let removedPullTasks = 0;
 
-    db.transaction(() => {
+    const body = () => {
         removedKillDates = db.get("SELECT COUNT(*) as c FROM kill_dates WHERE status != 'Active'")?.c ?? 0;
         db.run("DELETE FROM kill_dates WHERE status != 'Active'");
 
@@ -18,7 +18,13 @@ function clearMarkdownArchive(db) {
             "SELECT COUNT(*) as c FROM tasks WHERE task_id LIKE 'AUTO-PULL-%' AND status != 'Open'",
         )?.c ?? 0;
         db.run("DELETE FROM tasks WHERE task_id LIKE 'AUTO-PULL-%' AND status != 'Open'");
-    })();
+    };
+
+    if (typeof db.transaction === 'function') {
+        db.transaction(body)();
+    } else {
+        body();
+    }
 
     const activeRemaining = db.get("SELECT COUNT(*) as c FROM kill_dates WHERE status='Active'")?.c ?? 0;
     return { removedKillDates, removedPullTasks, activeRemaining };

@@ -57,6 +57,7 @@ export function SettingsProvider({ children }) {
     }, []);
 
     const appConfirm = useCallback((message) => new Promise((resolve) => {
+        confirmRef.current?.resolve(false);
         confirmRef.current = { resolve };
         setConfirmState({ message });
     }), []);
@@ -66,6 +67,7 @@ export function SettingsProvider({ children }) {
      * kiosk Chromebooks, which made Staff → EDIT PIN look like a no-op.
      */
     const appPrompt = useCallback((message, defaultValue = '') => new Promise((resolve) => {
+        promptRef.current?.resolve(null);
         promptRef.current = { resolve };
         setPromptValue(defaultValue == null ? '' : String(defaultValue));
         setPromptState({ message: String(message || '') });

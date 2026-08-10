@@ -35,6 +35,9 @@ const {
 
 const LOCAL_HTTP_BIND = '127.0.0.1';
 
+/** Prevent duplicate fatal handlers when startAppServer is invoked more than once. */
+let processFatalHandlersRegistered = false;
+
 function defaultLog(msg) {
     try {
         fs.appendFileSync(getLogPath(), `[${new Date().toISOString()}] ${msg}\n`);
@@ -423,12 +426,15 @@ async function startAppServer(opts = {}) {
         }
     };
 
-    process.on('uncaughtException', (err) => {
-        logMsg(`[FATAL] Uncaught Exception: ${err.message}\n${err.stack}`);
-    });
-    process.on('unhandledRejection', (reason, promise) => {
-        logMsg(`[FATAL] Unhandled Rejection at: ${promise} reason: ${reason}`);
-    });
+    if (!processFatalHandlersRegistered) {
+        processFatalHandlersRegistered = true;
+        process.on('uncaughtException', (err) => {
+            logMsg(`[FATAL] Uncaught Exception: ${err.message}\n${err.stack}`);
+        });
+        process.on('unhandledRejection', (reason, promise) => {
+            logMsg(`[FATAL] Unhandled Rejection at: ${promise} reason: ${reason}`);
+        });
+    }
 
     const server = express();
     // Never honor X-Forwarded-* for HTTPS/client IP decisions on the store LAN path.
@@ -640,14 +646,6 @@ async function startAppServer(opts = {}) {
         bootHealth = { ok: false, status: 'error', checked_at: new Date().toISOString(), errors: [e.message], warnings: [], checks: {} };
     }
 
-    await catchUpMissedSweeps({
-        db,
-        getStoreDateStamp,
-        logMsg,
-        getSweep: () => globalSweep,
-        getRhythm: () => globalRhythm,
-    });
-
     storeSchedulers = createStoreSchedulers({
         getTimezone: storeTime.getTimezone,
         log: logMsg,
@@ -683,10 +681,16 @@ async function startAppServer(opts = {}) {
     });
     storeSchedulers.start();
 
+    // Listen first so /api/ready stays reachable during EOD catch-up (can take minutes).
     const httpBindHost = networkConfig.http_bind_host || LOCAL_HTTP_BIND;
     httpServer = await new Promise((resolve, reject) => {
+        let startupSettled = false;
         const listener = http.createServer(server);
         listener.on('error', (err) => {
+            if (startupSettled) {
+                logMsg(`HTTP server error (post-listen): ${err.message}`);
+                return;
+            }
             if (err.code === 'EADDRINUSE') {
                 logMsg(`BOOT ERROR: Port ${networkConfig.port} already in use. Server not started.`);
             } else {
@@ -703,6 +707,7 @@ async function startAppServer(opts = {}) {
             reject(err);
         });
         listener.listen(networkConfig.port, httpBindHost, () => {
+            startupSettled = true;
             logMsg(`Server listening on ${httpBindHost}:${networkConfig.port}`);
             resolve(listener);
         });
@@ -714,16 +719,22 @@ async function startAppServer(opts = {}) {
         try {
             const creds = ensureLocalHttpsCredentials();
             httpsServer = await new Promise((resolve) => {
+                let startupSettled = false;
                 const listener = https.createServer(
                     { key: creds.key, cert: creds.cert },
                     server,
                 );
                 listener.on('error', (err) => {
+                    if (startupSettled) {
+                        logMsg(`HTTPS server error (post-listen): ${err.message}`);
+                        return;
+                    }
                     logMsg(`HTTPS BOOT ERROR: ${err.message} — store-network HTTPS is unavailable`);
                     try { listener.close(); } catch (_) { /* ignore */ }
                     resolve(null);
                 });
                 listener.listen(networkConfig.https_port, httpsBindHost, () => {
+                    startupSettled = true;
                     logMsg(
                         `HTTPS listening on ${httpsBindHost}:${networkConfig.https_port}`
                         + ` (camera) lan=${(creds.lanIps || []).join(',') || 'none'}`
@@ -792,6 +803,40 @@ async function startAppServer(opts = {}) {
         networkConfig.public_https_base_url = '';
     }
 
+    // Catch-up after listen so attach/service probes are not blocked. Progress lives on bootHealth.
+    if (bootHealth) {
+        bootHealth.checks = bootHealth.checks || {};
+        bootHealth.checks.eod_catch_up = { ok: true, status: 'running', started_at: new Date().toISOString() };
+    }
+    const eodCatchUpPromise = catchUpMissedSweeps({
+        db,
+        getStoreDateStamp,
+        logMsg,
+        getSweep: () => globalSweep,
+        getRhythm: () => globalRhythm,
+    }).then(() => {
+        if (!bootHealth) return;
+        bootHealth.checks = bootHealth.checks || {};
+        bootHealth.checks.eod_catch_up = {
+            ok: true,
+            status: 'ok',
+            completed_at: new Date().toISOString(),
+        };
+    }).catch((err) => {
+        logMsg('EOD catch-up async error: ' + (err && err.message));
+        if (!bootHealth) return;
+        bootHealth.checks = bootHealth.checks || {};
+        bootHealth.checks.eod_catch_up = {
+            ok: false,
+            status: 'error',
+            error: err && err.message,
+            completed_at: new Date().toISOString(),
+        };
+        bootHealth.warnings = bootHealth.warnings || [];
+        bootHealth.warnings.push(`EOD catch-up failed: ${err && err.message}`);
+        if (bootHealth.status === 'ok') bootHealth.status = 'warning';
+    });
+
     return {
         listener: httpServer,
         httpsListener: httpsServer,
@@ -813,6 +858,9 @@ async function startAppServer(opts = {}) {
                     httpsServer.close(() => resolve());
                 }),
             ]);
+            try {
+                await eodCatchUpPromise;
+            } catch (_) { /* status already recorded above */ }
             try {
                 if (db && typeof db.close === 'function') db.close();
                 logMsg('System shutting down gracefully. Database closed.');

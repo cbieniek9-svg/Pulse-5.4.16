@@ -124,17 +124,12 @@ test('process lock does not steal reclaim mutex from a live paused reclaimer aft
             assert.match(blocked.reason, /reclaiming the process lock/);
             assert.equal(readLock()?.pid, 2147483647);
         } finally {
-            child.kill('SIGTERM');
-            // Give the OS a moment to reap the child so pidAlive returns false.
-            const deadline = Date.now() + 5000;
-            while (Date.now() < deadline) {
-                try {
-                    process.kill(child.pid, 0);
-                    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25);
-                } catch (_) {
-                    break;
-                }
-            }
+            await new Promise((resolve) => {
+                const done = () => resolve();
+                child.once('exit', done);
+                try { child.kill('SIGTERM'); } catch (_) { done(); }
+                setTimeout(done, 5000);
+            });
         }
 
         assert.equal(acquireProcessLock().ok, true);

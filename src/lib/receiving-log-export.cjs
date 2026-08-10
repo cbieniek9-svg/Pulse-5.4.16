@@ -3,6 +3,7 @@
 const { getStoreMeta } = require('../constants/store-meta.cjs');
 const { normalizeStoreTimezone } = require('./store-timezone.cjs');
 const { sqliteTzOffsetModifier } = require('./store-time.cjs');
+const { csvCell } = require('./csv-safe.cjs');
 
 function escapeHtml(v) {
     return String(v ?? '')
@@ -158,7 +159,7 @@ function renderReceivingLogCsv(payload) {
             r.expected_day || '',
             r.category,
             r.item,
-        ].map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','));
+        ].map(csvCell).join(','));
     }
     return lines.join('\n');
 }

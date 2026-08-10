@@ -26,6 +26,7 @@ export function NoticeProvider({ children }) {
     const [finishGateClock, setFinishGateClock] = useState('dry');
 
     const appConfirm = useCallback((message, title = 'Confirm action') => new Promise((resolve) => {
+        confirmRef.current?.resolve(false);
         confirmRef.current = { message, title, resolve };
         setConfirmState({ message, title });
     }), []);
@@ -36,6 +37,7 @@ export function NoticeProvider({ children }) {
     }), []);
 
     const appOrderFinishGate = useCallback((opts = {}) => new Promise((resolve) => {
+        finishGateRef.current?.resolve(null);
         const clockKind = opts.clockKind === 'frozen' ? 'frozen' : 'dry';
         finishGateRef.current = { resolve, clockKind };
         setFinishGateClock(clockKind);

@@ -109,20 +109,23 @@ function migrateInventorySchema(db) {
 
     // One-time migrate from original staged_counts staging table.
     if (tableExists(db, 'staged_counts')) {
-        const legacyCount = db.prepare('SELECT COUNT(*) AS c FROM staged_counts').get()?.c || 0;
-        if (legacyCount > 0) {
-            const sessionId = `S-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
-            db.prepare(`
-                INSERT INTO count_sessions (id, location, status, created_by, session_type)
-                VALUES (?, 'MIGRATED', 'open', 'system', 'location')
-            `).run(sessionId);
-            db.prepare(`
-                INSERT INTO count_lines (session_id, upc, quantity, scanned_at)
-                SELECT ?, upc, quantity, scanned_at FROM staged_counts
-                ORDER BY id ASC
-            `).run(sessionId);
-        }
-        db.exec('DROP TABLE IF EXISTS staged_counts');
+        const migrateStaged = db.transaction(() => {
+            const legacyCount = db.prepare('SELECT COUNT(*) AS c FROM staged_counts').get()?.c || 0;
+            if (legacyCount > 0) {
+                const sessionId = `S-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
+                db.prepare(`
+                    INSERT INTO count_sessions (id, location, status, created_by, session_type)
+                    VALUES (?, 'MIGRATED', 'open', 'system', 'location')
+                `).run(sessionId);
+                db.prepare(`
+                    INSERT INTO count_lines (session_id, upc, quantity, scanned_at)
+                    SELECT ?, upc, quantity, scanned_at FROM staged_counts
+                    ORDER BY id ASC
+                `).run(sessionId);
+            }
+            db.exec('DROP TABLE IF EXISTS staged_counts');
+        });
+        migrateStaged();
     }
 }
 
@@ -136,14 +139,20 @@ function getPulseInventoryDb() {
     const dbPath = getPulseInventoryDbPath();
     fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
-    inventoryDb = new Database(dbPath);
-    inventoryDb.pragma('journal_mode = WAL');
-    inventoryDb.pragma('busy_timeout = 5000');
-    inventoryDb.pragma('synchronous = NORMAL');
-    inventoryDb.pragma('foreign_keys = ON');
-
-    migrateInventorySchema(inventoryDb);
-
+    // Keep the new handle local until migrate succeeds so a failed migrate
+    // cannot leave a half-open global connection for the next caller.
+    const conn = new Database(dbPath);
+    try {
+        conn.pragma('journal_mode = WAL');
+        conn.pragma('busy_timeout = 5000');
+        conn.pragma('synchronous = NORMAL');
+        conn.pragma('foreign_keys = ON');
+        migrateInventorySchema(conn);
+    } catch (e) {
+        try { conn.close(); } catch (_) { /* ignore */ }
+        throw e;
+    }
+    inventoryDb = conn;
     return inventoryDb;
 }
 

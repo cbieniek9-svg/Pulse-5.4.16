@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSettings } from '../context/SettingsContext.jsx';
 import {
     RHYTHM_DAYS, RHYTHM_ASSIGN_BUCKET_OPTIONS, ZONES,
@@ -18,6 +18,17 @@ function RhythmRow({ row, onSave, onDelete }) {
         est_mins: row.est_mins || 15,
         assign_bucket: row.assign_bucket || '',
     });
+
+    useEffect(() => {
+        setDraft({
+            day: row.day,
+            detail: row.detail,
+            zone: row.zone,
+            priority: row.priority,
+            est_mins: row.est_mins || 15,
+            assign_bucket: row.assign_bucket || '',
+        });
+    }, [row]);
 
     return (
         <tr data-rhythm-id={row.id}>

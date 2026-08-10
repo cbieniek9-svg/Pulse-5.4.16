@@ -17,8 +17,17 @@ function TaskListInner() {
 
     const assignees = useMemo(() => {
         const activeNames = (syncData?.staff || []).filter((s) => s.active === 1 && s.name !== 'Unassigned').map((s) => s.name);
-        return ['Unassigned', 'All Staff', ...activeNames];
-    }, [syncData?.staff]);
+        const base = ['Unassigned', 'All Staff', ...activeNames];
+        const known = new Set(base);
+        for (const t of tasks) {
+            const name = String(t.assigned_to || '').trim();
+            if (name && !known.has(name)) {
+                known.add(name);
+                base.push(name);
+            }
+        }
+        return base;
+    }, [syncData?.staff, tasks]);
 
     const handleDone = useCallback(async (taskId, zone, btn) => {
         if (!taskId) return;

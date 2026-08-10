@@ -78,7 +78,7 @@ function deriveDayStatus(risks) {
     if (urgent.length >= 3) return 'red';
     if (urgent.filter((r) => r.kind === 'pull').length >= 2) return 'red';
     if (urgent.length > 0 || visible.some((r) => r.severity === 'warn')) return 'yellow';
-    return 'yellow';
+    return 'green';
 }
 
 function statusColor(status) {

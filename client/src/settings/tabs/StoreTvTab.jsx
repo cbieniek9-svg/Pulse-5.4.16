@@ -165,7 +165,12 @@ export default function StoreTvTab() {
 
     const updateFifoRow = (idx, patch) => {
         const rows = [...form.fifoRows];
-        rows[idx] = { ...rows[idx], ...patch };
+        const next = { ...rows[idx], ...patch };
+        // Typing into aislesRaw must supersede any parsed aisles array.
+        if (Object.prototype.hasOwnProperty.call(patch, 'aislesRaw')) {
+            delete next.aisles;
+        }
+        rows[idx] = next;
         setForm({ ...form, fifoRows: rows });
     };
 
@@ -174,7 +179,9 @@ export default function StoreTvTab() {
     };
 
     const collectFifo = () => form.fifoRows.map((row) => {
-        const aislesRaw = Array.isArray(row.aisles) ? row.aisles.join(', ') : (row.aislesRaw || '');
+        const aislesRaw = row.aislesRaw != null
+            ? String(row.aislesRaw)
+            : (Array.isArray(row.aisles) ? row.aisles.join(', ') : '');
         const aisles = String(aislesRaw).split(/[,·|/]+/).map((s) => s.trim()).filter(Boolean);
         return { staff: (row.staff || '').trim(), aisles };
     }).filter((r) => r.staff && r.aisles.length);
@@ -204,14 +211,6 @@ export default function StoreTvTab() {
                 sublabel: (form.sectionLabels[id]?.sublabel || '').toUpperCase(),
             };
         });
-        zoneLabels['map-a5'] = {
-            ...zoneLabels['map-a5'],
-            sections: [
-                { label: 'Coffee', owner: 'Ashley' },
-                { label: 'Monin/Torani', owner: 'Luke' },
-                { label: 'Wraps', owner: 'Chandler' },
-            ],
-        };
 
         try {
             await saveSettingsBatch([
@@ -461,7 +460,7 @@ export default function StoreTvTab() {
                         <input
                             className="st-input fifo-aisles"
                             placeholder="Aisles (comma-separated)"
-                            value={Array.isArray(row.aisles) ? row.aisles.join(', ') : (row.aislesRaw || '')}
+                            value={row.aislesRaw != null ? String(row.aislesRaw) : (Array.isArray(row.aisles) ? row.aisles.join(', ') : '')}
                             style={{ margin: 0 }}
                             onChange={(e) => updateFifoRow(idx, { aislesRaw: e.target.value })}
                         />

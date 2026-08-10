@@ -54,7 +54,12 @@ module.exports = {
             const openN = lines.filter((l) => String(l.status || 'Open') === 'Open').length;
             const sessionStatus = openN > 0 ? 'open' : 'closed';
             const now = new Date().toISOString();
-            const id = `FSS-legacy-${String(storeDate).replace(/[^\d]/g, '') || 'day'}`;
+            // Preserve full store_date (YYYY-MM-DD) in legacy session IDs.
+            // Non-ISO values get a collision-free hex encoding (character-stripping can collide).
+            const safeDate = String(storeDate || '').trim();
+            const id = /^\d{4}-\d{2}-\d{2}$/.test(safeDate)
+                ? `FSS-legacy-${safeDate}`
+                : `FSS-legacy-${safeDate ? Buffer.from(safeDate, 'utf8').toString('hex') : 'day'}`;
             const existing = db.get('SELECT id FROM floor_shrink_sessions WHERE id = ?', id);
             const sessionId = existing?.id || id;
             if (!existing) {

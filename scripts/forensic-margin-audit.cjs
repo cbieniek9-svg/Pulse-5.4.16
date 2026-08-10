@@ -132,8 +132,11 @@ async function runAudit(workbookPath) {
     if (!tg) throw new Error('Total Grocery sheet missing');
 
     const periodRow = db.get('SELECT period_start, period_number FROM receiving_report_margin ORDER BY period_start DESC LIMIT 1');
-    const periodStart = periodRow?.period_start;
-    const periodNumber = periodRow?.period_number;
+    if (!periodRow?.period_start) {
+        throw new Error('No receiving_report_margin row found — import workbook data before auditing.');
+    }
+    const periodStart = periodRow.period_start;
+    const periodNumber = periodRow.period_number;
 
     const excelSingle = readExcelSinglePeriod(tg);
     const excelCycle = readExcelCountCycle(tg);
@@ -207,7 +210,11 @@ async function runAudit(workbookPath) {
         auditSection(`Periods 7–9 — Count Cycle Total Grocery (Excel N14–N23 vs Pulse Count Cycle)`, cycleRows),
     ];
 
-    const trustworthy = sections.every((s) => s.pass);
+    const deptDiffs = deptAudits.reduce(
+        (n, d) => n + (d.single_period || []).filter((r) => r.status === 'DIFF').length,
+        0,
+    );
+    const trustworthy = sections.every((s) => s.pass) && deptDiffs === 0;
     const cycleMissing = (cycle.periods || []).filter((p) => p.missing);
 
     return {
@@ -217,6 +224,7 @@ async function runAudit(workbookPath) {
         verdict: trustworthy && cycleMissing.length === 0 ? 'TRUSTWORTHY' : 'REVIEW_REQUIRED',
         trustworthy_single_period: sections[0].pass,
         trustworthy_count_cycle: sections[1].pass && cycleMissing.length === 0,
+        trustworthy_dept_audits: deptDiffs === 0,
         sections,
         period_breakdown: periodBreakdown,
         missing_periods_in_db: cycleMissing.map((p) => p.period_number),

@@ -152,14 +152,16 @@ function syncMustWinsWithOpenBoard(db, storeDate, opts = {}) {
     const actor = String(opts.actorName || 'system');
     const at = nowIso();
     const mustWinsJson = JSON.stringify(next);
-    let floorMessage = String(row.floor_message || '');
+    const previousFloor = String(row.floor_message || '');
+    let floorMessage = previousFloor;
     const rewritten = rewriteFloorMessageMustWins(floorMessage, next);
     if (rewritten !== floorMessage) floorMessage = rewritten;
 
     if (row.posted_at) {
         const snap = parseJson(row.posted_snapshot_json, {});
         snap.must_wins = next;
-        if (rewritten) snap.floor_message = floorMessage;
+        // Include empty-string rewrites (truthy check would skip clearing the snap).
+        if (rewritten !== previousFloor) snap.floor_message = floorMessage;
         db.run(`
             UPDATE daily_direction SET
                 must_wins_json = ?,

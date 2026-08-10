@@ -7,6 +7,9 @@ module.exports = {
         // Captured at FINISH so the scorecard/history can separate a bad process from a bad day.
         try {
             db.exec("ALTER TABLE shift_order_history ADD COLUMN exception_reason TEXT DEFAULT ''");
-        } catch (_) { /* exists */ }
+        } catch (e) {
+            const msg = String(e.message || '').toLowerCase();
+            if (!msg.includes('duplicate column') && !msg.includes('already exists')) throw e;
+        }
     },
 };

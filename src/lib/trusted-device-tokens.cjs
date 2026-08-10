@@ -159,6 +159,8 @@ function issueDeviceTokenForDevice(db, deviceId, {
         if (!snapshotMatches(existing, expectedSnapshot)) throw deviceChangedRetryError();
 
         const existingStatus = existing.status ?? null;
+        // Keep raw NULL for optimistic WHERE matching; coalesce only for input defaults.
+        const existingPurposeRaw = existing.device_purpose;
         const existingPurpose = existing.device_purpose ?? '';
         const existingHash = existing.device_token_hash ?? null;
         const purpose = normalizeDevicePurpose(
@@ -184,7 +186,7 @@ function issueDeviceTokenForDevice(db, deviceId, {
                 ts,
                 id,
                 existingStatus,
-                existingPurpose,
+                existingPurposeRaw,
                 existingHash,
             );
         } else {
@@ -200,7 +202,7 @@ function issueDeviceTokenForDevice(db, deviceId, {
                 ts,
                 id,
                 existingStatus,
-                existingPurpose,
+                existingPurposeRaw,
                 existingHash,
             );
         }
@@ -231,7 +233,7 @@ function revokeDeviceToken(db, deviceId, { expectedSnapshot } = {}) {
               WHERE id=? AND status IS ? AND device_purpose IS ? AND device_token_hash=?`,
             id,
             existing.status ?? null,
-            existing.device_purpose ?? '',
+            existing.device_purpose,
             existing.device_token_hash,
         );
         if (update?.changes !== 1) {

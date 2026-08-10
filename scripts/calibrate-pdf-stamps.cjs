@@ -10,29 +10,12 @@ const os = require('os');
 const { execFileSync } = require('child_process');
 const { extractEmbeddedJpegs, pageImageNeeds180 } = require('../src/lib/incident-investigation-pdf.cjs');
 const map = require('../src/lib/incident-investigation-pdf-map.cjs');
+const { jpegSize, pdfToPix, pixToPdf } = require('./lib/calib-crop.cjs');
 
 const root = path.join(__dirname, '..');
 const outDir = path.join(root, '_calib');
 fs.mkdirSync(outDir, { recursive: true });
-
-const W = 1700;
-const H = 2200;
-const PDF_W = 612;
-const PDF_H = 792;
-
-function pdfToPix(x, y) {
-    return {
-        x: Math.round((x * W) / PDF_W),
-        y: Math.round(((PDF_H - y) * H) / PDF_H),
-    };
-}
-
-function pixToPdf(x, y) {
-    return {
-        x: Math.round((x * PDF_W) / W * 10) / 10,
-        y: Math.round((PDF_H - (y * PDF_H) / H) * 10) / 10,
-    };
-}
+const pageDims = [];
 
 // 1) Extract + upright pages via GDI+
 const jpegs = extractEmbeddedJpegs(fs.readFileSync(path.join(root, 'assets/safety/tgp-incident-investigation-appendix-b.pdf')));
@@ -53,6 +36,7 @@ for (let i = 0; i < 5; i += 1) {
     fs.writeFileSync(psPath, ps);
     execFileSync('powershell', ['-NoProfile', '-File', psPath], { encoding: 'utf8' });
     pagePaths.push(upright);
+    pageDims.push(jpegSize(upright));
 }
 
 // 2) Detect checkboxes on a page (hollow-ish dark squares ~10-22px)
@@ -105,9 +89,10 @@ Write-Output ("count=" + $boxes.Count)
     }).trim();
     const lines = fs.readFileSync(path.join(outDir, `boxes-${pageIndex}.json`), 'utf8')
         .split(/\r?\n/).filter(Boolean);
+    const { width: W, height: H } = pageDims[pageIndex];
     const boxes = lines.map((line) => {
         const [cx, cy, bw, bh] = line.split(',').map(Number);
-        const pdf = pixToPdf(cx, cy);
+        const pdf = pixToPdf(W, H, cx, cy);
         return { cx, cy, bw, bh, pdfX: pdf.x, pdfY: pdf.y };
     });
     // de-dupe near-duplicates
@@ -123,15 +108,16 @@ Write-Output ("count=" + $boxes.Count)
 
 // 3) Overlay map checks (red) + detected (lime) + map texts (blue dots)
 function overlay(pageIndex, boxes) {
+    const { width: W, height: H } = pageDims[pageIndex];
     const imgPath = pagePaths[pageIndex].replace(/\\/g, '/');
     const outPath = path.join(outDir, `overlay-${pageIndex}.jpg`).replace(/\\/g, '/');
     const marks = [];
     for (const field of map.checks.filter((c) => c.page === pageIndex)) {
-        const p = pdfToPix(field.x, field.y);
+        const p = pdfToPix(W, H, field.x, field.y);
         marks.push(`check,${p.x},${p.y}`);
     }
     for (const field of map.texts.filter((t) => t.page === pageIndex)) {
-        const p = pdfToPix(field.x, field.y);
+        const p = pdfToPix(W, H, field.x, field.y);
         marks.push(`text,${p.x},${p.y}`);
     }
     for (const b of boxes) marks.push(`box,${b.cx},${b.cy}`);

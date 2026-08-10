@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
     activatePeriod,
     approvePeriod,
@@ -61,6 +61,7 @@ export function useLogPeriodWorkflow({
     const [snapshotting, setSnapshotting] = useState(false);
     const [closingPeriod, setClosingPeriod] = useState(false);
     const [workflowBusy, setWorkflowBusy] = useState('');
+    const selectSeqRef = useRef(0);
 
     const periodStart = headerDraft.period_start || report?.period_start || periodData?.period_start || '';
     const periodEnd = periodData?.period_end || (periodStart ? addDays(periodStart, 34) : '');
@@ -97,6 +98,7 @@ export function useLogPeriodWorkflow({
 
     const selectPeriod = useCallback(async (nextStart, keepDate = null, { setOperational = false } = {}) => {
         if (!token || !nextStart) return;
+        const seq = ++selectSeqRef.current;
         setBusy('period');
         try {
             let payload;
@@ -106,6 +108,7 @@ export function useLogPeriodWorkflow({
                 // Session/view only — do not mutate Receiving_Report_Period_Start.
                 payload = await fetchPeriodDashboard(token, keepDate || nextStart, nextStart);
             }
+            if (seq !== selectSeqRef.current) return;
             setPeriodData(payload);
             const end = payload.period_end || addDays(nextStart, 34);
             const nextDate = keepDate && keepDate >= nextStart && keepDate <= end
@@ -119,11 +122,13 @@ export function useLogPeriodWorkflow({
             if (DAILY_TABS.has(activeTab) || activeTab === 'total-report') {
                 await load(nextDate);
             }
+            if (seq !== selectSeqRef.current) return;
             setError('');
         } catch (e) {
+            if (seq !== selectSeqRef.current) return;
             alert(e.message || 'Could not switch period.');
         } finally {
-            setBusy('');
+            if (seq === selectSeqRef.current) setBusy('');
         }
     }, [token, setBusy, setPeriodData, setStoreDate, setHeaderDraft, activeTab, load, setError]);
 

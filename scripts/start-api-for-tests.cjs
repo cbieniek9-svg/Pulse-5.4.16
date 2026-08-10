@@ -27,10 +27,18 @@ const child = spawn(electronPath, [`--user-data-dir=${profileDir}`, '.', '--head
     windowsHide: true,
 });
 
+function onSigInt() { child.kill('SIGINT'); }
+function onSigTerm() { child.kill('SIGTERM'); }
+process.on('SIGINT', onSigInt);
+process.on('SIGTERM', onSigTerm);
+
 child.on('exit', (code, signal) => {
-    if (signal) process.kill(process.pid, signal);
+    process.removeListener('SIGINT', onSigInt);
+    process.removeListener('SIGTERM', onSigTerm);
+    if (signal) {
+        const map = { SIGINT: 2, SIGTERM: 15 };
+        const n = map[signal] || 1;
+        process.exit(128 + n);
+    }
     process.exit(code == null ? 1 : code);
 });
-
-process.on('SIGINT', () => child.kill('SIGINT'));
-process.on('SIGTERM', () => child.kill('SIGTERM'));

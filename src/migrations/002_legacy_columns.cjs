@@ -40,7 +40,12 @@ module.exports = {
             "ALTER TABLE expected_orders ADD COLUMN item TEXT",
         ];
         alters.forEach((sql) => {
-            try { db.exec(sql); } catch (_) { /* column exists */ }
+            try {
+                db.exec(sql);
+            } catch (e) {
+                const msg = String(e.message || '').toLowerCase();
+                if (!msg.includes('duplicate column') && !msg.includes('already exists')) throw e;
+            }
         });
 
         db.exec(`

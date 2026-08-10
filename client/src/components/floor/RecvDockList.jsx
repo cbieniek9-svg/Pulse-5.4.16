@@ -19,7 +19,9 @@ function RecvDockListInner() {
 
     const timeOut = async (expId) => {
         const row = onDock.find((e) => String(e.exp_id) === String(expId));
-        const isTgp = /^TGP\b/i.test(String(row?.vendor || '').trim());
+        const isTgp = row?.is_tgp != null
+            ? !!row.is_tgp
+            : /^TGP\b/i.test(String(row?.vendor || '').trim());
         if (isTgp) {
             if (!row?.pallet_count) {
                 showNotice('Log TGP pallets on /rec (Chromebook) before time out.', 'error');

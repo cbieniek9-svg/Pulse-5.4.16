@@ -85,7 +85,8 @@ function registerAuditRoutes(server, ctx) {
     }));
 
     server.get('/api/export/weekly-trends', wrap(async (req, res) => {
-        if (!requireSession(req, res, true)) return;
+        const session = requireSession(req, res, true);
+        if (!session) return;
         const trends = db.all(`
             SELECT strftime('%Y-W%W',timestamp) as week, zone_name, COUNT(*) as total_audits,
                 ROUND(AVG(json_extract(audit_data,'$.front_edge_pass'))    *100,1) as front_edge_rate,
@@ -102,7 +103,7 @@ function registerAuditRoutes(server, ctx) {
         res.setHeader('Content-Type', 'text/csv');
         logManagerAudit(db, {
             req,
-            session: ctx.auth?.getSession(req.headers?.['x-session-token'] ?? req.body?.token),
+            session,
             action: 'export_weekly_trends',
             targetType: 'report',
             summary: 'Exported weekly audit trends CSV',

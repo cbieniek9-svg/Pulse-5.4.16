@@ -16,6 +16,9 @@ function makeDb() {
         getSettings: () => ({}),
         get(sql, ...params) {
             if (sql.includes('presence_assets')) return assets[params[0]] || null;
+            if (sql.includes('presence_staff_zones') && sql.includes('beacon_id')) {
+                return staff_zones[params[0]] || null;
+            }
             return null;
         },
         all(sql, ...params) {
@@ -48,10 +51,15 @@ function makeDb() {
             if (sql.includes('presence_staff_zones')) {
                 staff_zones[params[0]] = {
                     beacon_id: params[0],
+                    staff_name: params[1],
+                    zone_key: params[2],
+                    zone: params[3],
+                    gateway_id: params[4],
+                    rssi: params[5],
+                    updated_at: params[6],
                     asset_type: params[7],
                     asset_label: params[8],
-                    zone_key: params[2],
-                    updated_at: params[6],
+                    zone_since: params[9],
                 };
             }
             if (sql.includes('INSERT INTO presence_assets') || sql.includes('UPDATE presence_assets')) {

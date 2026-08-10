@@ -51,7 +51,7 @@ foreach ($line in Get-Content '${mf}') {
     if ([int]$lab % 20 -eq 0) { $g.DrawString($lab, $font, $brushR, $x-8, 8) }
   } else {
     $x=[int]$p[1]; $lab=$p[2]
-    $g.DrawLine($penB, $x, 12, $x, $($bot - $top - 2))
+    $g.DrawLine($penB, $x, 12, $x, ${bot - top - 2})
     $g.DrawString($lab, $font, $brush, $x+1, 20)
   }
 }

@@ -25,8 +25,10 @@ $XmlPath = Join-Path $ServiceDir "TGP-CommandCenter.xml"
 $LogFile = Join-Path $ServiceDir "install.log"
 $ReadyUrl = "http://127.0.0.1:3001/api/ready"
 
-# Install root = parent of resources\ (same place Electron keeps tgp_ops.db)
-$InstallRoot = (Resolve-Path (Join-Path $AppRoot "..\..")).Path
+# Immutable app install path (parent of resources\) — used to stop desktop processes.
+# InstallRoot may be overridden for lock/TGP_DATA_DIR only.
+$AppInstallRoot = (Resolve-Path (Join-Path $AppRoot "..\..")).Path
+$InstallRoot = $AppInstallRoot
 # Optional override: service\tgp-data-dir.txt (one line = absolute data folder)
 $dataDirFile = Join-Path $ServiceDir "tgp-data-dir.txt"
 if (Test-Path $dataDirFile) {
@@ -96,13 +98,12 @@ function Stop-ConflictingListeners {
     }
 
     # Desktop .exe hosting the API will fight the service for port 3001.
+    # Match immutable AppInstallRoot (not overridable InstallRoot / TGP_DATA_DIR).
     Get-Process -ErrorAction SilentlyContinue | Where-Object {
-        $_.ProcessName -match 'TGP|electron' -or ($_.Path -and $_.Path -like "*\TGP_V*\*")
+        $_.Path -and ($_.Path -like "*$AppInstallRoot*")
     } | ForEach-Object {
-        if ($_.Path -and ($_.Path -like "*$InstallRoot*" -or $_.ProcessName -match '^TGP')) {
-            Write-Log "Stopping desktop app pid=$($_.Id) ($($_.ProcessName)) so service can own port 3001"
-            Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
-        }
+        Write-Log "Stopping desktop app pid=$($_.Id) ($($_.ProcessName)) so service can own port 3001"
+        Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
     }
     # A process killed during stale-lock recovery can leave the atomic reclaim
     # mutex behind. Conflicting app processes are stopped now, so clear it instead
@@ -264,19 +265,28 @@ Stop-ConflictingListeners
 
 # 3) Always rewrite XML with absolute paths for THIS install
 # Service executable = Electron as Node so ABI is always 145.
+function Escape-Xml([string]$value) {
+    if ($null -eq $value) { return '' }
+    return (($value -replace '&', '&amp;') -replace '<', '&lt;' -replace '>', '&gt;' -replace '"', '&quot;' -replace "'", '&apos;')
+}
+$XmlElectronExe = Escape-Xml $ElectronExe
+$XmlServerCjs = Escape-Xml $ServerCjs
+$XmlAppRoot = Escape-Xml $AppRoot
+$XmlInstallRoot = Escape-Xml $InstallRoot
+$XmlLogPath = Escape-Xml $LogPath
 $xml = @"
 <service>
   <id>TGP-CommandCenter</id>
   <name>TGP Command Center</name>
   <description>TGP Command Center headless API (phones, TV, /rec). Starts at boot before login. Electron-as-Node ABI 145.</description>
-  <executable>$ElectronExe</executable>
-  <arguments>"$ServerCjs"</arguments>
-  <workingdirectory>$AppRoot</workingdirectory>
+  <executable>$XmlElectronExe</executable>
+  <arguments>"$XmlServerCjs"</arguments>
+  <workingdirectory>$XmlAppRoot</workingdirectory>
   <env name="ELECTRON_RUN_AS_NODE" value="1"/>
   <env name="TGP_SERVICE" value="1"/>
-  <env name="TGP_DATA_DIR" value="$InstallRoot"/>
+  <env name="TGP_DATA_DIR" value="$XmlInstallRoot"/>
   <logmode>rotate</logmode>
-  <logpath>$LogPath</logpath>
+  <logpath>$XmlLogPath</logpath>
   <onfailure action="restart" delay="5 sec"/>
   <onfailure action="restart" delay="10 sec"/>
   <onfailure action="restart" delay="30 sec"/>
@@ -291,24 +301,43 @@ Write-Log "Wrote absolute paths into TGP-CommandCenter.xml"
 Write-Log "  executable: $ElectronExe (ELECTRON_RUN_AS_NODE=1)"
 Write-Log "  data: $InstallRoot"
 
-# 3b) LAN firewall: HTTP phones + HTTPS camera
+# 3b) LAN firewall: HTTP phones + HTTPS camera (private/domain + LocalSubnet only)
+$firewallFailed = $false
 foreach ($rule in @(
     @{ Name = 'TGP Command Center HTTP'; Port = 3001 },
     @{ Name = 'TGP Command Center HTTPS'; Port = 3443 }
 )) {
     try {
         netsh advfirewall firewall delete rule name="$($rule.Name)" | Out-Null
-        $fw = netsh advfirewall firewall add rule name="$($rule.Name)" dir=in action=allow protocol=TCP localport=$($rule.Port) 2>&1
-        Write-Log "firewall $($rule.Name) :$($rule.Port): $fw"
+        $delExit = $LASTEXITCODE
+        if ($delExit -ne 0) {
+            # Missing rule is common on first install; still log non-zero for diagnosis.
+            Write-Log "firewall delete $($rule.Name): exit=$delExit (continuing if rule was absent)"
+        }
+        $fw = netsh advfirewall firewall add rule name="$($rule.Name)" dir=in action=allow protocol=TCP localport=$($rule.Port) profile=private,domain remoteip=LocalSubnet 2>&1
+        $addExit = $LASTEXITCODE
+        if ($addExit -ne 0) {
+            Write-Log "firewall FAILED $($rule.Name) :$($rule.Port) exit=$addExit : $fw"
+            $firewallFailed = $true
+        } else {
+            Write-Log "firewall $($rule.Name) :$($rule.Port) profile=private,domain remoteip=LocalSubnet: $fw"
+        }
     } catch {
-        Write-Log "firewall warn $($rule.Name): $($_.Exception.Message)"
+        Write-Log "firewall FAILED $($rule.Name): $($_.Exception.Message)"
+        $firewallFailed = $true
     }
+}
+if ($firewallFailed) {
+    throw "Required firewall configuration failed — install aborted"
 }
 
 # 4) Install + start
 Write-Log "Installing Windows service TGP-CommandCenter..."
 Push-Location $ServiceDir
+$prevEapInstall = $ErrorActionPreference
 try {
+    # WinSW can write non-terminating stderr while still returning useful exit codes.
+    $ErrorActionPreference = "Continue"
     & $Wrapper stop 2>&1 | ForEach-Object { Write-Log "stop: $_" }
     & $Wrapper uninstall 2>&1 | ForEach-Object { Write-Log "uninstall: $_" }
     $installOut = & $Wrapper install 2>&1
@@ -319,6 +348,7 @@ try {
     $startOut | ForEach-Object { Write-Log "start: $_" }
     if ($LASTEXITCODE -ne 0) { throw "WinSW start failed ($LASTEXITCODE)" }
 } finally {
+    $ErrorActionPreference = $prevEapInstall
     Pop-Location
 }
 

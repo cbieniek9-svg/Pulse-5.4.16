@@ -38,13 +38,15 @@ module.exports = (server, db, auth, broadcastUpdate, getStoreDateStamp, getStore
         try {
             await fn(req, res);
         } catch (err) {
-            const session = auth.getSession(req.headers?.['x-session-token'] ?? req.body?.token);
-            const { recordAppError } = require('./lib/app-log.cjs');
-            recordAppError(`api/${req.method} ${req.url}`, err.message || 'Internal Server Error', err, {
-                status: err.status || (String(err.message).includes('UNIQUE') ? 409 : 500),
-                sessionUser: session?.name || '',
-                sessionRole: session?.role || '',
-            }, db);
+            try {
+                const session = auth.getSession(req.headers?.['x-session-token'] ?? req.body?.token);
+                const { recordAppError } = require('./lib/app-log.cjs');
+                recordAppError(`api/${req.method} ${req.url}`, err.message || 'Internal Server Error', err, {
+                    status: err.status || (String(err.message).includes('UNIQUE') ? 409 : 500),
+                    sessionUser: session?.name || '',
+                    sessionRole: session?.role || '',
+                }, db);
+            } catch (_) { /* never let logging/session lookup mask the original failure */ }
             console.error(`[API] ${req.method} ${req.url}: ${err.message}`);
             if (!res.headersSent) {
                 const status = err.status || (String(err.message).includes('UNIQUE') ? 409 : 500);

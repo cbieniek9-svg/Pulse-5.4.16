@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../../lib/auth.jsx';
 import { useSync } from '../../../providers/SyncProvider.jsx';
 import { useFloorUi } from '../../shared/NoticeProvider.jsx';
@@ -17,6 +17,11 @@ export default function Core4ZoneCheckPanel() {
     const [failHole, setFailHole] = useState(false);
     const [failClear, setFailClear] = useState(false);
     const [notes, setNotes] = useState('');
+
+    useEffect(() => {
+        if (!zones.length) return;
+        if (!zones.includes(zone)) setZone(zones[0]);
+    }, [zones, zone]);
 
     const submit = async () => {
         if (!zone) {

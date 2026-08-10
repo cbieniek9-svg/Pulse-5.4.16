@@ -59,11 +59,11 @@ foreach ($line in Get-Content '${mf}') {
   $p=$line.Split(','); $kind=$p[0]; $x=[int]$p[1]; $y=[int]$p[2]; $sz=[int]$p[3]
   if ($kind -eq 'C') { $g.DrawEllipse($pen,$x-2,$y-2,4,4) }
   elseif ($kind -eq 'X') {
-    $font = New-Object System.Drawing.Font 'Arial', ([math]::Max(8,$sz)), ([System.Drawing.FontStyle]::Bold)
+    $font = New-Object System.Drawing.Font 'Arial', ([math]::Max(8,$sz)), ([System.Drawing.FontStyle]::Bold), ([System.Drawing.GraphicsUnit]::Pixel)
     $g.DrawString('X', $font, $brush, [float]$x, [float]$y)
     $font.Dispose()
   } else {
-    $font = New-Object System.Drawing.Font 'Arial', ([math]::Max(8,$sz)), ([System.Drawing.FontStyle]::Regular)
+    $font = New-Object System.Drawing.Font 'Arial', ([math]::Max(8,$sz)), ([System.Drawing.FontStyle]::Regular), ([System.Drawing.GraphicsUnit]::Pixel)
     $g.DrawString('Abc', $font, $brush, [float]$x, [float]$y)
     $font.Dispose()
   }

@@ -5,7 +5,7 @@ const path = require('path');
 
 const {
     verifyOpsDatabaseCopy,
-    assemblePackageSidecars,
+    assemblePackageSidecarsSync,
     hashFile,
     BACKUP_VERIFICATION_FAILED,
 } = require('./backup-package.cjs');
@@ -89,6 +89,7 @@ function snapshotError(message, causeCode) {
 }
 
 function emptyResult(pendingMigrations) {
+    const pending = Array.isArray(pendingMigrations) ? pendingMigrations : [];
     return {
         ok: false,
         skipped: false,
@@ -96,7 +97,7 @@ function emptyResult(pendingMigrations) {
         file: null,
         path: null,
         packageId: null,
-        pending_migrations: pendingMigrations.map((m) => m.file || String(m)),
+        pending_migrations: pending.map((m) => (m && m.file) || String(m)),
         error: null,
         code: null,
     };
@@ -173,7 +174,7 @@ function createVerifiedMigrationPackageSync({
         size: fs.statSync(opsDbPath).size,
         hash: hashFile(opsDbPath),
     }];
-    artifacts.push(...assemblePackageSidecars({ dataRoot, packageDir: directory }));
+    artifacts.push(...assemblePackageSidecarsSync({ dataRoot, packageDir: directory }));
 
     const manifest = {
         packageId,

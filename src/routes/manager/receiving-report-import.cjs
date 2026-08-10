@@ -32,9 +32,10 @@ function registerReceivingReportImportRoutes(server, ctx) {
         const fillSales = b.fill_sales ?? b.fillSales;
         const dryRun = !!(b.dry_run ?? b.dryRun);
         const ratePercent = b.rate_percent ?? b.ratePercent ?? b.period_freight_rate_percent;
-        const tmpPath = path.join(os.tmpdir(), `ewm-import-${Date.now()}.xlsx`);
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ewm-import-'));
+        const tmpPath = path.join(tmpDir, 'workbook.xlsx');
         try {
-            fs.writeFileSync(tmpPath, Buffer.from(contentBase64, 'base64'));
+            await fs.promises.writeFile(tmpPath, Buffer.from(contentBase64, 'base64'));
             if (!dryRun) {
                 const preview = await importWorkbookToDb(db, tmpPath, {
                     replacePeriod,
@@ -72,7 +73,7 @@ function registerReceivingReportImportRoutes(server, ctx) {
         } catch (e) {
             fail(res, e.status || 400, e.message || 'Could not import workbook.');
         } finally {
-            try { fs.unlinkSync(tmpPath); } catch (_) {}
+            try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (_) {}
         }
     }));
 

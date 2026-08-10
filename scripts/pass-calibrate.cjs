@@ -7,11 +7,11 @@ const { execFileSync } = require('child_process');
 const jpeg = require('jpeg-js');
 const { extractEmbeddedJpegs, pageImageNeeds180 } = require('../src/lib/incident-investigation-pdf.cjs');
 const map = require('../src/lib/incident-investigation-pdf-map.cjs');
+const { pdfToPix, pixToPdf, cropPdfRect } = require('./lib/calib-crop.cjs');
 
 const root = path.join(__dirname, '..');
 const calib = path.join(root, '_calib');
 fs.mkdirSync(calib, { recursive: true });
-const Wpdf = 612; const Hpdf = 792;
 
 function ensurePages() {
     const need = [0, 1, 2, 3, 4].some((i) => !fs.existsSync(path.join(calib, `page-${i}.jpg`)));
@@ -39,16 +39,15 @@ function load(page) {
 }
 
 function toPdf(W, H, x, y) {
-    return {
-        x: Math.round((x * Wpdf) / W * 10) / 10,
-        y: Math.round((Hpdf - (y * Hpdf) / H) * 10) / 10,
-    };
+    return pixToPdf(W, H, x, y);
 }
 function toPix(W, H, x, y) {
-    return {
-        x: Math.round((x * W) / Wpdf),
-        y: Math.round(((Hpdf - y) * H) / Hpdf),
-    };
+    return pdfToPix(W, H, x, y);
+}
+
+function pageFromSrcName(srcName) {
+    const m = srcName.match(/(?:pass-overlay|map-overlay|overlay|page)-(\d+)/);
+    return m ? Number(m[1]) : null;
 }
 
 function findHollow(page, pdfX1, pdfY1, pdfX2, pdfY2, { minSize = 11, maxSize = 20, step = 1 } = {}) {
@@ -137,12 +136,13 @@ $g.Dispose(); $bmp.Save('${dst}', [System.Drawing.Imaging.ImageFormat]::Jpeg); $
     return dst;
 }
 
-function crop(srcName, outName, pdfX1, pdfY1, pdfX2, pdfY2) {
-    const { width: W, height: H } = load(0);
-    const a = toPix(W, H, pdfX1, pdfY1);
-    const b = toPix(W, H, pdfX2, pdfY2);
-    const left = Math.min(a.x, b.x); const right = Math.max(a.x, b.x);
-    const top = Math.min(a.y, b.y); const bot = Math.max(a.y, b.y);
+function crop(srcName, outName, pdfX1, pdfY1, pdfX2, pdfY2, pageArg) {
+    const page = pageArg != null ? pageArg : pageFromSrcName(srcName);
+    if (page == null) {
+        throw new Error(`crop: cannot derive page from ${srcName}; pass page explicitly`);
+    }
+    const { width: W, height: H } = load(page);
+    const { left, top, right, bottom: bot } = cropPdfRect(W, H, pdfX1, pdfY1, pdfX2, pdfY2);
     const src = path.join(calib, srcName).replace(/\\/g, '/');
     const dst = path.join(calib, outName).replace(/\\/g, '/');
     const ps = path.join(os.tmpdir(), `pass-crop-${outName}.ps1`);

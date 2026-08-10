@@ -15,11 +15,19 @@ const {
 const TERMINAL_ORDER_STATUSES = new Set(['Closed', 'Archived', 'Complete']);
 const MANAGER_AUDITED_TABLES = new Set(['settings', 'staff', 'rhythm_tasks', 'vendor_schedule']);
 const DEVICE_ACTORS = Object.freeze({
+    tv: 'TV_DISPLAY',
     cs_desk: 'CS_DESK',
     receiving: 'RECEIVING_STATION',
     markdown: 'MARKDOWN_STATION',
 });
 const ACTION_SECRET_FIELDS = new Set(['pin', 'pin_hashed', 'token', 'deviceToken', 'device_token']);
+
+// Keep actor labels for every known device purpose; fail closed if a purpose is added without a label.
+for (const purpose of DEVICE_PURPOSES) {
+    if (!DEVICE_ACTORS[purpose]) {
+        throw new Error(`DEVICE_ACTORS missing mapping for purpose: ${purpose}`);
+    }
+}
 
 function nonEmptyCredential(value) {
     const candidate = Array.isArray(value) ? value[0] : value;
@@ -50,10 +58,10 @@ function resolveActionSessionToken(req) {
 }
 
 function actionAuditDetail(table, idVal, workingData) {
-    if (table !== 'staff') return JSON.stringify(idVal ?? workingData);
     const keys = Object.keys(workingData || {});
     return JSON.stringify({
-        target: idVal ?? workingData?.name ?? null,
+        target: idVal ?? workingData?.name ?? workingData?.setting_name ?? null,
+        table,
         fields_changed: keys.filter((key) => !ACTION_SECRET_FIELDS.has(key)),
         redacted_fields: keys.filter((key) => ACTION_SECRET_FIELDS.has(key)),
     });
@@ -136,6 +144,9 @@ function registerActionRoutes(server, ctx) {
                     return fail(res, 401, 'Pair this station device before submitting actions.', 'STATION_DEVICE_AUTH_REQUIRED');
                 }
                 actorName = DEVICE_ACTORS[devicePurpose];
+                if (!actorName) {
+                    return fail(res, 403, 'Device purpose is not permitted for this action.', 'DEVICE_ACTOR_UNMAPPED');
+                }
             } else {
                 return fail(res, 403, 'Authentication required.');
             }
@@ -308,12 +319,18 @@ function registerActionRoutes(server, ctx) {
                     });
                 }
             })();
-            if (canDeferBroadcasts) actionHandlers.flushDeferredBroadcasts();
         } catch (handlerErr) {
             if (canDeferBroadcasts) actionHandlers.discardDeferredBroadcasts();
             console.error(`[ACTION] ${table}/${action} by ${actorName}:`, handlerErr.message);
             const safeError = safeActionError(handlerErr);
             return fail(res, safeError.status, safeError.message, safeError.code);
+        }
+
+        // Broadcast after commit so a flush failure cannot undo a successful write response.
+        try {
+            if (canDeferBroadcasts) actionHandlers.flushDeferredBroadcasts();
+        } catch (broadcastErr) {
+            console.error(`[ACTION] broadcast flush after ${table}/${action}:`, broadcastErr?.message || broadcastErr);
         }
 
         res.json({ success: true });

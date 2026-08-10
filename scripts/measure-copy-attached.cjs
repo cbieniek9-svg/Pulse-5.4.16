@@ -23,7 +23,7 @@ for ($y = 460; $y -lt 540; $y += 2) {
     if ($d -ge 35 -and $d -le 100) {
       $pdfX = [math]::Round(($x + 5) * 612.0 / 1700, 1)
       $pdfY = [math]::Round(792 - (($y + 5) * 792.0 / 2200), 1)
-      $key = [string]$pdfX
+      $key = "$pdfX|$pdfY"
       if (-not $seen.ContainsKey($key)) {
         $seen[$key] = $true
         Write-Output ("box pdfX=$pdfX pdfY=$pdfY")

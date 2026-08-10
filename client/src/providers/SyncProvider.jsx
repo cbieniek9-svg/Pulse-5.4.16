@@ -41,8 +41,10 @@ function connectStream({ token, onEvent, onOpen, onError }) {
                 });
                 if (!r.ok) throw new Error('stream-token failed');
                 const { streamToken } = await r.json();
+                if (closed) return;
                 url += `?st=${encodeURIComponent(streamToken)}`;
             }
+            if (closed) return;
 
             es = new EventSource(url);
             es.onmessage = (e) => {

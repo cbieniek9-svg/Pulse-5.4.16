@@ -99,8 +99,18 @@ export default function PortalAuth({
     };
 
     useEffect(() => {
-        if (!isAuthenticated || (!requireManager && !requireSafeAccess)) return;
+        if (!isAuthenticated) {
+            setAccessOk(!needsGate);
+            setVerifying(false);
+            return;
+        }
+        if (!needsGate) {
+            setAccessOk(true);
+            setVerifying(false);
+            return;
+        }
         let cancelled = false;
+        setAccessOk(false);
         setVerifying(true);
         (async () => {
             try {
@@ -110,7 +120,10 @@ export default function PortalAuth({
                 if (cancelled) return;
                 if (!ok) setStatus((s) => s || 'Access denied.');
             } catch (e) {
-                if (!cancelled) setStatus(e.message || 'Could not verify access.');
+                if (!cancelled) {
+                    setAccessOk(false);
+                    setStatus(e.message || 'Could not verify access.');
+                }
             } finally {
                 if (!cancelled) setVerifying(false);
             }
@@ -125,11 +138,28 @@ export default function PortalAuth({
         }
     }, [isAuthenticated, accessOk, onAuthenticated]);
 
-    // Keep the authenticated portal mounted while manager/safe checks finish.
-    // Swapping login/verifying shells → app chrome is a large CLS hit on /settings.
-    if (isAuthenticated && (accessOk || verifying)) {
-        if (!accessOk && verifying && verifyingFallback) return verifyingFallback;
+    // Never mount protected children until accessOk — verifying must not flash the app.
+    if (isAuthenticated && accessOk) {
         return children;
+    }
+    if (isAuthenticated && verifying) {
+        if (verifyingFallback) return verifyingFallback;
+        return (
+            <div
+                id="auth-screen"
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minHeight: '100vh',
+                    background: 'radial-gradient(circle at center, #0b1a2e 0%, #000 100%)',
+                    color: '#88ccff',
+                    fontSize: '0.95rem',
+                }}
+            >
+                Verifying access…
+            </div>
+        );
     }
 
     const handleSubmit = async (e) => {
@@ -141,14 +171,22 @@ export default function PortalAuth({
         setLoading(true);
         setStatus('');
         try {
+            if (needsGate) {
+                setAccessOk(false);
+                setVerifying(true);
+            }
             await login(name, pin);
-            if (requireManager || requireSafeAccess) {
+            if (needsGate) {
                 const token = sessionStorage.getItem('tgp_token') || '';
                 await verifyAccess(name, token);
+            } else {
+                setAccessOk(true);
             }
         } catch (err) {
+            setAccessOk(false);
             setStatus(err.message || 'Login failed.');
         } finally {
+            setVerifying(false);
             setLoading(false);
         }
     };

@@ -11,6 +11,10 @@ const {
 
 const PRUNE_KEEP_HOURS = 48;
 const MAX_EVENTS_PER_INGEST = 500;
+const MAX_GATEWAY_ID_LEN = 32;
+/** Max gateways including configured + auto-discovered. */
+const MAX_GATEWAYS = 128;
+const GATEWAY_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/;
 
 function isPresenceEnabled(settings) {
     return settings?.Presence_Enabled === '1';
@@ -22,16 +26,36 @@ function rssiWeight(rssi, floor) {
     return Math.max(0, n + 100);
 }
 
-function ensureGatewayKnown(db, config, gwId, meta = {}) {
-    if (config.gateway_by_id[gwId]) return config.gateway_by_id[gwId];
-    if (!config.allow_discovery) {
-        throw Object.assign(new Error(`Unknown gateway_id: ${gwId}`), { status: 400 });
+function clampRecordedAt(recorded_at) {
+    const serverIso = new Date().toISOString();
+    if (recorded_at == null || recorded_at === '') return serverIso;
+    const ms = Date.parse(recorded_at);
+    if (!Number.isFinite(ms) || ms > Date.now()) return serverIso;
+    return new Date(ms).toISOString();
+}
+
+function assertValidGatewayId(gwId) {
+    const id = String(gwId || '').trim();
+    if (!id || id.length > MAX_GATEWAY_ID_LEN || !GATEWAY_ID_RE.test(id)) {
+        throw Object.assign(new Error(`Invalid gateway_id: ${gwId}`), { status: 400 });
     }
-    const kind = gwId.startsWith('AISLE-') ? 'aisle' : 'corner';
+    return id;
+}
+
+function ensureGatewayKnown(db, config, gwId, meta = {}) {
+    const id = assertValidGatewayId(gwId);
+    if (config.gateway_by_id[id]) return config.gateway_by_id[id];
+    if (!config.allow_discovery) {
+        throw Object.assign(new Error(`Unknown gateway_id: ${id}`), { status: 400 });
+    }
+    if ((config.gateways || []).length >= MAX_GATEWAYS) {
+        throw Object.assign(new Error('Too many discovered gateways'), { status: 400 });
+    }
+    const kind = id.startsWith('AISLE-') ? 'aisle' : 'corner';
     const discovered = {
-        id: gwId,
+        id,
         kind,
-        label: meta.label || `Discovered ${gwId}`,
+        label: meta.label || `Discovered ${id}`,
         zone: meta.zone || 'General',
         zone_key: meta.zone_key || 'General',
         order_count: false,
@@ -41,7 +65,7 @@ function ensureGatewayKnown(db, config, gwId, meta = {}) {
         enabled: true,
     };
     config.gateways.push(discovered);
-    config.gateway_by_id[gwId] = discovered;
+    config.gateway_by_id[id] = discovered;
     try {
         const { syncGatewayCatalog } = require('./presence-config.cjs');
         syncGatewayCatalog(db, [discovered]);
@@ -63,7 +87,7 @@ function ingestGatewayBatch(db, {
     if (!gwId) throw Object.assign(new Error('gateway_id required'), { status: 400 });
 
     const gw = ensureGatewayKnown(db, config, gwId, { label: relayed_by ? `Relay ${gwId}` : undefined });
-    const now = recorded_at || new Date().toISOString();
+    const now = clampRecordedAt(recorded_at);
     const rows = (seen || []).slice(0, MAX_EVENTS_PER_INGEST);
     let inserted = 0;
 
@@ -150,6 +174,7 @@ function resolveZoneForBeacon(sightings, config, beaconId) {
             const gw = config.gateway_by_id[s.gateway_id];
             if (!gw) return;
             const rssi = Number(s.rssi);
+            if (!Number.isFinite(rssi)) return;
             if (rssi > bestRssi) {
                 bestRssi = rssi;
                 bestGateway = gw;
@@ -191,10 +216,22 @@ function recomputeAssetZones(db, config, { sinceMinutes } = {}) {
         const zone = resolveZoneForBeacon(sightings, config, beaconId);
         if (!zone.zone_key) return;
         const asset = resolveAsset(db, config, beaconId);
+        let prev = null;
+        try {
+            prev = db.get(
+                'SELECT zone_key, zone_since FROM presence_staff_zones WHERE beacon_id = ?',
+                beaconId,
+            );
+        } catch (_) {
+            prev = null;
+        }
+        const zoneSince = (prev && prev.zone_key === zone.zone_key && prev.zone_since)
+            ? prev.zone_since
+            : now;
         db.run(
             `INSERT OR REPLACE INTO presence_staff_zones
-             (beacon_id, staff_name, zone_key, zone, gateway_id, rssi, updated_at, asset_type, asset_label)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             (beacon_id, staff_name, zone_key, zone, gateway_id, rssi, updated_at, asset_type, asset_label, zone_since)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             beaconId,
             asset.staff_name,
             zone.zone_key,
@@ -204,6 +241,7 @@ function recomputeAssetZones(db, config, { sinceMinutes } = {}) {
             now,
             asset.asset_type,
             asset.asset_label,
+            zoneSince,
         );
         liveAssets.push({
             beacon_id: beaconId,
@@ -215,6 +253,7 @@ function recomputeAssetZones(db, config, { sinceMinutes } = {}) {
             gateway_id: zone.gateway_id,
             rssi: zone.rssi,
             updated_at: now,
+            zone_since: zoneSince,
             confidence: zone.confidence,
         });
         updated += 1;
@@ -311,8 +350,10 @@ function buildPresenceBoard(db, config) {
 
     const zoneState = recomputeAssetZones(db, config);
     const gateways = getGatewayHealth(db, config);
-    const liveAssets = zoneState.live_assets || db.all(`
-        SELECT beacon_id, staff_name, zone_key, zone, gateway_id, rssi, updated_at, asset_type, asset_label
+    const liveAssets = (Array.isArray(zoneState.live_assets) && zoneState.live_assets.length)
+        ? zoneState.live_assets
+        : db.all(`
+        SELECT beacon_id, staff_name, zone_key, zone, gateway_id, rssi, updated_at, asset_type, asset_label, zone_since
         FROM presence_staff_zones
         ORDER BY asset_label, beacon_id
     `);
@@ -414,6 +455,16 @@ function buildPresenceFinishHint(db, config, typedStaff) {
 function buildPresenceExceptions(db, config) {
     if (!config?.enabled) return [];
     const items = [];
+    // Read persisted zone rows before board rebuild refreshes updated_at on live sightings.
+    let persistedZones = [];
+    try {
+        persistedZones = db.all(`
+            SELECT beacon_id, staff_name, zone_key, zone, gateway_id, rssi, updated_at, asset_type, asset_label
+            FROM presence_staff_zones
+        `) || [];
+    } catch (_) {
+        persistedZones = [];
+    }
     const board = buildPresenceBoard(db, config);
 
     getGatewayHealth(db, config)
@@ -439,7 +490,7 @@ function buildPresenceExceptions(db, config) {
         });
     });
 
-    items.push(...buildStaleReceivingCarts(board.live_assets, config));
+    items.push(...buildStaleReceivingCarts(persistedZones, config));
 
     return items;
 }

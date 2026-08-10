@@ -25,7 +25,8 @@ Each corner USB ESP32 runs a passive BLE scanner and POSTs batches to Command Ce
 ## Dev without hardware
 
 ```bash
-node scripts/presence-gateway-simulator.cjs --url http://127.0.0.1:3000 --key <key> --gateway GW-RECV --count 3
+set PRESENCE_GATEWAY_KEY=<key>
+node scripts/presence-gateway-simulator.cjs --url http://127.0.0.1:3000 --gateway GW-RECV --count 3
 ```
 
 Zone assignment uses **strongest RSSI per corner**, not trilateration — reliable for warehouse aisles.

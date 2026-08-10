@@ -118,7 +118,7 @@ export default function BriefingPanel() {
                 adv={meta.rhythm_load_advisor}
                 onDefer={async (storeDate, rhythmIds) => {
                     try {
-                        await actions.deferRhythm(storeDate || syncData?.storeDate, rhythmIds);
+                        await actions.deferRhythm(storeDate || storeToday(syncData), rhythmIds);
                         showNotice('Rhythm deferred', 'success');
                     } catch (e) {
                         showNotice(e.message, 'error');
