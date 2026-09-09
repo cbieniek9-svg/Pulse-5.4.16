@@ -45,7 +45,7 @@
     "express-rate-limit": "^7.5.0",
     "html5-qrcode": "^2.3.8",
     "jsbarcode": "^3.12.3",
-    "multer": "^2.2.0",
+    "multer": "^2.3.0",
     "node-cron": "^3.0.3",
     "pdf-lib": "^1.17.1",
     "react": "19.2.6",
